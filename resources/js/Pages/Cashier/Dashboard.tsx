@@ -1,3 +1,4 @@
+import LogoutButton from '@/Components/LogoutButton';
 import { Head } from '@inertiajs/react';
 
 export default function Dashboard() {
@@ -10,14 +11,14 @@ export default function Dashboard() {
                     Cashier Dashboard
                 </h1>
 
+                <LogoutButton />
+
                 <p className="mt-2 text-gray-600">
                     Welcome to the Ramyeon Corner Loyalty System.
                 </p>
 
                 <div className="mt-6 rounded-lg bg-white p-6 shadow">
-                    <h2 className="text-lg font-semibold">
-                        Cashier
-                    </h2>
+                    <h2 className="text-lg font-semibold">Cashier</h2>
 
                     <p className="mt-2 text-gray-600">
                         You are logged in as a cashier.
