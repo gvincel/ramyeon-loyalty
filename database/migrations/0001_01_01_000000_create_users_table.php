@@ -11,18 +11,32 @@ return new class extends Migration
         Schema::create('users', function (Blueprint $table) {
             $table->id();
 
-            // Admin uses email; cashier uses username.
-            $table->string('username', 50)->nullable()->unique();
-            $table->string('email', 100)->nullable()->unique();
+            // Display name
+            $table->string('name');
+
+            // Cashiers use username; admins use email.
+            $table->string('username', 50)
+                ->nullable()
+                ->unique();
+
+            $table->string('email', 100)
+                ->nullable()
+                ->unique();
+
+            $table->timestamp('email_verified_at')
+                ->nullable();
 
             $table->string('password', 255);
 
+            $table->rememberToken();
+
             $table->enum('role', [
                 'admin',
-                'cashier'
+                'cashier',
             ]);
 
-            $table->boolean('is_active')->default(true);
+            $table->boolean('is_active')
+                ->default(true);
 
             $table->timestamps();
 

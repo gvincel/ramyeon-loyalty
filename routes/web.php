@@ -72,6 +72,11 @@ Route::middleware(['auth', 'role:cashier'])->group(function () {
         return Inertia::render('Cashier/Dashboard');
     })->name('cashier.dashboard');
 
+    Route::post('/cashier/transactions/find-customer', [
+        \App\Http\Controllers\Cashier\TransactionController::class,
+        'findCustomer',
+    ])->name('cashier.transactions.find-customer');
+
 });
 
 /*
