@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Admin\CashierController;
+use App\Http\Controllers\Admin\CustomerController;
 use App\Http\Controllers\ProfileController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
@@ -47,6 +48,12 @@ Route::middleware(['auth', 'role:admin'])->group(function () {
 
     Route::patch('/admin/cashiers/{cashier}/status', [CashierController::class, 'toggleStatus'])
         ->name('admin.cashiers.toggle-status');
+
+    Route::get('/admin/customers', [CustomerController::class, 'index'])
+    ->name('admin.customers.index');
+
+    Route::post('/admin/customers', [CustomerController::class, 'store'])
+    ->name('admin.customers.store');
 
 });
 
