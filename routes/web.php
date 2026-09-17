@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Admin\CashierController;
 use App\Http\Controllers\ProfileController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
@@ -34,6 +35,18 @@ Route::middleware(['auth', 'role:admin'])->group(function () {
     Route::get('/admin/dashboard', function () {
         return Inertia::render('Admin/Dashboard');
     })->name('admin.dashboard');
+
+    Route::get('/admin/cashiers', [CashierController::class, 'index'])
+        ->name('admin.cashiers.index');
+
+    Route::post('/admin/cashiers', [CashierController::class, 'store'])
+        ->name('admin.cashiers.store');
+
+    Route::put('/admin/cashiers/{cashier}', [CashierController::class, 'update'])
+        ->name('admin.cashiers.update');
+
+    Route::patch('/admin/cashiers/{cashier}/status', [CashierController::class, 'toggleStatus'])
+        ->name('admin.cashiers.toggle-status');
 
 });
 
