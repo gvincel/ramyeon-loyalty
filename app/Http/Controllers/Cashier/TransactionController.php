@@ -11,6 +11,46 @@ use Illuminate\Support\Facades\DB;
 
 class TransactionController extends Controller
 {
+    public function index(Request $request)
+    {
+        $validated = $request->validate([
+            'search' => [
+                'nullable',
+                'string',
+                'max:100',
+            ],
+        ]);
+
+        $search = $validated['search'] ?? null;
+
+        $transactions = Transaction::with('customer')
+            ->where('cashier_id', $request->user()->id)
+            ->when($search, function ($query) use ($search) {
+                $query->where(function ($query) use ($search) {
+                    $query->where('receipt_number', 'like', "%{$search}%")
+                        ->orWhereHas('customer', function ($query) use ($search) {
+                            $query->where('customer_code', 'like', "%{$search}%")
+                                ->orWhere('first_name', 'like', "%{$search}%")
+                                ->orWhere('last_name', 'like', "%{$search}%")
+                                ->orWhereRaw(
+                                    "CONCAT(first_name, ' ', last_name) LIKE ?",
+                                    ["%{$search}%"]
+                                );
+                        });
+                });
+            })
+            ->latest('created_at')
+            ->paginate(10)
+            ->withQueryString();
+
+        return inertia('Cashier/Transactions/Index', [
+            'transactions' => $transactions,
+            'filters' => [
+                'search' => $search,
+            ],
+        ]);
+    }
+
     public function findCustomer(Request $request)
     {
         $validated = $request->validate([

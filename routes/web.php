@@ -76,6 +76,11 @@ Route::middleware(['auth', 'role:cashier'])->group(function () {
         return Inertia::render('Cashier/QRScanner');
     })->name('cashier.qr-scanner');
 
+    Route::get('/cashier/transactions', [
+        \App\Http\Controllers\Cashier\TransactionController::class,
+        'index',
+    ])->name('cashier.transactions.index');
+
     Route::post('/cashier/transactions/find-customer', [
         \App\Http\Controllers\Cashier\TransactionController::class,
         'findCustomer',
