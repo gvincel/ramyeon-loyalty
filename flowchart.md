@@ -1,0 +1,43 @@
+```mermaid
+flowchart TD
+
+    START([Start]) --> LOGIN[Open System]
+
+    LOGIN --> AUTH{Login}
+
+    AUTH -->|Admin| ADMIN_DASH[Admin Dashboard]
+    AUTH -->|Cashier| CASHIER_DASH[Cashier Dashboard]
+    AUTH -->|Invalid Credentials| LOGIN_ERROR[Show Login Error]
+    LOGIN_ERROR --> LOGIN
+
+    ADMIN_DASH --> ADMIN_MODULES[Admin Modules]
+    CASHIER_DASH --> CASHIER_MODULES[Cashier Modules]
+
+    ADMIN_MODULES --> ADMIN_CASHIER[Cashier Management]
+    ADMIN_MODULES --> ADMIN_CUSTOMER[Customer Management]
+    ADMIN_MODULES --> ADMIN_REWARDS[Rewards Management]
+    ADMIN_MODULES --> ADMIN_TRANSACTIONS[Transaction Monitoring]
+    ADMIN_MODULES --> ADMIN_REPORTS[Reports]
+    ADMIN_MODULES --> ADMIN_SETTINGS[System Settings]
+
+    CASHIER_MODULES --> CASHIER_CUSTOMER[Customer Management]
+    CASHIER_MODULES --> CASHIER_SCANNER[QR Scanner]
+    CASHIER_MODULES --> CASHIER_TRANSACTION[Process Transaction]
+    CASHIER_MODULES --> CASHIER_HISTORY[Transaction History]
+    CASHIER_MODULES --> CASHIER_REWARD[Reward Redemption]
+
+    ADMIN_CASHIER --> LOGOUT_ADMIN{Logout}
+    ADMIN_CUSTOMER --> LOGOUT_ADMIN
+    ADMIN_REWARDS --> LOGOUT_ADMIN
+    ADMIN_TRANSACTIONS --> LOGOUT_ADMIN
+    ADMIN_REPORTS --> LOGOUT_ADMIN
+    ADMIN_SETTINGS --> LOGOUT_ADMIN
+
+    CASHIER_CUSTOMER --> LOGOUT_CASHIER{Logout}
+    CASHIER_SCANNER --> LOGOUT_CASHIER
+    CASHIER_TRANSACTION --> LOGOUT_CASHIER
+    CASHIER_HISTORY --> LOGOUT_CASHIER
+    CASHIER_REWARD --> LOGOUT_CASHIER
+
+    LOGOUT_ADMIN --> LOGIN
+    LOGOUT_CASHIER --> LOGIN

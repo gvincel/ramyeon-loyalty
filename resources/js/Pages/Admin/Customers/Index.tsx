@@ -1,6 +1,8 @@
-import { Head, useForm } from '@inertiajs/react';
-import { FormEvent, useState } from 'react';
+import { Head, router, useForm, usePage } from '@inertiajs/react';
+import FlashMessage from '@/Components/FlashMessage';
+import { PageProps } from '@/types';
 import { QRCodeSVG } from 'qrcode.react';
+import { useState } from 'react';
 
 interface CustomerQrCode {
     id: number;
@@ -27,39 +29,48 @@ interface Props {
 }
 
 export default function Index({ customers }: Props) {
-    const [showAddModal, setShowAddModal] = useState(false);
     const [selectedCustomer, setSelectedCustomer] =
+    useState<Customer | null>(null);
+
+    const [editCustomer, setEditCustomer] =
         useState<Customer | null>(null);
 
-    const { data, setData, post, processing, errors, reset } = useForm({
+    const [showEditModal, setShowEditModal] = useState(false);
+
+    const { flash } = usePage<PageProps>().props;
+
+    const { data, setData, put, processing, errors, reset } = useForm({
         first_name: '',
         last_name: '',
         phone_number: '',
         email: '',
     });
 
-    const submit = (event: FormEvent) => {
-        event.preventDefault();
+    const openEditModal = (customer: Customer) => {
+        setEditCustomer(customer);
 
-        post('/admin/customers', {
-            onSuccess: () => {
-                reset();
-                setShowAddModal(false);
-            },
+        setData({
+            first_name: customer.first_name,
+            last_name: customer.last_name,
+            phone_number: customer.phone_number,
+            email: customer.email ?? '',
         });
-    };
 
-    const closeModal = () => {
-        if (processing) {
-            return;
-        }
-
-        reset();
-        setShowAddModal(false);
+        setShowEditModal(true);
     };
 
     const closeQrModal = () => {
         setSelectedCustomer(null);
+    };
+
+    const toggleCustomerStatus = (customer: Customer) => {
+        const action = customer.is_active ? 'deactivate' : 'activate';
+
+        if (!confirm(`Are you sure you want to ${action} this customer?`)) {
+            return;
+        }
+
+        router.patch(`/admin/customers/${customer.id}/status`);
     };
 
     return (
@@ -68,6 +79,11 @@ export default function Index({ customers }: Props) {
 
             <div className="min-h-screen bg-gray-50 p-6">
                 <div className="mx-auto max-w-7xl">
+                    <FlashMessage
+                        success={flash.success}
+                        error={flash.error}
+                    />
+                    
                     {/* Header */}
                     <div className="mb-6 flex items-center justify-between">
                         <div>
@@ -79,21 +95,11 @@ export default function Index({ customers }: Props) {
                                 Manage your registered loyalty customers.
                             </p>
                         </div>
-
-                        <button
-                            type="button"
-                            onClick={() => setShowAddModal(true)}
-                            className="rounded-lg bg-red-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-red-700"
-                        >
-                            + Add Customer
-                        </button>
                     </div>
 
                     {/* Summary */}
                     <div className="mb-6 rounded-xl bg-white p-5 shadow-sm">
-                        <p className="text-sm text-gray-500">
-                            Total Customers
-                        </p>
+                        <p className="text-sm text-gray-500">Total Customers</p>
 
                         <p className="mt-1 text-2xl font-bold text-gray-900">
                             {customers.length}
@@ -145,9 +151,7 @@ export default function Index({ customers }: Props) {
                                                             {
                                                                 customer.first_name
                                                             }{' '}
-                                                            {
-                                                                customer.last_name
-                                                            }
+                                                            {customer.last_name}
                                                         </p>
 
                                                         <p className="text-xs text-gray-500">
@@ -194,7 +198,8 @@ export default function Index({ customers }: Props) {
                                                             }
                                                             disabled={
                                                                 !customer.qr_code ||
-                                                                !customer.qr_code
+                                                                !customer
+                                                                    .qr_code
                                                                     .is_active
                                                             }
                                                             className="text-sm font-medium text-red-600 hover:text-red-700 disabled:cursor-not-allowed disabled:text-gray-400"
@@ -204,9 +209,26 @@ export default function Index({ customers }: Props) {
 
                                                         <button
                                                             type="button"
+                                                            onClick={() =>
+                                                                openEditModal(
+                                                                    customer,
+                                                                )
+                                                            }
                                                             className="text-sm font-medium text-gray-600 hover:text-gray-800"
                                                         >
                                                             Edit
+                                                        </button>
+
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => toggleCustomerStatus(customer)}
+                                                            className={`text-sm font-medium ${
+                                                                customer.is_active
+                                                                    ? 'text-red-600 hover:text-red-700'
+                                                                    : 'text-green-600 hover:text-green-700'
+                                                            }`}
+                                                        >
+                                                            {customer.is_active ? 'Deactivate' : 'Activate'}
                                                         </button>
                                                     </div>
                                                 </td>
@@ -223,8 +245,8 @@ export default function Index({ customers }: Props) {
                                                 </p>
 
                                                 <p className="mt-1 text-sm text-gray-500">
-                                                    Add your first customer to
-                                                    get started.
+                                                    No registered customers are
+                                                    currently available.
                                                 </p>
                                             </td>
                                         </tr>
@@ -236,25 +258,30 @@ export default function Index({ customers }: Props) {
                 </div>
             </div>
 
-            {/* Add Customer Modal */}
-            {showAddModal && (
+            {/* Edit Customer Modal */}
+            {showEditModal && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
                     <div className="w-full max-w-lg rounded-xl bg-white shadow-xl">
                         {/* Modal Header */}
                         <div className="flex items-center justify-between border-b px-6 py-4">
                             <div>
                                 <h2 className="text-lg font-bold text-gray-900">
-                                    Add Customer
+                                    Edit Customer
                                 </h2>
-
                                 <p className="text-sm text-gray-500">
-                                    Create a new loyalty customer account.
+                                    Update the customer's account information.
                                 </p>
                             </div>
 
                             <button
                                 type="button"
-                                onClick={closeModal}
+                                onClick={() => {
+                                    if (!processing) {
+                                        reset();
+                                        setShowEditModal(false);
+                                        setEditCustomer(null);
+                                    }
+                                }}
                                 disabled={processing}
                                 className="text-2xl text-gray-400 hover:text-gray-600 disabled:cursor-not-allowed"
                             >
@@ -264,20 +291,34 @@ export default function Index({ customers }: Props) {
 
                         {/* Form */}
                         <form
-                            onSubmit={submit}
+                            onSubmit={(event) => {
+                                event.preventDefault();
+
+                                if (!editCustomer) {
+                                    return;
+                                }
+
+                                put(`/admin/customers/${editCustomer.id}`, {
+                                    onSuccess: () => {
+                                        reset();
+                                        setShowEditModal(false);
+                                        setEditCustomer(null);
+                                    },
+                                });
+                            }}
                             className="space-y-5 p-6"
                         >
                             {/* First Name */}
                             <div>
                                 <label
-                                    htmlFor="first_name"
+                                    htmlFor="edit_first_name"
                                     className="mb-1.5 block text-sm font-medium text-gray-700"
                                 >
                                     First Name
                                 </label>
 
                                 <input
-                                    id="first_name"
+                                    id="edit_first_name"
                                     type="text"
                                     value={data.first_name}
                                     onChange={(event) =>
@@ -300,21 +341,18 @@ export default function Index({ customers }: Props) {
                             {/* Last Name */}
                             <div>
                                 <label
-                                    htmlFor="last_name"
+                                    htmlFor="edit_last_name"
                                     className="mb-1.5 block text-sm font-medium text-gray-700"
                                 >
                                     Last Name
                                 </label>
 
                                 <input
-                                    id="last_name"
+                                    id="edit_last_name"
                                     type="text"
                                     value={data.last_name}
                                     onChange={(event) =>
-                                        setData(
-                                            'last_name',
-                                            event.target.value,
-                                        )
+                                        setData('last_name', event.target.value)
                                     }
                                     className="w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500"
                                     placeholder="Enter last name"
@@ -330,14 +368,14 @@ export default function Index({ customers }: Props) {
                             {/* Phone Number */}
                             <div>
                                 <label
-                                    htmlFor="phone_number"
+                                    htmlFor="edit_phone_number"
                                     className="mb-1.5 block text-sm font-medium text-gray-700"
                                 >
                                     Phone Number
                                 </label>
 
                                 <input
-                                    id="phone_number"
+                                    id="edit_phone_number"
                                     type="text"
                                     inputMode="numeric"
                                     maxLength={11}
@@ -369,7 +407,7 @@ export default function Index({ customers }: Props) {
                             {/* Email */}
                             <div>
                                 <label
-                                    htmlFor="email"
+                                    htmlFor="edit_email"
                                     className="mb-1.5 block text-sm font-medium text-gray-700"
                                 >
                                     Email{' '}
@@ -379,14 +417,11 @@ export default function Index({ customers }: Props) {
                                 </label>
 
                                 <input
-                                    id="email"
+                                    id="edit_email"
                                     type="email"
                                     value={data.email}
                                     onChange={(event) =>
-                                        setData(
-                                            'email',
-                                            event.target.value,
-                                        )
+                                        setData('email', event.target.value)
                                     }
                                     className="w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500"
                                     placeholder="example@email.com"
@@ -403,7 +438,13 @@ export default function Index({ customers }: Props) {
                             <div className="flex justify-end gap-3 border-t pt-5">
                                 <button
                                     type="button"
-                                    onClick={closeModal}
+                                    onClick={() => {
+                                        if (!processing) {
+                                            reset();
+                                            setShowEditModal(false);
+                                            setEditCustomer(null);
+                                        }
+                                    }}
                                     disabled={processing}
                                     className="rounded-lg border border-gray-300 px-4 py-2.5 text-sm font-semibold text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
                                 >
@@ -412,12 +453,9 @@ export default function Index({ customers }: Props) {
 
                                 <button
                                     type="submit"
-                                    disabled={processing}
                                     className="rounded-lg bg-red-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-50"
                                 >
-                                    {processing
-                                        ? 'Adding...'
-                                        : 'Add Customer'}
+                                    {processing ? 'Saving...' : 'Save Changes'}
                                 </button>
                             </div>
                         </form>
@@ -452,9 +490,7 @@ export default function Index({ customers }: Props) {
                         <div className="flex flex-col items-center px-6 py-6">
                             <div className="rounded-xl border border-gray-200 bg-white p-4">
                                 <QRCodeSVG
-                                    value={
-                                        selectedCustomer.qr_code.qr_token
-                                    }
+                                    value={selectedCustomer.qr_code.qr_token}
                                     size={240}
                                     level="H"
                                 />

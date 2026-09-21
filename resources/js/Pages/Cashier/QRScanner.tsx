@@ -1,8 +1,7 @@
+import QRScanner from '@/Components/QRScanner';
 import { Head } from '@inertiajs/react';
 import axios from 'axios';
 import { useCallback, useState } from 'react';
-
-import QRScanner from '@/Components/QRScanner';
 
 interface Customer {
     id: number;
@@ -18,6 +17,18 @@ interface ValidationErrors {
     purchase_amount?: string[];
 }
 
+interface Reward {
+    id: number;
+    reward_name: string;
+    reward_type: 'discount' | 'free_item';
+    points_required: number;
+    reward_value: string | null;
+    description: string | null;
+    start_date: string | null;
+    end_date: string | null;
+    is_active: boolean;
+}
+
 export default function QRScannerPage() {
     const [scannedText, setScannedText] = useState<string | null>(null);
     const [customer, setCustomer] = useState<Customer | null>(null);
@@ -28,6 +39,12 @@ export default function QRScannerPage() {
     const [success, setSuccess] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
+
+    const [rewards, setRewards] = useState<Reward[]>([]);
+    const [isLoadingRewards, setIsLoadingRewards] = useState(false);
+    const [redeemingRewardId, setRedeemingRewardId] = useState<number | null>(
+        null,
+    );
 
     const [receiptNumber, setReceiptNumber] = useState('');
     const [purchaseAmount, setPurchaseAmount] = useState('');
@@ -40,6 +57,7 @@ export default function QRScannerPage() {
         setValidationErrors({});
         setReceiptNumber('');
         setPurchaseAmount('');
+        setRewards([]);
         setIsLoading(true);
 
         try {
@@ -50,7 +68,26 @@ export default function QRScannerPage() {
                 },
             );
 
-            setCustomer(response.data.customer);
+            const customerData = response.data.customer;
+
+            setCustomer(customerData);
+
+            setIsLoadingRewards(true);
+
+            try {
+                const rewardsResponse = await axios.post(
+                    '/cashier/rewards/available',
+                    {
+                        customer_id: customerData.id,
+                    },
+                );
+
+                setRewards(rewardsResponse.data.rewards);
+            } catch (error) {
+                setRewards([]);
+            } finally {
+                setIsLoadingRewards(false);
+            }
         } catch (error) {
             if (axios.isAxiosError(error)) {
                 setError(
@@ -115,6 +152,61 @@ export default function QRScannerPage() {
         }
     };
 
+    const handleRedeemReward = async (rewardId: number) => {
+        if (!customer) {
+            return;
+        }
+
+        setError(null);
+        setSuccess(null);
+        setRedeemingRewardId(rewardId);
+
+        try {
+            const response = await axios.post(
+                '/cashier/reward-redemptions',
+                {
+                    customer_id: customer.id,
+                    reward_id: rewardId,
+                },
+            );
+
+            setCustomer({
+                ...customer,
+                points: response.data.new_points,
+            });
+
+            setSuccess(response.data.message);
+
+            try {
+                const rewardsResponse = await axios.post(
+                    '/cashier/rewards/available',
+                    {
+                        customer_id: customer.id,
+                    },
+                );
+
+                setRewards(rewardsResponse.data.rewards);
+            } catch {
+                // The redemption already succeeded.
+                // Keep the updated customer points even if
+                // refreshing the rewards list fails.
+            }
+        } catch (error) {
+            if (axios.isAxiosError(error)) {
+                setError(
+                    error.response?.data?.message ||
+                        'Unable to redeem reward.',
+                );
+            } else {
+                setError(
+                    'Something went wrong while redeeming the reward.',
+                );
+            }
+        } finally {
+            setRedeemingRewardId(null);
+        }
+    };
+
     const purchaseValue = Number(purchaseAmount);
 
     const pointsEarned =
@@ -171,6 +263,7 @@ export default function QRScannerPage() {
 
                         {customer && (
                             <>
+                                {/* Customer Information */}
                                 <div className="rounded-md bg-green-50 p-4">
                                     <p className="text-sm font-medium text-green-800">
                                         Customer Found
@@ -200,11 +293,13 @@ export default function QRScannerPage() {
                                     </div>
                                 </div>
 
+                                {/* Transaction Details */}
                                 <div className="mt-6 border-t pt-6">
                                     <h2 className="text-lg font-semibold text-gray-900">
                                         Transaction Details
                                     </h2>
 
+                                    {/* Receipt Number */}
                                     <div className="mt-4">
                                         <label
                                             htmlFor="receipt_number"
@@ -221,6 +316,7 @@ export default function QRScannerPage() {
                                                 setReceiptNumber(
                                                     event.target.value,
                                                 );
+
                                                 setValidationErrors(
                                                     (current) => ({
                                                         ...current,
@@ -243,6 +339,7 @@ export default function QRScannerPage() {
                                         )}
                                     </div>
 
+                                    {/* Purchase Amount */}
                                     <div className="mt-4">
                                         <label
                                             htmlFor="purchase_amount"
@@ -256,7 +353,6 @@ export default function QRScannerPage() {
                                                 ₱
                                             </span>
 
-                                            
                                             <input
                                                 id="purchase_amount"
                                                 type="text"
@@ -276,21 +372,30 @@ export default function QRScannerPage() {
                                                     event.currentTarget.blur();
                                                 }}
                                                 onChange={(event) => {
-                                                    const value = event.target.value;
+                                                    const value =
+                                                        event.target.value;
 
-                                                    if (/^\d*\.?\d{0,2}$/.test(value)) {
-                                                        setPurchaseAmount(value);
+                                                    if (
+                                                        /^\d*\.?\d{0,2}$/.test(
+                                                            value,
+                                                        )
+                                                    ) {
+                                                        setPurchaseAmount(
+                                                            value,
+                                                        );
 
-                                                        setValidationErrors((current) => ({
-                                                            ...current,
-                                                            purchase_amount: undefined,
-                                                        }));
+                                                        setValidationErrors(
+                                                            (current) => ({
+                                                                ...current,
+                                                                purchase_amount:
+                                                                    undefined,
+                                                            }),
+                                                        );
                                                     }
                                                 }}
                                                 placeholder="0.00"
                                                 className="block w-full rounded-md border-gray-300 pl-8 shadow-sm focus:border-red-500 focus:ring-red-500"
                                             />
-
                                         </div>
 
                                         {validationErrors.purchase_amount && (
@@ -303,6 +408,7 @@ export default function QRScannerPage() {
                                         )}
                                     </div>
 
+                                    {/* Points to Earn */}
                                     <div className="mt-6 rounded-md bg-yellow-50 p-4">
                                         <div className="flex items-center justify-between">
                                             <span className="text-sm font-medium text-yellow-800">
@@ -319,6 +425,7 @@ export default function QRScannerPage() {
                                         </p>
                                     </div>
 
+                                    {/* Complete Transaction */}
                                     <button
                                         type="button"
                                         onClick={handleSubmit}
@@ -332,6 +439,89 @@ export default function QRScannerPage() {
                                             ? 'Processing Transaction...'
                                             : 'Complete Transaction'}
                                     </button>
+                                </div>
+
+                                {/* Available Rewards */}
+                                <div className="mt-6 border-t pt-6">
+                                    <h2 className="text-lg font-semibold text-gray-900">
+                                        Available Rewards
+                                    </h2>
+
+                                    {isLoadingRewards && (
+                                        <div className="mt-4 rounded-md bg-blue-50 p-4">
+                                            <p className="text-sm font-medium text-blue-800">
+                                                Loading available rewards...
+                                            </p>
+                                        </div>
+                                    )}
+
+                                    {!isLoadingRewards &&
+                                        rewards.length === 0 && (
+                                            <div className="mt-4 rounded-md bg-gray-50 p-4">
+                                                <p className="text-sm text-gray-600">
+                                                    No rewards are currently
+                                                    available.
+                                                </p>
+                                            </div>
+                                        )}
+
+                                    {!isLoadingRewards &&
+                                        rewards.length > 0 && (
+                                            <div className="mt-4 space-y-3">
+                                                {rewards.map((reward) => (
+                                                    <div
+                                                        key={reward.id}
+                                                        className="rounded-md border border-gray-200 p-4"
+                                                    >
+                                                        <div className="flex items-start justify-between gap-4">
+                                                            <div>
+                                                                <h3 className="font-semibold text-gray-900">
+                                                                    {
+                                                                        reward.reward_name
+                                                                    }
+                                                                </h3>
+
+                                                                <p className="mt-1 text-sm text-gray-600">
+                                                                    {
+                                                                        reward.points_required
+                                                                    }{' '}
+                                                                    points
+                                                                    required
+                                                                </p>
+
+                                                                {reward.description && (
+                                                                    <p className="mt-2 text-sm text-gray-500">
+                                                                        {
+                                                                            reward.description
+                                                                        }
+                                                                    </p>
+                                                                )}
+                                                            </div>
+
+                                                            <button
+                                                                type="button"
+                                                                disabled={
+                                                                    customer.points < reward.points_required ||
+                                                                    redeemingRewardId !== null
+                                                                }
+                                                                onClick={() => handleRedeemReward(reward.id)}
+                                                                className="shrink-0 rounded-md bg-red-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-50"
+                                                            >
+                                                                {redeemingRewardId === reward.id ? 'Redeeming...' : 'Redeem'}
+                                                            </button>
+                                                        </div>
+
+                                                        {customer.points <
+                                                            reward.points_required && (
+                                                            <p className="mt-2 text-sm text-red-600">
+                                                                Not enough
+                                                                points.
+                                                            </p>
+                                                        )}
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
                                 </div>
                             </>
                         )}

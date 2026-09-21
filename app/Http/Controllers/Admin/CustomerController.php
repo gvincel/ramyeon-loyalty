@@ -4,10 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Customer;
-use App\Models\CustomerQrCode;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Str;
 
 class CustomerController extends Controller
 {
@@ -27,9 +24,9 @@ class CustomerController extends Controller
     }
 
     /**
-     * Store a new customer.
+     * Update an existing customer.
      */
-    public function store(Request $request)
+    public function update(Request $request, Customer $customer)
     {
         $validated = $request->validate([
             'first_name' => [
@@ -48,7 +45,7 @@ class CustomerController extends Controller
                 'required',
                 'digits:11',
                 'regex:/^09\d{9}$/',
-                'unique:customers,phone_number',
+                'unique:customers,phone_number,' . $customer->id,
             ],
 
             'email' => [
@@ -58,31 +55,29 @@ class CustomerController extends Controller
             ],
         ]);
 
-        $customerCode = 'RC-' . strtoupper(Str::random(8));
-
-        while (Customer::where('customer_code', $customerCode)->exists()) {
-            $customerCode = 'RC-' . strtoupper(Str::random(8));
-        }
-
-        DB::transaction(function () use ($validated, $customerCode) {
-            $customer = Customer::create([
-                'customer_code' => $customerCode,
-                'first_name' => $validated['first_name'],
-                'last_name' => $validated['last_name'],
-                'phone_number' => $validated['phone_number'],
-                'email' => $validated['email'] ?? null,
-            ]);
-
-            CustomerQrCode::create([
-                'customer_id' => $customer->id,
-                'qr_token' => bin2hex(random_bytes(32)),
-                'is_active' => true,
-                'created_at' => now(),
-            ]);
-        });
+        $customer->update($validated);
 
         return redirect()
             ->route('admin.customers.index')
-            ->with('success', 'Customer added successfully.');
+            ->with('success', 'Customer updated successfully.');
+    }
+
+    /**
+     * Activate or deactivate an existing customer.
+     */
+    public function toggleStatus(Customer $customer)
+    {
+        $customer->update([
+            'is_active' => !$customer->is_active,
+        ]);
+
+        return redirect()
+            ->route('admin.customers.index')
+            ->with(
+                'success',
+                $customer->is_active
+                    ? 'Customer activated successfully.'
+                    : 'Customer deactivated successfully.'
+            );
     }
 }
