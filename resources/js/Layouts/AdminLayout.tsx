@@ -1,10 +1,8 @@
 import LogoutButton from '@/Components/LogoutButton';
-
 import { Link, usePage } from '@inertiajs/react';
-
 import { PropsWithChildren } from 'react';
 
-export default function CashierLayout({
+export default function AdminLayout({
     children,
 }: PropsWithChildren) {
     const { auth } = usePage().props;
@@ -25,8 +23,9 @@ export default function CashierLayout({
                         <h1 className="truncate text-lg font-bold text-gray-900">
                             Ramyeon Corner
                         </h1>
+
                         <p className="mt-0.5 text-sm text-gray-500">
-                            Cashier
+                            Admin
                         </p>
                     </div>
                 </div>
@@ -34,17 +33,17 @@ export default function CashierLayout({
                 {/* Navigation */}
                 <nav
                     className="flex-1 space-y-1 px-4 py-5"
-                    aria-label="Cashier navigation"
+                    aria-label="Admin navigation"
                 >
                     <Link
-                        href={route('cashier.dashboard')}
+                        href={route('admin.dashboard')}
                         className={`flex items-center rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
-                            route().current('cashier.dashboard')
+                            route().current('admin.dashboard')
                                 ? 'bg-red-50 text-red-700'
                                 : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'
                         }`}
                         aria-current={
-                            route().current('cashier.dashboard')
+                            route().current('admin.dashboard')
                                 ? 'page'
                                 : undefined
                         }
@@ -53,67 +52,51 @@ export default function CashierLayout({
                     </Link>
 
                     <Link
-                        href={route('cashier.customers.register')}
+                        href={route('admin.customers.index')}
                         className={`flex items-center rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
-                            route().current('cashier.customers.*')
+                            route().current('admin.customers.*')
                                 ? 'bg-red-50 text-red-700'
                                 : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'
                         }`}
                         aria-current={
-                            route().current('cashier.customers.*')
+                            route().current('admin.customers.*')
                                 ? 'page'
                                 : undefined
                         }
                     >
-                        Register Customer
+                        Customers
                     </Link>
 
                     <Link
-                        href={route('cashier.qr-scanner')}
+                        href={route('admin.cashiers.index')}
                         className={`flex items-center rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
-                            route().current('cashier.qr-scanner')
+                            route().current('admin.cashiers.*')
                                 ? 'bg-red-50 text-red-700'
                                 : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'
                         }`}
                         aria-current={
-                            route().current('cashier.qr-scanner')
+                            route().current('admin.cashiers.*')
                                 ? 'page'
                                 : undefined
                         }
                     >
-                        QR Scanner
+                        Cashiers
                     </Link>
 
                     <Link
-                        href={route('cashier.transactions.index')}
+                        href={route('admin.rewards.index')}
                         className={`flex items-center rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
-                            route().current('cashier.transactions.*')
+                            route().current('admin.rewards.*')
                                 ? 'bg-red-50 text-red-700'
                                 : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'
                         }`}
                         aria-current={
-                            route().current('cashier.transactions.*')
+                            route().current('admin.rewards.*')
                                 ? 'page'
                                 : undefined
                         }
                     >
-                        Transactions
-                    </Link>
-
-                    <Link
-                        href={route('cashier.reward-redemptions.index')}
-                        className={`flex items-center rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
-                            route().current('cashier.reward-redemptions.*')
-                                ? 'bg-red-50 text-red-700'
-                                : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'
-                        }`}
-                        aria-current={
-                            route().current('cashier.reward-redemptions.*')
-                                ? 'page'
-                                : undefined
-                        }
-                    >
-                        Reward Redemption History
+                        Rewards
                     </Link>
                 </nav>
 
@@ -124,7 +107,7 @@ export default function CashierLayout({
                     </p>
 
                     <p className="mt-0.5 truncate px-1 text-xs text-gray-500">
-                        Cashier
+                        Administrator
                     </p>
 
                     <div className="mt-3">

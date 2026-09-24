@@ -43,6 +43,11 @@ class CashierController extends Controller
                 'required',
                 'string',
                 'min:8',
+                'same:confirm_password',
+            ],
+
+            'confirm_password' => [
+                'required',
             ],
         ]);
 

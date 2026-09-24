@@ -1,4 +1,5 @@
-import { useEffect, useRef } from 'react';
+import { useEffect } from 'react';
+
 import { Html5Qrcode } from 'html5-qrcode';
 
 interface QRScannerProps {
@@ -10,54 +11,83 @@ export default function QRScanner({
     onScan,
     onError,
 }: QRScannerProps) {
-    const scannerRef = useRef<Html5Qrcode | null>(null);
-    const hasScannedRef = useRef(false);
-
     useEffect(() => {
         const scanner = new Html5Qrcode('qr-reader');
 
-        scannerRef.current = scanner;
+        let isUnmounted = false;
+        let hasScanned = false;
+        let startPromise: Promise<null> | null = null;
+        let stopPromise: Promise<void> | null = null;
+
+        const stopScanner = async () => {
+            try {
+                if (startPromise) {
+                    await startPromise.catch(() => {});
+                }
+
+                if (stopPromise) {
+                    await stopPromise.catch(() => {});
+                } else if (scanner.isScanning) {
+                    stopPromise = scanner.stop();
+                    await stopPromise.catch(() => {});
+                }
+            } finally {
+                try {
+                    scanner.clear();
+                } catch {
+                    // Scanner may already be cleared.
+                }
+            }
+        };
 
         const startScanner = async () => {
             try {
-                await scanner.start(
+                startPromise = scanner.start(
                     { facingMode: 'environment' },
                     {
                         fps: 10,
                         qrbox: { width: 250, height: 250 },
                     },
-                    (decodedText) => {
-                        if (hasScannedRef.current) {
+                    async (decodedText) => {
+                        if (isUnmounted || hasScanned) {
                             return;
                         }
 
-                        hasScannedRef.current = true;
+                        hasScanned = true;
 
-                        onScan(decodedText);
+                        try {
+                            if (scanner.isScanning) {
+                                stopPromise = scanner.stop();
+                                await stopPromise;
+                            }
+                        } catch {
+                            // Scanner may already be stopping.
+                        }
 
-                        scanner
-                            .stop()
-                            .catch(() => {});
+                        if (!isUnmounted) {
+                            onScan(decodedText);
+                        }
                     },
                     () => {
                         // Ignore normal scanning failures.
                     },
                 );
-            } catch (error) {
-                onError?.(
-                    'Unable to access the camera. Please allow camera access and try again.',
-                );
+
+                await startPromise;
+            } catch {
+                if (!isUnmounted) {
+                    onError?.(
+                        'Unable to access the camera. Please allow camera access and try again.',
+                    );
+                }
             }
         };
 
         startScanner();
 
         return () => {
-            if (scanner.isScanning) {
-                scanner.stop().catch(() => {});
-            }
-
-            scanner.clear();
+            isUnmounted = true;
+            void stopScanner();
         };
     }, [onScan, onError]);
 

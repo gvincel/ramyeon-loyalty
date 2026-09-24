@@ -1,5 +1,5 @@
 import CashierLayout from '@/Layouts/CashierLayout';
-import LogoutButton from '@/Components/LogoutButton';
+import AdminPageHeader from '@/Components/AdminPageHeader';
 import { Head } from '@inertiajs/react';
 
 export default function Dashboard() {
@@ -7,23 +7,33 @@ export default function Dashboard() {
         <CashierLayout>
             <Head title="Cashier Dashboard" />
 
-            <div>
-                <h1 className="text-2xl font-bold text-gray-900">
-                    Cashier Dashboard
-                </h1>
+            <div className="min-h-screen bg-gray-50 p-4 sm:p-6 lg:p-8">
+                <div className="mx-auto max-w-7xl">
+                    {/* Header */}
+                    <AdminPageHeader
+                        eyebrow="Overview"
+                        title="Cashier Dashboard"
+                        description="Welcome to the Ramyeon Corner Loyalty System."
+                    />
 
-                <p className="mt-2 text-gray-600">
-                    Welcome to the Ramyeon Corner Loyalty System.
-                </p>
+                    {/* Welcome Card */}
+                    <div className="overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm">
+                        <div className="border-b border-gray-100 px-6 py-5">
+                            <h2 className="text-lg font-bold tracking-tight text-gray-900">
+                                Cashier
+                            </h2>
+                            <p className="mt-1 text-sm text-gray-500">
+                                You are logged in as a cashier.
+                            </p>
+                        </div>
 
-                <div className="mt-6 rounded-lg bg-white p-6 shadow">
-                    <h2 className="text-lg font-semibold">
-                        Cashier
-                    </h2>
-
-                    <p className="mt-2 text-gray-600">
-                        You are logged in as a cashier.
-                    </p>
+                        <div className="p-6">
+                            <p className="text-sm leading-6 text-gray-600">
+                                Use the sidebar to register customers, scan customer QR codes,
+                                process transactions, and manage reward redemptions.
+                            </p>
+                        </div>
+                    </div>
                 </div>
             </div>
         </CashierLayout>
