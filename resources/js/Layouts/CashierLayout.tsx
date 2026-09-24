@@ -53,7 +53,7 @@ export default function CashierLayout({
                     </Link>
 
                     <Link
-                        href={route('cashier.customers.register')}
+                        href={route('cashier.customers.index')}
                         className={`flex items-center rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
                             route().current('cashier.customers.*')
                                 ? 'bg-red-50 text-red-700'
@@ -65,7 +65,7 @@ export default function CashierLayout({
                                 : undefined
                         }
                     >
-                        Register Customer
+                        Customers
                     </Link>
 
                     <Link

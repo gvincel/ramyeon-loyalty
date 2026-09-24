@@ -2,6 +2,7 @@ import { Head, useForm, usePage } from '@inertiajs/react';
 import CashierLayout from '@/Layouts/CashierLayout';
 import { FormEvent } from 'react';
 import FlashMessage from '@/Components/FlashMessage';
+import AdminPageHeader from '@/Components/AdminPageHeader';
 import { PageProps } from '@/types';
 
 export default function Create() {
@@ -28,18 +29,13 @@ export default function Create() {
         <CashierLayout>
             <Head title="Customer Registration" />
 
-            <div className="min-h-screen bg-gray-50 p-6">
+            <div className="min-h-screen bg-gray-50 p-4 sm:p-6 lg:p-8">
                 <div className="mx-auto max-w-7xl">
-                    {/* Header */}
-                    <div className="mb-6">
-                        <h1 className="text-2xl font-bold text-gray-900">
-                            Customer Registration
-                        </h1>
-
-                        <p className="mt-1 text-sm text-gray-500">
-                            Register a new loyalty customer account.
-                        </p>
-                    </div>
+                    <AdminPageHeader
+                        eyebrow="Customer Management"
+                        title="Customer Registration"
+                        description="Register a new loyalty customer account."
+                    />
 
                     <FlashMessage
                         success={flash.success}
@@ -47,13 +43,12 @@ export default function Create() {
                     />
 
                     {/* Registration Form */}
-                    <div className="rounded-xl bg-white shadow-sm">
-                        <div className="border-b px-6 py-4">
-                            <h2 className="text-lg font-bold text-gray-900">
+                    <div className="overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm">
+                        <div className="border-b border-gray-100 px-6 py-5">
+                            <h2 className="text-lg font-bold tracking-tight text-gray-900">
                                 Add Customer
                             </h2>
-
-                            <p className="text-sm text-gray-500">
+                            <p className="mt-1 text-sm text-gray-500">
                                 Enter the customer's information to create their
                                 loyalty account.
                             </p>
@@ -79,7 +74,7 @@ export default function Create() {
                                             event.target.value,
                                         )
                                     }
-                                    className="w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500"
+                                    className="w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm outline-none transition-colors placeholder:text-gray-400 focus:border-red-500 focus:ring-1 focus:ring-red-500"
                                     placeholder="Enter first name"
                                     autoComplete="given-name"
                                 />
@@ -107,7 +102,7 @@ export default function Create() {
                                     onChange={(event) =>
                                         setData('last_name', event.target.value)
                                     }
-                                    className="w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500"
+                                    className="w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm outline-none transition-colors placeholder:text-gray-400 focus:border-red-500 focus:ring-1 focus:ring-red-500"
                                     placeholder="Enter last name"
                                     autoComplete="family-name"
                                 />
@@ -143,7 +138,7 @@ export default function Create() {
                                             ),
                                         )
                                     }
-                                    className="w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500"
+                                    className="w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm outline-none transition-colors placeholder:text-gray-400 focus:border-red-500 focus:ring-1 focus:ring-red-500"
                                     placeholder="09XXXXXXXXX"
                                     autoComplete="tel"
                                 />
@@ -178,7 +173,7 @@ export default function Create() {
                                     onChange={(event) =>
                                         setData('email', event.target.value)
                                     }
-                                    className="w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500"
+                                    className="w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm outline-none transition-colors placeholder:text-gray-400 focus:border-red-500 focus:ring-1 focus:ring-red-500"
                                     placeholder="example@email.com"
                                     autoComplete="email"
                                 />
@@ -196,7 +191,7 @@ export default function Create() {
                                     type="button"
                                     onClick={() => reset()}
                                     disabled={processing}
-                                    className="rounded-lg border border-gray-300 px-4 py-2.5 text-sm font-semibold text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+                                    className="rounded-lg border border-gray-300 px-4 py-2.5 text-sm font-semibold text-gray-700 transition-colors hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-300 focus:ring-offset-1 disabled:cursor-not-allowed disabled:opacity-50"
                                 >
                                     Clear
                                 </button>
@@ -204,7 +199,7 @@ export default function Create() {
                                 <button
                                     type="submit"
                                     disabled={processing}
-                                    className="rounded-lg bg-red-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-50"
+                                    className="rounded-lg bg-red-600 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-1 disabled:cursor-not-allowed disabled:opacity-50"
                                 >
                                     {processing ? 'Adding...' : 'Add Customer'}
                                 </button>
