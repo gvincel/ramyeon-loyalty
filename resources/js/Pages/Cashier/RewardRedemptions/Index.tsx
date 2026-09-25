@@ -81,6 +81,17 @@ const formatNumber = (value: string | number) => {
     return Number(value).toLocaleString('en-PH');
 };
 
+const canCancelRedemption = (redeemedAt: string) => {
+    const redeemedDate = new Date(redeemedAt);
+
+    if (Number.isNaN(redeemedDate.getTime())) return false;
+
+    const cancellationDeadline =
+        redeemedDate.getTime() + 24 * 60 * 60 * 1000;
+
+    return Date.now() < cancellationDeadline;
+};
+
 function StatusPill({ status }: { status: 'completed' | 'cancelled' }) {
     const isCompleted = status === 'completed';
 
@@ -154,6 +165,11 @@ export default function Index({ redemptions, filters }: Props) {
 
     const confirmCancel = () => {
         if (!cancellingRedemption) return;
+
+        if (!canCancelRedemption(cancellingRedemption.redeemed_at)) {
+            setCancellingRedemption(null);
+            return;
+        }
 
         setIsCancelling(true);
 
@@ -438,19 +454,25 @@ export default function Index({ redemptions, filters }: Props) {
 
                                                 <td className="px-6 py-4">
                                                     <div className="flex justify-end">
-                                                        {redemption.status ===
-                                                        'completed' ? (
-                                                            <button
-                                                                type="button"
-                                                                onClick={() =>
-                                                                    setCancellingRedemption(
-                                                                        redemption,
-                                                                    )
-                                                                }
-                                                                className="text-sm font-semibold text-red-600 transition-colors hover:text-red-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-1"
-                                                            >
-                                                                Cancel
-                                                            </button>
+                                                        {redemption.status === 'completed' ? (
+                                                            canCancelRedemption(redemption.redeemed_at) ? (
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() =>
+                                                                        setCancellingRedemption(redemption)
+                                                                    }
+                                                                    className="text-sm font-semibold text-red-600 transition-colors hover:text-red-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-1"
+                                                                >
+                                                                    Cancel
+                                                                </button>
+                                                            ) : (
+                                                                <span
+                                                                    className="text-sm font-medium text-gray-400"
+                                                                    title="Redemptions can only be cancelled within 24 hours."
+                                                                >
+                                                                    Expired
+                                                                </span>
+                                                            )
                                                         ) : (
                                                             <span className="text-sm text-gray-300">
                                                                 —
@@ -567,7 +589,7 @@ export default function Index({ redemptions, filters }: Props) {
             {cancellingRedemption && (
                 <AdminModal
                     title="Cancel Redemption?"
-                    description="This action cannot be undone."
+                    description="The redemption will be cancelled and the points will be returned to the customer."
                     onClose={() => {
                         if (!isCancelling) {
                             setCancellingRedemption(null);
@@ -582,7 +604,7 @@ export default function Index({ redemptions, filters }: Props) {
                                 disabled={isCancelling}
                                 className="inline-flex min-h-[44px] items-center justify-center rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm font-semibold text-gray-700 transition-colors hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-300 focus:ring-offset-1 disabled:cursor-not-allowed disabled:opacity-50"
                             >
-                                Keep Redemption
+                                Keep
                             </button>
 
                             <button
@@ -638,15 +660,37 @@ export default function Index({ redemptions, filters }: Props) {
                             .
                         </p>
 
-                        <div className="mt-4 rounded-lg border border-yellow-100 bg-yellow-50 p-4">
-                            <p className="text-sm font-medium text-yellow-800">
-                                {formatNumber(cancellingRedemption.points_used)}{' '}
-                                point
-                                {cancellingRedemption.points_used !== 1
-                                    ? 's'
-                                    : ''}{' '}
-                                will be refunded to the customer.
-                            </p>
+                        <div className="mt-4 rounded-xl border border-yellow-200 bg-yellow-50 p-4">
+                            <div className="flex gap-3">
+                                <div className="mt-0.5 shrink-0 text-yellow-600" aria-hidden="true">
+                                    <svg
+                                        className="h-5 w-5"
+                                        viewBox="0 0 24 24"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        strokeWidth="1.8"
+                                    >
+                                        <path
+                                            strokeLinecap="round"
+                                            strokeLinejoin="round"
+                                            d="M12 9v4m0 4h.01M10.3 3.8L2.9 17a2 2 0 001.75 3h14.7a2 2 0 001.75-3L13.7 3.8a2 2 0 00-3.4 0z"
+                                        />
+                                    </svg>
+                                </div>
+
+                                <div>
+                                    <p className="text-sm font-semibold text-yellow-900">
+                                        Points will be refunded
+                                    </p>
+
+                                    <p className="mt-1 text-sm leading-5 text-yellow-800">
+                                        {formatNumber(cancellingRedemption.points_used)}{' '}
+                                        point
+                                        {cancellingRedemption.points_used !== 1 ? 's' : ''}{' '}
+                                        will be returned to the customer&apos;s balance.
+                                    </p>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </AdminModal>

@@ -150,7 +150,7 @@ export default function Index({ transactions, filters }: Props) {
                         <form onSubmit={applyFilters} className="p-4 sm:p-5">
                             <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
                                 {/* Search */}
-                                <div className="relative w-full lg:max-w-xl lg:flex-1">
+                                <div className="relative w-full lg:flex-1">
                                     <svg
                                         aria-hidden="true"
                                         viewBox="0 0 24 24"

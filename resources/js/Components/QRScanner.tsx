@@ -19,6 +19,28 @@ export default function QRScanner({
         let startPromise: Promise<null> | null = null;
         let stopPromise: Promise<void> | null = null;
 
+        const scannerElement = document.getElementById('qr-reader');
+
+        const updateVideoSize = () => {
+            const video = scannerElement?.querySelector('video');
+
+            if (video) {
+                video.style.width = '100%';
+                video.style.height = 'auto';
+                video.style.display = 'block';
+            }
+        };
+
+        const resizeObserver = scannerElement
+            ? new ResizeObserver(() => {
+                  updateVideoSize();
+              })
+            : null;
+
+        if (scannerElement && resizeObserver) {
+            resizeObserver.observe(scannerElement);
+        }
+
         const stopScanner = async () => {
             try {
                 if (startPromise) {
@@ -37,6 +59,8 @@ export default function QRScanner({
                 } catch {
                     // Scanner may already be cleared.
                 }
+
+                resizeObserver?.disconnect();
             }
         };
 
@@ -46,7 +70,28 @@ export default function QRScanner({
                     { facingMode: 'environment' },
                     {
                         fps: 10,
-                        qrbox: { width: 250, height: 250 },
+                        qrbox: (viewfinderWidth, viewfinderHeight) => {
+                            const maxSize = 250;
+
+                            const widthBasedSize = Math.floor(
+                                viewfinderWidth * 0.7,
+                            );
+
+                            const heightBasedSize = Math.floor(
+                                viewfinderHeight * 0.7,
+                            );
+
+                            const size = Math.min(
+                                maxSize,
+                                widthBasedSize,
+                                heightBasedSize,
+                            );
+
+                            return {
+                                width: size,
+                                height: size,
+                            };
+                        },
                     },
                     async (decodedText) => {
                         if (isUnmounted || hasScanned) {
@@ -74,6 +119,8 @@ export default function QRScanner({
                 );
 
                 await startPromise;
+
+                updateVideoSize();
             } catch {
                 if (!isUnmounted) {
                     onError?.(
