@@ -125,39 +125,51 @@ class RewardRedemptionController extends Controller
         ]);
     }
 
+    /**
+     * Display a paginated, filterable list of redemptions
+     * processed by the currently logged-in cashier.
+     */
     public function index(Request $request)
     {
         $validated = $request->validate([
-            'search' => [
-                'nullable',
-                'string',
-                'max:100',
-            ],
+            'search' => ['nullable', 'string', 'max:100'],
+            'status' => ['nullable', 'string', 'in:completed,cancelled'],
+            'date_from' => ['nullable', 'date'],
+            'date_to' => ['nullable', 'date', 'after_or_equal:date_from'],
         ]);
 
         $search = $validated['search'] ?? null;
+        $status = $validated['status'] ?? null;
+        $dateFrom = $validated['date_from'] ?? null;
+        $dateTo = $validated['date_to'] ?? null;
 
         $redemptions = RewardRedemption::with([
             'customer',
             'reward',
+            'cashier',
         ])
             ->where('cashier_id', $request->user()->id)
             ->when($search, function ($query) use ($search) {
                 $query->where(function ($query) use ($search) {
-                    $query->whereHas('customer', function ($query) use ($search) {
-                        $query->where('customer_code', 'like', "%{$search}%")
-                            ->orWhere('first_name', 'like', "%{$search}%")
-                            ->orWhere('last_name', 'like', "%{$search}%")
-                            ->orWhereRaw(
-                                "CONCAT(first_name, ' ', last_name) LIKE ?",
-                                ["%{$search}%"]
-                            );
-                    })
-                    ->orWhereHas('reward', function ($query) use ($search) {
-                        $query->where('reward_name', 'like', "%{$search}%");
-                    });
+                    $query
+                        ->whereHas('customer', function ($query) use ($search) {
+                            $query
+                                ->where('customer_code', 'like', "%{$search}%")
+                                ->orWhere('first_name', 'like', "%{$search}%")
+                                ->orWhere('last_name', 'like', "%{$search}%")
+                                ->orWhereRaw(
+                                    "CONCAT(first_name, ' ', last_name) LIKE ?",
+                                    ["%{$search}%"]
+                                );
+                        })
+                        ->orWhereHas('reward', function ($query) use ($search) {
+                            $query->where('reward_name', 'like', "%{$search}%");
+                        });
                 });
             })
+            ->when($status, fn ($q) => $q->where('status', $status))
+            ->when($dateFrom, fn ($q) => $q->whereDate('redeemed_at', '>=', $dateFrom))
+            ->when($dateTo, fn ($q) => $q->whereDate('redeemed_at', '<=', $dateTo))
             ->latest('redeemed_at')
             ->paginate(10)
             ->withQueryString();
@@ -166,7 +178,54 @@ class RewardRedemptionController extends Controller
             'redemptions' => $redemptions,
             'filters' => [
                 'search' => $search,
+                'status' => $status,
+                'date_from' => $dateFrom,
+                'date_to' => $dateTo,
             ],
         ]);
+    }
+
+    /**
+     * Cancel a redemption and refund the customer's points.
+     *
+     * Rules:
+     * - Only the cashier who processed the redemption may cancel it.
+     * - Only redemptions in "completed" status can be cancelled.
+     * - Points are refunded atomically with row locking to prevent
+     *   races with new redemptions.
+     */
+    public function cancel(Request $request, RewardRedemption $redemption)
+    {
+        if ($redemption->cashier_id !== $request->user()->id) {
+            abort(403, 'You can only cancel your own redemptions.');
+        }
+
+        if ($redemption->status !== 'completed') {
+            abort(422, 'Only completed redemptions can be cancelled.');
+        }
+
+        DB::transaction(function () use ($redemption) {
+            /*
+             * Lock the customer row before refunding points so a
+             * simultaneous redemption cannot observe a stale balance.
+             */
+            $customer = Customer::where('id', $redemption->customer_id)
+                ->lockForUpdate()
+                ->first();
+
+            if (!$customer) {
+                abort(404, 'Customer not found.');
+            }
+
+            $redemption->update([
+                'status' => 'cancelled',
+            ]);
+
+            $customer->increment('points', $redemption->points_used);
+        });
+
+        return redirect()
+            ->route('cashier.reward-redemptions.index')
+            ->with('success', 'Redemption cancelled and points refunded.');
     }
 }

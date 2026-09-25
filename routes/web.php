@@ -136,6 +136,11 @@ Route::middleware(['auth', 'role:cashier'])->group(function () {
         'index',
     ])->name('cashier.reward-redemptions.index');
 
+    Route::patch('/cashier/reward-redemptions/{redemption}/cancel', [
+        \App\Http\Controllers\Cashier\RewardRedemptionController::class,
+        'cancel',
+    ])->name('cashier.reward-redemptions.cancel');
+
 });
 
 /*
