@@ -6,6 +6,7 @@ use App\Models\Customer;
 use App\Models\Transaction;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
 
 class TransactionProcessingTest extends TestCase
@@ -120,5 +121,55 @@ class TransactionProcessingTest extends TestCase
             'id' => $customer->id,
             'points' => 12,
         ]);
+    }
+
+    #[DataProvider('purchaseAmountPointsProvider')]
+    public function test_points_are_calculated_correctly_at_purchase_boundaries(
+        float $purchaseAmount,
+        int $expectedPoints
+    ): void {
+        $cashier = User::factory()->create([
+            'role' => 'cashier',
+            'is_active' => true,
+        ]);
+
+        $customer = Customer::create([
+            'customer_code' => 'TEST-BOUNDARY-' . $purchaseAmount,
+            'first_name' => 'Boundary',
+            'last_name' => 'Test',
+            'phone_number' => '09866666666',
+            'is_active' => true,
+            'points' => 0,
+        ]);
+
+        $response = $this
+            ->actingAs($cashier)
+            ->postJson(route('cashier.transactions.store'), [
+                'customer_id' => $customer->id,
+                'receipt_number' => 'OR-BOUNDARY-' . $purchaseAmount,
+                'purchase_amount' => $purchaseAmount,
+            ]);
+
+        $response->assertOk()
+            ->assertJson([
+                'points_earned' => $expectedPoints,
+                'previous_points' => 0,
+                'new_points' => $expectedPoints,
+            ]);
+
+        $this->assertDatabaseHas('customers', [
+            'id' => $customer->id,
+            'points' => $expectedPoints,
+        ]);
+    }
+
+    public static function purchaseAmountPointsProvider(): array
+    {
+        return [
+            'below 100' => [99.00, 0],
+            'exactly 100' => [100.00, 1],
+            'below 200' => [199.00, 1],
+            'exactly 200' => [200.00, 2],
+        ];
     }
 }
