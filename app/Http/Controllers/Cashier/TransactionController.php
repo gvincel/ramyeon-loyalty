@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Cashier;
 use App\Http\Controllers\Controller;
 use App\Models\Customer;
 use App\Models\CustomerQrCode;
+use App\Models\PointTransaction;
 use App\Models\Transaction;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -150,6 +151,17 @@ class TransactionController extends Controller
             $customer->increment('points', $pointsEarned);
 
             $customer->refresh();
+
+            PointTransaction::create([
+                'customer_id' => $customer->id,
+                'transaction_id' => $transaction->id,
+                'redemption_id' => null,
+                'type' => 'earned',
+                'points' => $pointsEarned,
+                'balance_after' => $customer->points,
+                'description' => 'Points earned from purchase.',
+                'created_at' => now(),
+            ]);
 
             return [
                 'transaction' => $transaction,
