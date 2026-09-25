@@ -42,4 +42,9 @@ class RewardRedemption extends Model
     {
         return $this->belongsTo(User::class, 'cashier_id');
     }
+
+    public function pointTransactions()
+    {
+        return $this->hasMany(PointTransaction::class, 'redemption_id');
+    }
 }

@@ -5,7 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-class Transaction extends Model
+class PointTransaction extends Model
 {
     use HasFactory;
 
@@ -13,18 +13,20 @@ class Transaction extends Model
 
     protected $fillable = [
         'customer_id',
-        'cashier_id',
-        'receipt_number',
-        'purchase_amount',
-        'points_earned',
+        'transaction_id',
+        'redemption_id',
+        'type',
+        'points',
+        'balance_after',
+        'description',
         'created_at',
     ];
 
     protected function casts(): array
     {
         return [
-            'purchase_amount' => 'decimal:2',
-            'points_earned' => 'integer',
+            'points' => 'integer',
+            'balance_after' => 'integer',
             'created_at' => 'datetime',
         ];
     }
@@ -34,13 +36,13 @@ class Transaction extends Model
         return $this->belongsTo(Customer::class);
     }
 
-    public function cashier()
+    public function transaction()
     {
-        return $this->belongsTo(User::class, 'cashier_id');
+        return $this->belongsTo(Transaction::class);
     }
 
-    public function pointTransactions()
+    public function redemption()
     {
-        return $this->hasMany(PointTransaction::class);
+        return $this->belongsTo(RewardRedemption::class, 'redemption_id');
     }
 }

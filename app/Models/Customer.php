@@ -41,4 +41,9 @@ class Customer extends Model
     {
         return $this->hasMany(RewardRedemption::class);
     }
+
+    public function pointTransactions()
+    {
+        return $this->hasMany(PointTransaction::class);
+    }
 }
