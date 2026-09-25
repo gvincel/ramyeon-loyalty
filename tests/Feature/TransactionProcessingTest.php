@@ -3,7 +3,6 @@
 namespace Tests\Feature;
 
 use App\Models\Customer;
-use App\Models\PointTransaction;
 use App\Models\Transaction;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -69,6 +68,57 @@ class TransactionProcessingTest extends TestCase
         $this->assertDatabaseHas('customers', [
             'id' => $customer->id,
             'points' => 3,
+        ]);
+    }
+
+    public function test_cashier_can_process_purchase_for_customer_with_existing_points(): void
+    {
+        $cashier = User::factory()->create([
+            'role' => 'cashier',
+            'is_active' => true,
+        ]);
+
+        $customer = Customer::create([
+            'customer_code' => 'TEST-POINT-002',
+            'first_name' => 'Existing',
+            'last_name' => 'Points',
+            'phone_number' => '09877777777',
+            'is_active' => true,
+            'points' => 10,
+        ]);
+
+        $response = $this
+            ->actingAs($cashier)
+            ->postJson(route('cashier.transactions.store'), [
+                'customer_id' => $customer->id,
+                'receipt_number' => 'OR-POINT-002',
+                'purchase_amount' => 250.00,
+            ]);
+
+        $response->assertOk()
+            ->assertJson([
+                'message' => 'Transaction completed successfully.',
+                'points_earned' => 2,
+                'previous_points' => 10,
+                'new_points' => 12,
+            ]);
+
+        $transaction = Transaction::where('receipt_number', 'OR-POINT-002')->first();
+
+        $this->assertNotNull($transaction);
+
+        $this->assertDatabaseHas('point_transactions', [
+            'customer_id' => $customer->id,
+            'transaction_id' => $transaction->id,
+            'redemption_id' => null,
+            'type' => 'earned',
+            'points' => 2,
+            'balance_after' => 12,
+        ]);
+
+        $this->assertDatabaseHas('customers', [
+            'id' => $customer->id,
+            'points' => 12,
         ]);
     }
 }
