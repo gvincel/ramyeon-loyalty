@@ -19,9 +19,20 @@ class TransactionController extends Controller
                 'string',
                 'max:100',
             ],
+            'date_from' => [
+                'nullable',
+                'date',
+            ],
+            'date_to' => [
+                'nullable',
+                'date',
+                'after_or_equal:date_from',
+            ],
         ]);
 
         $search = $validated['search'] ?? null;
+        $dateFrom = $validated['date_from'] ?? null;
+        $dateTo = $validated['date_to'] ?? null;
 
         $transactions = Transaction::with('customer')
             ->where('cashier_id', $request->user()->id)
@@ -39,6 +50,8 @@ class TransactionController extends Controller
                         });
                 });
             })
+            ->when($dateFrom, fn ($q) => $q->whereDate('created_at', '>=', $dateFrom))
+            ->when($dateTo, fn ($q) => $q->whereDate('created_at', '<=', $dateTo))
             ->latest('created_at')
             ->paginate(10)
             ->withQueryString();
@@ -47,6 +60,8 @@ class TransactionController extends Controller
             'transactions' => $transactions,
             'filters' => [
                 'search' => $search,
+                'date_from' => $dateFrom,
+                'date_to' => $dateTo,
             ],
         ]);
     }
