@@ -590,4 +590,127 @@ class RewardRedemptionTest extends TestCase
             'status' => 'completed',
         ]);
     }
+
+    public function test_redemption_older_than_24_hours_cannot_be_cancelled(): void
+    {
+        $cashier = User::factory()->create([
+            'role' => 'cashier',
+            'is_active' => true,
+        ]);
+
+        $customer = Customer::create([
+            'customer_code' => 'TEST-REDEEM-013',
+            'first_name' => 'Expired',
+            'last_name' => 'Cancellation',
+            'phone_number' => '09811111111',
+            'is_active' => true,
+            'points' => 0,
+        ]);
+
+        $reward = Reward::create([
+            'reward_name' => 'Free Coke Kasalo',
+            'reward_type' => 'free_item',
+            'points_required' => 500,
+            'reward_value' => null,
+            'description' => 'One free Coke Kasalo.',
+            'start_date' => null,
+            'end_date' => null,
+            'is_active' => true,
+        ]);
+
+        $redemption = RewardRedemption::create([
+            'customer_id' => $customer->id,
+            'reward_id' => $reward->id,
+            'cashier_id' => $cashier->id,
+            'points_used' => 500,
+            'redeemed_at' => now()->subHours(25),
+            'status' => 'completed',
+        ]);
+
+        $response = $this
+            ->actingAs($cashier)
+            ->patchJson(
+                route('cashier.reward-redemptions.cancel', $redemption)
+            );
+
+        $response->assertStatus(422)
+            ->assertJson([
+                'message' => 'This redemption can no longer be cancelled.',
+            ]);
+
+        $this->assertDatabaseHas('reward_redemptions', [
+            'id' => $redemption->id,
+            'status' => 'completed',
+        ]);
+
+        $this->assertDatabaseHas('customers', [
+            'id' => $customer->id,
+            'points' => 0,
+        ]);
+
+        $this->assertDatabaseMissing('point_transactions', [
+            'redemption_id' => $redemption->id,
+            'type' => 'refunded',
+        ]);
+    }
+
+    public function test_cancelled_redemption_cannot_be_cancelled_again(): void
+    {
+        $cashier = User::factory()->create([
+            'role' => 'cashier',
+            'is_active' => true,
+        ]);
+
+        $customer = Customer::create([
+            'customer_code' => 'TEST-REDEEM-014',
+            'first_name' => 'Already',
+            'last_name' => 'Cancelled',
+            'phone_number' => '09812222222',
+            'is_active' => true,
+            'points' => 500,
+        ]);
+
+        $reward = Reward::create([
+            'reward_name' => 'Free Coke Kasalo',
+            'reward_type' => 'free_item',
+            'points_required' => 500,
+            'reward_value' => null,
+            'description' => 'One free Coke Kasalo.',
+            'start_date' => null,
+            'end_date' => null,
+            'is_active' => true,
+        ]);
+
+        $redemption = RewardRedemption::create([
+            'customer_id' => $customer->id,
+            'reward_id' => $reward->id,
+            'cashier_id' => $cashier->id,
+            'points_used' => 500,
+            'redeemed_at' => now(),
+            'status' => 'cancelled',
+        ]);
+
+        $response = $this
+            ->actingAs($cashier)
+            ->patchJson(
+                route('cashier.reward-redemptions.cancel', $redemption)
+            );
+
+        $response->assertStatus(422)
+            ->assertJson([
+                'message' => 'Only completed redemptions can be cancelled.',
+            ]);
+
+        $this->assertDatabaseHas('customers', [
+            'id' => $customer->id,
+            'points' => 500,
+        ]);
+
+        $this->assertDatabaseHas('reward_redemptions', [
+            'id' => $redemption->id,
+            'status' => 'cancelled',
+        ]);
+
+        $this->assertDatabaseCount('point_transactions', 0);
+    }
 }

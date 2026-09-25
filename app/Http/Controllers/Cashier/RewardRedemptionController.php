@@ -208,18 +208,33 @@ class RewardRedemptionController extends Controller
      */
     public function cancel(Request $request, RewardRedemption $redemption)
     {
-        if ($redemption->cashier_id !== $request->user()->id) {
-            abort(403, 'You can only cancel your own redemptions.');
-        }
+        DB::transaction(function () use ($request, $redemption) {
+            /**
+             * Lock the redemption row first so concurrent cancellation
+             * requests cannot both pass the status check.
+             */
+            $redemption = RewardRedemption::where('id', $redemption->id)
+                ->lockForUpdate()
+                ->first();
 
-        if ($redemption->status !== 'completed') {
-            abort(422, 'Only completed redemptions can be cancelled.');
-        }
+            if (!$redemption) {
+                abort(404, 'Redemption not found.');
+            }
 
-        DB::transaction(function () use ($redemption) {
-            /*
-             * Lock the customer row before refunding points so a
-             * simultaneous redemption cannot observe a stale balance.
+            if ($redemption->cashier_id !== $request->user()->id) {
+                abort(403, 'You can only cancel your own redemptions.');
+            }
+
+            if ($redemption->status !== 'completed') {
+                abort(422, 'Only completed redemptions can be cancelled.');
+            }
+
+            if ($redemption->redeemed_at->lt(now()->subHours(24))) {
+                abort(422, 'This redemption can no longer be cancelled.');
+            }
+
+            /**
+             * Lock the customer row before refunding points.
              */
             $customer = Customer::where('id', $redemption->customer_id)
                 ->lockForUpdate()
