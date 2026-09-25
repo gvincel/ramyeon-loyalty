@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Cashier;
 
 use App\Http\Controllers\Controller;
 use App\Models\Customer;
+use App\Models\PointTransaction;
 use App\Models\Reward;
 use App\Models\RewardRedemption;
 use Illuminate\Http\Request;
@@ -111,6 +112,17 @@ class RewardRedemptionController extends Controller
             );
 
             $customer->refresh();
+
+            PointTransaction::create([
+                'customer_id' => $customer->id,
+                'transaction_id' => null,
+                'redemption_id' => $redemption->id,
+                'type' => 'redeemed',
+                'points' => -$reward->points_required,
+                'balance_after' => $customer->points,
+                'description' => 'Points redeemed for reward.',
+                'created_at' => now(),
+            ]);
 
             return [
                 'redemption' => $redemption,
@@ -222,6 +234,19 @@ class RewardRedemptionController extends Controller
             ]);
 
             $customer->increment('points', $redemption->points_used);
+
+            $customer->refresh();
+
+            PointTransaction::create([
+                'customer_id' => $customer->id,
+                'transaction_id' => null,
+                'redemption_id' => $redemption->id,
+                'type' => 'refunded',
+                'points' => $redemption->points_used,
+                'balance_after' => $customer->points,
+                'description' => 'Points refunded from cancelled reward redemption.',
+                'created_at' => now(),
+            ]);
         });
 
         return redirect()
