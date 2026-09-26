@@ -1,4 +1,4 @@
-import { ReactNode } from 'react';
+import { ReactNode, useEffect } from 'react';
 
 interface AdminModalProps {
     title: string;
@@ -19,9 +19,19 @@ export default function AdminModal({
     maxWidthClass = 'max-w-2xl',
     titleId = 'admin-modal-title',
 }: AdminModalProps) {
+    useEffect(() => {
+        const originalOverflow = document.body.style.overflow;
+
+        document.body.style.overflow = 'hidden';
+
+        return () => {
+            document.body.style.overflow = originalOverflow;
+        };
+    }, []);
+
     return (
         <div
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm"
             role="dialog"
             aria-modal="true"
             aria-labelledby={titleId}

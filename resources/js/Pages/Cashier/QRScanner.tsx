@@ -1,6 +1,7 @@
 import QRScanner from '@/Components/QRScanner';
 import CashierLayout from '@/Layouts/CashierLayout';
 import AdminPageHeader from '@/Components/AdminPageHeader';
+import AdminModal from '@/Components/AdminModal';
 import FlashMessage from '@/Components/FlashMessage';
 import { Head } from '@inertiajs/react';
 import axios from 'axios';
@@ -43,6 +44,7 @@ export default function QRScannerPage() {
 
     const [rewards, setRewards] = useState<Reward[]>([]);
     const [isLoadingRewards, setIsLoadingRewards] = useState(false);
+    const [selectedReward, setSelectedReward] = useState<Reward | null>(null);
     const [redeemingRewardId, setRedeemingRewardId] = useState<number | null>(
         null,
     );
@@ -186,6 +188,7 @@ export default function QRScannerPage() {
             });
 
             setSuccess(response.data.message);
+            setSelectedReward(null);
 
             try {
                 const rewardsResponse = await axios.post(
@@ -744,11 +747,7 @@ export default function QRScannerPage() {
                                                                         redeemingRewardId ===
                                                                         reward.id
                                                                     }
-                                                                    onClick={() =>
-                                                                        handleRedeemReward(
-                                                                            reward.id,
-                                                                        )
-                                                                    }
+                                                                    onClick={() => setSelectedReward(reward)}
                                                                     className="mt-4 inline-flex min-h-[44px] w-full items-center justify-center rounded-lg bg-red-600 px-4 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-red-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                                                                 >
                                                                     {redeemingRewardId ===
@@ -776,6 +775,108 @@ export default function QRScannerPage() {
                     )}
                 </div>
             </div>
+
+            {selectedReward && (
+                <AdminModal
+                    title="Confirm Reward Redemption"
+                    description="Review the reward details before completing the redemption."
+                    onClose={() => {
+                        if (redeemingRewardId === null) {
+                            setSelectedReward(null);
+                        }
+                    }}
+                    maxWidthClass="max-w-md"
+                    footer={
+                        <>
+                            <button
+                                type="button"
+                                onClick={() => setSelectedReward(null)}
+                                disabled={redeemingRewardId !== null}
+                                className="inline-flex min-h-[44px] items-center justify-center rounded-lg border border-gray-300 bg-white px-5 text-sm font-semibold text-gray-700 shadow-sm transition-colors hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-300 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                            >
+                                Cancel
+                            </button>
+
+                            <button
+                                type="button"
+                                onClick={() =>
+                                    handleRedeemReward(selectedReward.id)
+                                }
+                                disabled={redeemingRewardId !== null}
+                                className="inline-flex min-h-[44px] items-center justify-center rounded-lg bg-red-600 px-5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-red-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                            >
+                                {redeemingRewardId === selectedReward.id
+                                    ? 'Redeeming…'
+                                    : 'Confirm Redemption'}
+                            </button>
+                        </>
+                    }
+                >
+                    <div className="space-y-5 p-6">
+                        <div className="rounded-xl bg-gray-50 p-4">
+                            <p className="text-xs font-semibold uppercase tracking-wider text-gray-500">
+                                Customer
+                            </p>
+
+                            <p className="mt-1 font-semibold text-gray-900">
+                                {customer?.first_name} {customer?.last_name}
+                            </p>
+
+                            <p className="mt-1 text-sm text-gray-500">
+                                {customer?.customer_code}
+                            </p>
+                        </div>
+
+                        <div>
+                            <p className="text-xs font-semibold uppercase tracking-wider text-gray-500">
+                                Reward
+                            </p>
+
+                            <p className="mt-1 text-lg font-bold text-gray-900">
+                                {selectedReward.reward_name}
+                            </p>
+
+                            {selectedReward.description && (
+                                <p className="mt-1 text-sm leading-6 text-gray-500">
+                                    {selectedReward.description}
+                                </p>
+                            )}
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-3">
+                            <div className="rounded-xl border border-gray-100 bg-white p-4">
+                                <p className="text-xs font-medium text-gray-500">
+                                    Current Points
+                                </p>
+
+                                <p className="mt-1 text-lg font-bold text-gray-900">
+                                    {customer?.points ?? 0}
+                                </p>
+                            </div>
+
+                            <div className="rounded-xl border border-gray-100 bg-white p-4">
+                                <p className="text-xs font-medium text-gray-500">
+                                    Points to Use
+                                </p>
+
+                                <p className="mt-1 text-lg font-bold text-red-600">
+                                    {selectedReward.points_required}
+                                </p>
+                            </div>
+                        </div>
+
+                        <div className="rounded-xl border border-yellow-200 bg-yellow-50 p-4">
+                            <p className="text-sm leading-6 text-yellow-800">
+                                This will deduct{' '}
+                                <span className="font-bold">
+                                    {selectedReward.points_required} points
+                                </span>{' '}
+                                from the customer's balance.
+                            </p>
+                        </div>
+                    </div>
+                </AdminModal>
+            )}
         </CashierLayout>
     );
 }
