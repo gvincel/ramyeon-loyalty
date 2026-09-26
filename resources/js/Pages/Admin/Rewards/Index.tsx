@@ -1,11 +1,11 @@
-import { FormEvent, useState } from 'react';
-import { Head, useForm, usePage } from '@inertiajs/react';
-import AdminLayout from '@/Layouts/AdminLayout';
-import AdminPageHeader from '@/Components/AdminPageHeader';
 import AdminModal from '@/Components/AdminModal';
-import StatusBadge from '@/Components/StatusBadge';
+import AdminPageHeader from '@/Components/AdminPageHeader';
 import FlashMessage from '@/Components/FlashMessage';
+import StatusBadge from '@/Components/StatusBadge';
+import AdminLayout from '@/Layouts/AdminLayout';
 import { PageProps } from '@/types';
+import { Head, router, useForm, usePage } from '@inertiajs/react';
+import { FormEvent, useState } from 'react';
 
 interface Reward {
     id: number;
@@ -24,7 +24,7 @@ interface Props {
 }
 
 export default function Index({ rewards }: Props) {
-    const { data, setData, post, processing, errors, reset } = useForm({
+    const { data, setData, post, put, processing, errors, reset } = useForm({
         reward_name: '',
         reward_type: 'discount' as 'discount' | 'free_item',
         points_required: '',
@@ -39,20 +39,71 @@ export default function Index({ rewards }: Props) {
 
     const [showForm, setShowForm] = useState(false);
 
+    const [editingRewardId, setEditingRewardId] = useState<number | null>(null);
+
     const submit = (event: FormEvent) => {
         event.preventDefault();
+
+        if (editingRewardId !== null) {
+            put(`/admin/rewards/${editingRewardId}`, {
+                onSuccess: () => {
+                    reset();
+                    setEditingRewardId(null);
+                    setShowForm(false);
+                },
+            });
+
+            return;
+        }
 
         post('/admin/rewards', {
             onSuccess: () => {
                 reset();
+                setEditingRewardId(null);
                 setShowForm(false);
             },
         });
     };
 
+    const openCreateForm = () => {
+        reset();
+        setEditingRewardId(null);
+        setShowForm(true);
+    };
+
+    const openEditForm = (reward: Reward) => {
+        setEditingRewardId(reward.id);
+        setData({
+            reward_name: reward.reward_name,
+            reward_type: reward.reward_type,
+            points_required: String(reward.points_required),
+            reward_value: reward.reward_value ?? '',
+            description: reward.description ?? '',
+            start_date: reward.start_date ?? '',
+            end_date: reward.end_date ?? '',
+            is_active: reward.is_active,
+        });
+        setShowForm(true);
+    };
+
     const closeForm = () => {
         reset();
+        setEditingRewardId(null);
         setShowForm(false);
+    };
+
+    const toggleStatus = (reward: Reward) => {
+        const action = reward.is_active ? 'deactivate' : 'activate';
+
+        if (
+            !window.confirm(
+                `Are you sure you want to ${action} "${reward.reward_name}"?`,
+            )
+        ) {
+            return;
+        }
+
+        router.patch(`/admin/rewards/${reward.id}/toggle-status`);
     };
 
     return (
@@ -69,7 +120,7 @@ export default function Index({ rewards }: Props) {
                         action={
                             <button
                                 type="button"
-                                onClick={() => setShowForm(true)}
+                                onClick={openCreateForm}
                                 className="inline-flex shrink-0 items-center justify-center gap-2 rounded-lg bg-red-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
                             >
                                 <svg
@@ -90,10 +141,7 @@ export default function Index({ rewards }: Props) {
                         }
                     />
 
-                    <FlashMessage
-                        success={flash.success}
-                        error={flash.error}
-                    />
+                    <FlashMessage success={flash.success} error={flash.error} />
 
                     {/* Rewards Table */}
                     <div className="overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm">
@@ -105,12 +153,14 @@ export default function Index({ rewards }: Props) {
                                     </h2>
 
                                     <p className="mt-1 text-sm text-gray-500">
-                                        Manage available loyalty rewards and redemption requirements.
+                                        Manage available loyalty rewards and
+                                        redemption requirements.
                                     </p>
                                 </div>
 
                                 <span className="hidden rounded-full bg-gray-50 px-3 py-1.5 text-xs font-semibold text-gray-600 ring-1 ring-gray-200 sm:inline-flex">
-                                    {rewards.length.toLocaleString('en-PH')} reward
+                                    {rewards.length.toLocaleString('en-PH')}{' '}
+                                    reward
                                     {rewards.length !== 1 ? 's' : ''}
                                 </span>
                             </div>
@@ -145,6 +195,9 @@ export default function Index({ rewards }: Props) {
                                             <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
                                                 Status
                                             </th>
+                                            <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
+                                                Actions
+                                            </th>
                                         </tr>
                                     </thead>
 
@@ -174,20 +227,43 @@ export default function Index({ rewards }: Props) {
                                                 </td>
 
                                                 <td className="whitespace-nowrap px-6 py-4 text-sm font-medium text-gray-900">
-                                                    {reward.points_required}{' '}
-                                                    pts
+                                                    {reward.points_required} pts
                                                 </td>
 
                                                 <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-700">
                                                     {reward.reward_value
                                                         ? `₱${Number(
-                                                              reward.reward_value
+                                                              reward.reward_value,
                                                           ).toFixed(2)}`
                                                         : '-'}
                                                 </td>
 
                                                 <td className="whitespace-nowrap px-6 py-4">
-                                                    <StatusBadge active={reward.is_active} />
+                                                    <StatusBadge
+                                                        active={
+                                                            reward.is_active
+                                                        }
+                                                    />
+                                                </td>
+
+                                                <td className="whitespace-nowrap px-6 py-4">
+                                                    <div className="flex items-center gap-4">
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => openEditForm(reward)}
+                                                            className="text-sm font-semibold text-red-600 transition-colors hover:text-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
+                                                        >
+                                                            Edit
+                                                        </button>
+
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => toggleStatus(reward)}
+                                                            className="text-sm font-semibold text-gray-600 transition-colors hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2"
+                                                        >
+                                                            {reward.is_active ? 'Deactivate' : 'Activate'}
+                                                        </button>
+                                                    </div>
                                                 </td>
                                             </tr>
                                         ))}
@@ -202,8 +278,16 @@ export default function Index({ rewards }: Props) {
             {/* Create Reward Modal */}
             {showForm && (
                 <AdminModal
-                    title="Create Reward"
-                    description="Add a new reward for customers to redeem."
+                    title={
+                        editingRewardId !== null
+                            ? 'Edit Reward'
+                            : 'Create Reward'
+                    }
+                    description={
+                        editingRewardId !== null
+                            ? 'Update the details of this loyalty reward.'
+                            : 'Add a new reward for customers to redeem.'
+                    }
                     onClose={closeForm}
                     maxWidthClass="max-w-2xl"
                     footer={
@@ -219,19 +303,22 @@ export default function Index({ rewards }: Props) {
 
                             <button
                                 type="submit"
-                                form="create-reward-form"
+                                form="reward-form"
                                 disabled={processing}
                                 className="rounded-lg bg-red-600 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                             >
-                                {processing ? 'Creating...' : 'Create Reward'}
+                                {processing
+                                    ? editingRewardId !== null
+                                        ? 'Saving...'
+                                        : 'Creating...'
+                                    : editingRewardId !== null
+                                    ? 'Save Changes'
+                                    : 'Create Reward'}
                             </button>
                         </>
                     }
                 >
-                    <form
-                        id="create-reward-form"
-                        onSubmit={submit}
-                    >
+                    <form id="reward-form" onSubmit={submit}>
                         <div className="space-y-5 px-6 py-6">
                             {/* Reward Name */}
                             <div>
@@ -247,7 +334,10 @@ export default function Index({ rewards }: Props) {
                                     type="text"
                                     value={data.reward_name}
                                     onChange={(event) =>
-                                        setData('reward_name', event.target.value)
+                                        setData(
+                                            'reward_name',
+                                            event.target.value,
+                                        )
                                     }
                                     placeholder="e.g. ₱50 Off Coupon"
                                     className="w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm outline-none transition focus:border-red-500 focus:ring-2 focus:ring-red-100"
@@ -277,14 +367,17 @@ export default function Index({ rewards }: Props) {
                                             setData(
                                                 'reward_type',
                                                 event.target.value as
-                                                    | 'discount'
-                                                    | 'free_item'
+                                                    'discount' | 'free_item',
                                             )
                                         }
                                         className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm outline-none transition focus:border-red-500 focus:ring-2 focus:ring-red-100"
                                     >
-                                        <option value="discount">Discount</option>
-                                        <option value="free_item">Free Item</option>
+                                        <option value="discount">
+                                            Discount
+                                        </option>
+                                        <option value="free_item">
+                                            Free Item
+                                        </option>
                                     </select>
 
                                     {errors.reward_type && (
@@ -310,7 +403,7 @@ export default function Index({ rewards }: Props) {
                                         onChange={(event) =>
                                             setData(
                                                 'points_required',
-                                                event.target.value
+                                                event.target.value,
                                             )
                                         }
                                         placeholder="e.g. 200"
@@ -343,7 +436,7 @@ export default function Index({ rewards }: Props) {
                                     onChange={(event) =>
                                         setData(
                                             'reward_value',
-                                            event.target.value
+                                            event.target.value,
                                         )
                                     }
                                     placeholder="e.g. 50.00"
@@ -351,8 +444,8 @@ export default function Index({ rewards }: Props) {
                                 />
 
                                 <p className="mt-1 text-xs text-gray-500">
-                                    Used for discount rewards. Leave blank if not
-                                    applicable.
+                                    Used for discount rewards. Leave blank if
+                                    not applicable.
                                 </p>
 
                                 {errors.reward_value && (
@@ -376,7 +469,10 @@ export default function Index({ rewards }: Props) {
                                     rows={3}
                                     value={data.description}
                                     onChange={(event) =>
-                                        setData('description', event.target.value)
+                                        setData(
+                                            'description',
+                                            event.target.value,
+                                        )
                                     }
                                     placeholder="Briefly describe the reward..."
                                     className="w-full resize-none rounded-lg border border-gray-300 px-3 py-2.5 text-sm outline-none transition focus:border-red-500 focus:ring-2 focus:ring-red-100"
@@ -404,7 +500,10 @@ export default function Index({ rewards }: Props) {
                                         type="date"
                                         value={data.start_date}
                                         onChange={(event) =>
-                                            setData('start_date', event.target.value)
+                                            setData(
+                                                'start_date',
+                                                event.target.value,
+                                            )
                                         }
                                         className="w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm outline-none transition focus:border-red-500 focus:ring-2 focus:ring-red-100"
                                     />
@@ -429,7 +528,10 @@ export default function Index({ rewards }: Props) {
                                         type="date"
                                         value={data.end_date}
                                         onChange={(event) =>
-                                            setData('end_date', event.target.value)
+                                            setData(
+                                                'end_date',
+                                                event.target.value,
+                                            )
                                         }
                                         className="w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm outline-none transition focus:border-red-500 focus:ring-2 focus:ring-red-100"
                                     />
@@ -451,7 +553,7 @@ export default function Index({ rewards }: Props) {
                                         onChange={(event) =>
                                             setData(
                                                 'is_active',
-                                                event.target.checked
+                                                event.target.checked,
                                             )
                                         }
                                         className="h-4 w-4 rounded border-gray-300 text-red-600 focus:ring-red-500"
@@ -463,8 +565,8 @@ export default function Index({ rewards }: Props) {
                                         </p>
 
                                         <p className="text-xs text-gray-500">
-                                            Allow this reward to be available for
-                                            redemption.
+                                            Allow this reward to be available
+                                            for redemption.
                                         </p>
                                     </div>
                                 </label>
@@ -482,4 +584,3 @@ export default function Index({ rewards }: Props) {
         </AdminLayout>
     );
 }
-

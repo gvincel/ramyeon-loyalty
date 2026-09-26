@@ -66,6 +66,12 @@ Route::middleware(['auth', 'role:admin'])->group(function () {
     Route::post('/admin/rewards', [RewardController::class, 'store'])
     ->name('admin.rewards.store');
 
+    Route::put('/admin/rewards/{reward}', [RewardController::class, 'update'])
+    ->name('admin.rewards.update');
+
+    Route::patch('/admin/rewards/{reward}/toggle-status', [RewardController::class, 'toggleStatus'])
+    ->name('admin.rewards.toggle-status');
+
 });
 
 /*
