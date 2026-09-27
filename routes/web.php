@@ -5,6 +5,7 @@ use App\Http\Controllers\Admin\CustomerController;
 use App\Http\Controllers\Cashier\CustomerController as CashierCustomerController;
 use App\Http\Controllers\Admin\RewardController;
 use App\Http\Controllers\Admin\DashboardController;
+use App\Http\Controllers\Customer\AuthController as CustomerAuthController;
 use App\Http\Controllers\ProfileController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
@@ -23,6 +24,34 @@ Route::get('/', function () {
         'laravelVersion' => Application::VERSION,
         'phpVersion' => PHP_VERSION,
     ]);
+});
+
+/*
+|--------------------------------------------------------------------------
+| Customer Authentication Routes
+|--------------------------------------------------------------------------
+|
+| These routes are separate from the Admin/Cashier authentication system
+| and use the "customer" authentication guard.
+|
+*/
+
+Route::middleware('guest:customer')->group(function () {
+    Route::get('/loyalty/login', [CustomerAuthController::class, 'create'])
+        ->name('customer.login');
+
+    Route::post('/loyalty/login', [CustomerAuthController::class, 'store'])
+        ->name('customer.login.store');
+});
+
+Route::middleware('auth:customer')->group(function () {
+    Route::get('/loyalty/dashboard', [
+        \App\Http\Controllers\Customer\DashboardController::class,
+        'index',
+    ])->name('customer.dashboard');
+
+    Route::post('/loyalty/logout', [CustomerAuthController::class, 'destroy'])
+        ->name('customer.logout');
 });
 
 /*

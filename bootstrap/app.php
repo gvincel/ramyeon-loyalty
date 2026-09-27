@@ -26,6 +26,14 @@ return Application::configure(basePath: dirname(__DIR__))
             \Illuminate\Http\Middleware\AddLinkHeadersForPreloadedAssets::class,
         ]);
 
+        $middleware->redirectGuestsTo(function (Request $request) {
+            if ($request->is('loyalty/*')) {
+                return route('customer.login');
+            }
+
+            return route('login');
+        });
+
         /*
         |--------------------------------------------------------------------------
         | Middleware Aliases
