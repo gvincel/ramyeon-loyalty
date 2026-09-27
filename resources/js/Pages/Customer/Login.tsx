@@ -32,8 +32,24 @@ export default function Login() {
             <div className="flex flex-col">
                 {/* Header */}
                 <div className="border-b border-slate-100 px-6 py-6 sm:px-8 sm:py-7">
-                    <div className="mb-3 inline-flex items-center rounded-full bg-red-50 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-red-700">
-                        Customer Portal
+                    <div className="mb-4 flex items-center gap-3">
+                        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-red-50 ring-1 ring-red-100">
+                            <span
+                                className="material-symbols-outlined text-[22px] text-red-700"
+                                aria-hidden="true"
+                            >
+                                loyalty
+                            </span>
+                        </div>
+
+                        <div>
+                            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-red-700">
+                                Customer Portal
+                            </p>
+                            <p className="mt-0.5 text-xs text-slate-400">
+                                Ramyeon Corner Loyalty
+                            </p>
+                        </div>
                     </div>
 
                     <h1
@@ -43,15 +59,16 @@ export default function Login() {
                         Welcome back
                     </h1>
 
-                    <p className="mt-2 text-sm leading-6 text-slate-500">
-                        Sign in to view your points, rewards, and loyalty
-                        activity.
+                    <p className="mt-2 max-w-sm text-sm leading-6 text-slate-500">
+                        Sign in to check your points, available rewards, and
+                        loyalty activity.
                     </p>
                 </div>
 
                 {/* Form */}
                 <form
                     onSubmit={submit}
+                    noValidate
                     className="px-6 py-6 sm:px-8 sm:py-7"
                 >
                     <div
@@ -79,10 +96,10 @@ export default function Login() {
                                 placeholder="09XXXXXXXXX"
                                 maxLength={11}
                                 autoFocus
-                                className={`w-full rounded-xl border bg-white px-4 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:ring-2 ${
+                                className={`w-full rounded-xl border bg-white px-4 text-sm text-slate-900 shadow-sm outline-none transition duration-200 placeholder:text-slate-400 focus:ring-2 ${
                                     errors.phone_number
                                         ? 'border-red-400 focus:border-red-500 focus:ring-red-100'
-                                        : 'border-slate-200 focus:border-red-500 focus:ring-red-100'
+                                        : 'border-slate-200 hover:border-slate-300 focus:border-red-500 focus:ring-red-100'
                                 }`}
                                 style={{ height: 'var(--ctl)' }}
                                 aria-invalid={
@@ -124,10 +141,10 @@ export default function Login() {
                                         setData('password', e.target.value)
                                     }
                                     placeholder="Enter your password"
-                                    className={`w-full rounded-xl border bg-white px-4 pr-12 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:ring-2 ${
+                                    className={`w-full rounded-xl border bg-white px-4 pr-12 text-sm text-slate-900 shadow-sm outline-none transition duration-200 placeholder:text-slate-400 focus:ring-2 ${
                                         errors.password
                                             ? 'border-red-400 focus:border-red-500 focus:ring-red-100'
-                                            : 'border-slate-200 focus:border-red-500 focus:ring-red-100'
+                                            : 'border-slate-200 hover:border-slate-300 focus:border-red-500 focus:ring-red-100'
                                     }`}
                                     style={{ height: 'var(--ctl)' }}
                                     aria-invalid={
@@ -152,7 +169,10 @@ export default function Login() {
                                             : 'Show password'
                                     }
                                 >
-                                    <span className="material-symbols-outlined text-[20px]">
+                                    <span
+                                        className="material-symbols-outlined text-[20px]"
+                                        aria-hidden="true"
+                                    >
                                         {showPassword
                                             ? 'visibility_off'
                                             : 'visibility'}
@@ -190,12 +210,15 @@ export default function Login() {
                         <button
                             type="submit"
                             disabled={processing}
-                            className="mt-2 flex w-full items-center justify-center gap-2 rounded-xl bg-red-700 px-4 font-semibold text-white shadow-sm transition hover:bg-red-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
+                            className="mt-2 flex w-full items-center justify-center gap-2 rounded-xl bg-red-700 px-4 font-semibold text-white shadow-sm transition duration-200 hover:bg-red-800 hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:bg-red-700 disabled:hover:shadow-sm"
                             style={{ height: 'var(--ctl)' }}
                         >
                             {processing ? (
                                 <>
-                                    <span className="material-symbols-outlined animate-spin text-[19px]">
+                                    <span
+                                        className="material-symbols-outlined animate-spin text-[19px]"
+                                        aria-hidden="true"
+                                    >
                                         progress_activity
                                     </span>
                                     Signing in...
@@ -203,7 +226,10 @@ export default function Login() {
                             ) : (
                                 <>
                                     Sign in
-                                    <span className="material-symbols-outlined text-[19px]">
+                                    <span
+                                        className="material-symbols-outlined text-[19px]"
+                                        aria-hidden="true"
+                                    >
                                         arrow_forward
                                     </span>
                                 </>
@@ -212,7 +238,7 @@ export default function Login() {
                     </div>
                 </form>
 
-                {/* Footer note */}
+                {/* Footer Note */}
                 <div className="border-t border-slate-100 bg-slate-50/70 px-6 py-4 text-center sm:px-8">
                     <p className="text-xs leading-5 text-slate-500">
                         Your account is managed by Ramyeon Corner staff.
