@@ -24,6 +24,7 @@ class TransactionHistoryTest extends TestCase
             'first_name' => 'Test',
             'last_name' => 'Customer',
             'phone_number' => '09999999999',
+            'password' => 'TestPassword123',
             'is_active' => true,
         ]);
 
@@ -64,6 +65,7 @@ class TransactionHistoryTest extends TestCase
             'first_name' => 'Test',
             'last_name' => 'Customer',
             'phone_number' => '09999999998',
+            'password' => 'TestPassword123',
             'is_active' => true,
         ]);
 
@@ -110,6 +112,7 @@ class TransactionHistoryTest extends TestCase
             'first_name' => 'Jestoni',
             'last_name' => 'Jualo',
             'phone_number' => '09999999997',
+            'password' => 'TestPassword123',
             'is_active' => true,
         ]);
 

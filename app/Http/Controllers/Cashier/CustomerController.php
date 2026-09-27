@@ -8,6 +8,7 @@ use App\Models\CustomerQrCode;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rules\Password;
 
 class CustomerController extends Controller
 {
@@ -83,6 +84,13 @@ class CustomerController extends Controller
                 'email',
                 'max:100',
             ],
+
+            'password' => [
+                'required',
+                'string',
+                'confirmed',
+                Password::min(8)->letters()->numbers(),
+            ],
         ]);
 
         $customerCode = 'RC-' . strtoupper(Str::random(8));
@@ -98,6 +106,7 @@ class CustomerController extends Controller
                 'last_name' => $validated['last_name'],
                 'phone_number' => $validated['phone_number'],
                 'email' => $validated['email'] ?? null,
+                'password' => $validated['password'],
             ]);
 
             CustomerQrCode::create([

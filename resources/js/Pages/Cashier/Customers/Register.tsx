@@ -11,6 +11,8 @@ export default function Create() {
         last_name: '',
         phone_number: '',
         email: '',
+        password: '',
+        password_confirmation: '',
     });
 
     const { flash } = usePage<PageProps>().props;
@@ -267,6 +269,102 @@ export default function Create() {
                                         className="mt-1 text-sm text-red-600"
                                     >
                                         {errors.email}
+                                    </p>
+                                )}
+                            </div>
+
+                            {/* Password */}
+                            <div>
+                                <label
+                                    htmlFor="password"
+                                    className="mb-1.5 block text-sm font-medium text-gray-700"
+                                >
+                                    Initial Password
+                                </label>
+
+                                <input
+                                    id="password"
+                                    type="password"
+                                    value={data.password}
+                                    onChange={(event) =>
+                                        setData('password', event.target.value)
+                                    }
+                                    autoComplete="new-password"
+                                    required
+                                    aria-invalid={!!errors.password}
+                                    aria-describedby={
+                                        errors.password
+                                            ? 'password-error'
+                                            : 'password-hint'
+                                    }
+                                    placeholder="Enter initial password"
+                                    className={`w-full rounded-lg border px-3 py-2.5 text-sm outline-none transition-colors placeholder:text-gray-400 ${
+                                        errors.password
+                                            ? 'border-red-500 bg-red-50/40 focus:border-red-600 focus:ring-1 focus:ring-red-500'
+                                            : 'border-gray-300 focus:border-red-500 focus:ring-1 focus:ring-red-500'
+                                    }`}
+                                />
+
+                                <p
+                                    id="password-hint"
+                                    className="mt-1 text-xs text-gray-500"
+                                >
+                                    Must be at least 8 characters and contain letters and numbers.
+                                </p>
+
+                                {errors.password && (
+                                    <p
+                                        id="password-error"
+                                        role="alert"
+                                        className="mt-1 text-sm text-red-600"
+                                    >
+                                        {errors.password}
+                                    </p>
+                                )}
+                            </div>
+
+                            {/* Confirm Password */}
+                            <div>
+                                <label
+                                    htmlFor="password_confirmation"
+                                    className="mb-1.5 block text-sm font-medium text-gray-700"
+                                >
+                                    Confirm Password
+                                </label>
+
+                                <input
+                                    id="password_confirmation"
+                                    type="password"
+                                    value={data.password_confirmation}
+                                    onChange={(event) =>
+                                        setData(
+                                            'password_confirmation',
+                                            event.target.value,
+                                        )
+                                    }
+                                    autoComplete="new-password"
+                                    required
+                                    aria-invalid={!!errors.password_confirmation}
+                                    aria-describedby={
+                                        errors.password_confirmation
+                                            ? 'password_confirmation-error'
+                                            : undefined
+                                    }
+                                    placeholder="Re-enter password"
+                                    className={`w-full rounded-lg border px-3 py-2.5 text-sm outline-none transition-colors placeholder:text-gray-400 ${
+                                        errors.password_confirmation
+                                            ? 'border-red-500 bg-red-50/40 focus:border-red-600 focus:ring-1 focus:ring-red-500'
+                                            : 'border-gray-300 focus:border-red-500 focus:ring-1 focus:ring-red-500'
+                                    }`}
+                                />
+
+                                {errors.password_confirmation && (
+                                    <p
+                                        id="password_confirmation-error"
+                                        role="alert"
+                                        className="mt-1 text-sm text-red-600"
+                                    >
+                                        {errors.password_confirmation}
                                     </p>
                                 )}
                             </div>

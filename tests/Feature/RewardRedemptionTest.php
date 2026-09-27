@@ -25,6 +25,7 @@ class RewardRedemptionTest extends TestCase
             'first_name' => 'Reward',
             'last_name' => 'Customer',
             'phone_number' => '09811111111',
+            'password' => 'TestPassword123',
             'is_active' => true,
             'points' => 500,
         ]);
@@ -95,6 +96,7 @@ class RewardRedemptionTest extends TestCase
             'first_name' => 'Insufficient',
             'last_name' => 'Points',
             'phone_number' => '09812222222',
+            'password' => 'TestPassword123',
             'is_active' => true,
             'points' => 100,
         ]);
@@ -151,6 +153,7 @@ class RewardRedemptionTest extends TestCase
             'first_name' => 'Inactive',
             'last_name' => 'Reward',
             'phone_number' => '09813333333',
+            'password' => 'TestPassword123',
             'is_active' => true,
             'points' => 500,
         ]);
@@ -201,6 +204,7 @@ class RewardRedemptionTest extends TestCase
             'first_name' => 'Future',
             'last_name' => 'Reward',
             'phone_number' => '09814444444',
+            'password' => 'TestPassword123',
             'is_active' => true,
             'points' => 500,
         ]);
@@ -251,6 +255,7 @@ class RewardRedemptionTest extends TestCase
             'first_name' => 'Expired',
             'last_name' => 'Reward',
             'phone_number' => '09815555555',
+            'password' => 'TestPassword123',
             'is_active' => true,
             'points' => 500,
         ]);
@@ -301,6 +306,7 @@ class RewardRedemptionTest extends TestCase
             'first_name' => 'Inactive',
             'last_name' => 'Customer',
             'phone_number' => '09816666666',
+            'password' => 'TestPassword123',
             'is_active' => false,
             'points' => 500,
         ]);
@@ -382,6 +388,7 @@ class RewardRedemptionTest extends TestCase
             'first_name' => 'Missing',
             'last_name' => 'Reward',
             'phone_number' => '09817777777',
+            'password' => 'TestPassword123',
             'is_active' => true,
             'points' => 500,
         ]);
@@ -434,6 +441,7 @@ class RewardRedemptionTest extends TestCase
             'first_name' => 'Refund',
             'last_name' => 'Customer',
             'phone_number' => '09818888888',
+            'password' => 'TestPassword123',
             'is_active' => true,
             'points' => 500,
         ]);
@@ -493,6 +501,7 @@ class RewardRedemptionTest extends TestCase
             'first_name' => 'Refund',
             'last_name' => 'Ledger',
             'phone_number' => '09819999999',
+            'password' => 'TestPassword123',
             'is_active' => true,
             'points' => 500,
         ]);
@@ -552,6 +561,7 @@ class RewardRedemptionTest extends TestCase
             'first_name' => 'Other',
             'last_name' => 'Cashier',
             'phone_number' => '09810000000',
+            'password' => 'TestPassword123',
             'is_active' => true,
             'points' => 0,
         ]);
@@ -603,6 +613,7 @@ class RewardRedemptionTest extends TestCase
             'first_name' => 'Expired',
             'last_name' => 'Cancellation',
             'phone_number' => '09811111111',
+            'password' => 'TestPassword123',
             'is_active' => true,
             'points' => 0,
         ]);
@@ -666,6 +677,7 @@ class RewardRedemptionTest extends TestCase
             'first_name' => 'Already',
             'last_name' => 'Cancelled',
             'phone_number' => '09812222222',
+            'password' => 'TestPassword123',
             'is_active' => true,
             'points' => 500,
         ]);

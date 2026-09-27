@@ -3,9 +3,9 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Model;
+use Illuminate\Foundation\Auth\User as Authenticatable;
 
-class Customer extends Model
+class Customer extends Authenticatable
 {
     use HasFactory;
 
@@ -15,13 +15,20 @@ class Customer extends Model
         'last_name',
         'phone_number',
         'email',
+        'password',
         'points',
         'is_active',
+    ];
+
+    protected $hidden = [
+        'password',
+        'remember_token',
     ];
 
     protected function casts(): array
     {
         return [
+            'password' => 'hashed',
             'points' => 'integer',
             'is_active' => 'boolean',
         ];

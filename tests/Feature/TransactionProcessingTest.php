@@ -25,6 +25,7 @@ class TransactionProcessingTest extends TestCase
             'first_name' => 'Test',
             'last_name' => 'Customer',
             'phone_number' => '09888888888',
+            'password' => 'TestPassword123',
             'is_active' => true,
             'points' => 0,
         ]);
@@ -84,6 +85,7 @@ class TransactionProcessingTest extends TestCase
             'first_name' => 'Existing',
             'last_name' => 'Points',
             'phone_number' => '09877777777',
+            'password' => 'TestPassword123',
             'is_active' => true,
             'points' => 10,
         ]);
@@ -138,6 +140,7 @@ class TransactionProcessingTest extends TestCase
             'first_name' => 'Boundary',
             'last_name' => 'Test',
             'phone_number' => '09866666666',
+            'password' => 'TestPassword123',
             'is_active' => true,
             'points' => 0,
         ]);
@@ -175,6 +178,7 @@ class TransactionProcessingTest extends TestCase
             'first_name' => 'Validation',
             'last_name' => 'Test',
             'phone_number' => '09855555555',
+            'password' => 'TestPassword123',
             'is_active' => true,
             'points' => 10,
         ]);
@@ -216,6 +220,7 @@ class TransactionProcessingTest extends TestCase
             'first_name' => 'Negative',
             'last_name' => 'Amount',
             'phone_number' => '09844444444',
+            'password' => 'TestPassword123',
             'is_active' => true,
             'points' => 10,
         ]);
@@ -282,6 +287,7 @@ class TransactionProcessingTest extends TestCase
             'first_name' => 'Inactive',
             'last_name' => 'Customer',
             'phone_number' => '09833333333',
+            'password' => 'TestPassword123',
             'is_active' => false,
             'points' => 15,
         ]);
@@ -323,6 +329,7 @@ class TransactionProcessingTest extends TestCase
             'first_name' => 'Maximum',
             'last_name' => 'Test',
             'phone_number' => '09822222222',
+            'password' => 'TestPassword123',
             'is_active' => true,
             'points' => 20,
         ]);
