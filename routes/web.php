@@ -6,6 +6,7 @@ use App\Http\Controllers\Cashier\CustomerController as CashierCustomerController
 use App\Http\Controllers\Admin\RewardController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Customer\AuthController as CustomerAuthController;
+use App\Http\Controllers\Customer\RewardController as CustomerRewardController;
 use App\Http\Controllers\ProfileController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
@@ -49,6 +50,21 @@ Route::middleware('auth:customer')->group(function () {
         \App\Http\Controllers\Customer\DashboardController::class,
         'index',
     ])->name('customer.dashboard');
+
+    Route::get('/loyalty/rewards', [
+        CustomerRewardController::class,
+        'index',
+    ])->name('customer.rewards');
+
+    Route::get('/loyalty/transactions', [
+        \App\Http\Controllers\Customer\TransactionController::class,
+        'index',
+    ])->name('customer.transactions');
+
+    Route::get('/loyalty/point-history', [
+        \App\Http\Controllers\Customer\PointTransactionController::class,
+        'index',
+    ])->name('customer.point-history');
 
     Route::post('/loyalty/logout', [CustomerAuthController::class, 'destroy'])
         ->name('customer.logout');
