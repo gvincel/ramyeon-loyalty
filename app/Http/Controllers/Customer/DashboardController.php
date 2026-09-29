@@ -13,6 +13,11 @@ class DashboardController extends Controller
     {
         $customer = Auth::guard('customer')->user();
 
+        /** @var \App\Models\Customer $customer */
+        $qrCode = $customer->qrCode()
+            ->where('is_active', true)
+            ->first();
+
         return Inertia::render('Customer/Dashboard', [
             'customer' => [
                 'id' => $customer->id,
@@ -22,6 +27,7 @@ class DashboardController extends Controller
                 'phone_number' => $customer->phone_number,
                 'email' => $customer->email,
                 'points' => $customer->points,
+                'qr_token' => $qrCode?->qr_token,
             ],
         ]);
     }

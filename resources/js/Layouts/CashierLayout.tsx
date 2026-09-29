@@ -281,7 +281,7 @@ export default function CashierLayout({
                                     : 'ml-3 w-auto opacity-100'
                             }`}
                         >
-                            Reward Redemption History
+                            Reward Redemptions
                         </span>
                     </Link>
                 </nav>

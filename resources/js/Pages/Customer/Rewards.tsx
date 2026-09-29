@@ -39,6 +39,26 @@ export default function Rewards({ rewards }: RewardsProps) {
                         description="View the rewards currently available in the Ramyeon Corner loyalty program."
                     />
 
+                    <div className="mb-6 flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3.5">
+                        <span
+                            className="material-symbols-outlined mt-0.5 shrink-0 text-[20px] text-amber-700"
+                            aria-hidden="true"
+                        >
+                            info
+                        </span>
+
+                        <div>
+                            <p className="text-sm font-semibold text-amber-900">
+                                How to redeem
+                            </p>
+
+                            <p className="mt-0.5 text-sm leading-5 text-amber-800">
+                                Visit the cashier to redeem an available reward using your
+                                loyalty points.
+                            </p>
+                        </div>
+                    </div>
+
                     {/* Rewards */}
                     {rewards.length > 0 ? (
                         <section className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
