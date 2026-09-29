@@ -19,6 +19,7 @@ interface Customer {
 interface ValidationErrors {
     receipt_number?: string[];
     purchase_amount?: string[];
+    points_used?: string[];
 }
 
 interface Reward {
@@ -51,6 +52,8 @@ export default function QRScannerPage() {
 
     const [receiptNumber, setReceiptNumber] = useState('');
     const [purchaseAmount, setPurchaseAmount] = useState('');
+    const [usePoints, setUsePoints] = useState(false);
+    const [pointsUsed, setPointsUsed] = useState('');
 
     const resetCustomerState = () => {
         setCustomer(null);
@@ -59,6 +62,8 @@ export default function QRScannerPage() {
         setValidationErrors({});
         setReceiptNumber('');
         setPurchaseAmount('');
+        setUsePoints(false);
+        setPointsUsed('');
         setRewards([]);
     };
 
@@ -69,6 +74,8 @@ export default function QRScannerPage() {
         setValidationErrors({});
         setReceiptNumber('');
         setPurchaseAmount('');
+        setUsePoints(false);
+        setPointsUsed('');
         setRewards([]);
         setIsLoading(true);
 
@@ -134,6 +141,7 @@ export default function QRScannerPage() {
                             ? receiptNumber.trim()
                             : null,
                     purchase_amount: purchaseAmount,
+                    points_used: usePoints ? pointsUsedValue : 0,
                 },
             );
 
@@ -146,6 +154,8 @@ export default function QRScannerPage() {
 
             setReceiptNumber('');
             setPurchaseAmount('');
+            setUsePoints(false);
+            setPointsUsed('');
         } catch (error) {
             if (axios.isAxiosError(error)) {
                 if (error.response?.status === 422) {
@@ -218,9 +228,27 @@ export default function QRScannerPage() {
 
     const purchaseValue = Number(purchaseAmount);
 
+    const pointsUsedValue =
+        usePoints && /^\d+$/.test(pointsUsed) ? Number(pointsUsed) : 0;
+
+    const maxPointsUsable = customer
+        ? Math.min(customer.points, Math.floor(purchaseValue))
+        : 0;
+
+    const pointsInputInvalid =
+        usePoints &&
+        pointsUsed !== '' &&
+        (!/^\d+$/.test(pointsUsed) ||
+            Number(pointsUsed) > maxPointsUsable);
+
+    const amountPaid = Math.max(
+        purchaseValue - pointsUsedValue,
+        0,
+    );
+
     const pointsEarned =
-        purchaseAmount !== '' && purchaseValue > 0
-            ? Math.floor(purchaseValue / 100)
+        purchaseAmount !== '' && amountPaid > 0
+            ? Math.floor(amountPaid / 100)
             : 0;
 
     const initials = customer
@@ -501,22 +529,28 @@ export default function QRScannerPage() {
                                                                 value,
                                                             )
                                                         ) {
-                                                            setPurchaseAmount(
-                                                                value,
-                                                            );
+                                                            setPurchaseAmount(value);
+
+                                                            if (usePoints && /^\d+$/.test(pointsUsed)) {
+                                                                const newPurchaseValue = Number(value);
+                                                                const newMaxPoints = customer
+                                                                    ? Math.min(customer.points, Math.floor(newPurchaseValue))
+                                                                    : 0;
+
+                                                                if (Number(pointsUsed) > newMaxPoints) {
+                                                                    setPointsUsed(String(newMaxPoints));
+                                                                }
+                                                            }
 
                                                             if (
-                                                                validationErrors.purchase_amount
+                                                                validationErrors.purchase_amount ||
+                                                                validationErrors.points_used
                                                             ) {
-                                                                setValidationErrors(
-                                                                    (
-                                                                        current,
-                                                                    ) => ({
-                                                                        ...current,
-                                                                        purchase_amount:
-                                                                            undefined,
-                                                                    }),
-                                                                );
+                                                                setValidationErrors((current) => ({
+                                                                    ...current,
+                                                                    purchase_amount: undefined,
+                                                                    points_used: undefined,
+                                                                }));
                                                             }
                                                         }
                                                     }}
@@ -552,6 +586,161 @@ export default function QRScannerPage() {
                                             )}
                                         </div>
 
+                                        {/* Use Points */}
+                                        <div className="rounded-xl border border-gray-100 bg-gray-50 p-5">
+                                            <div className="flex items-start gap-3">
+                                                <input
+                                                    id="use_points"
+                                                    type="checkbox"
+                                                    checked={usePoints}
+                                                    onChange={(event) => {
+                                                        setUsePoints(event.target.checked);
+
+                                                        if (!event.target.checked) {
+                                                            setPointsUsed('');
+                                                            setValidationErrors((current) => ({
+                                                                ...current,
+                                                                points_used: undefined,
+                                                            }));
+                                                        }
+                                                    }}
+                                                    disabled={customer.points <= 0}
+                                                    className="mt-0.5 h-4 w-4 rounded border-gray-300 text-red-600 focus:ring-2 focus:ring-red-500/20"
+                                                />
+
+                                                <div className="min-w-0">
+                                                    <label
+                                                        htmlFor="use_points"
+                                                        className="block cursor-pointer text-sm font-semibold text-gray-800"
+                                                    >
+                                                        Use Points
+                                                    </label>
+
+                                                    <p className="mt-1 text-xs leading-5 text-gray-500">
+                                                        Use the customer&apos;s loyalty points to reduce the
+                                                        amount they need to pay.
+                                                    </p>
+
+                                                    <p className="mt-2 text-xs font-medium text-gray-600">
+                                                        Available: {customer.points} points
+                                                    </p>
+                                                </div>
+                                            </div>
+
+                                            {usePoints && (
+                                                <div className="mt-4">
+                                                    <label
+                                                        htmlFor="points_used"
+                                                        className="mb-1.5 block text-sm font-medium text-gray-800"
+                                                    >
+                                                        Points to Use
+                                                    </label>
+
+                                                    <input
+                                                        id="points_used"
+                                                        type="text"
+                                                        inputMode="numeric"
+                                                        value={pointsUsed}
+                                                        onKeyDown={(event) => {
+                                                            if (
+                                                                event.key === '-' ||
+                                                                event.key === '+' ||
+                                                                event.key === '.' ||
+                                                                event.key === 'e' ||
+                                                                event.key === 'E'
+                                                            ) {
+                                                                event.preventDefault();
+                                                            }
+                                                        }}
+                                                        onWheel={(event) => {
+                                                            event.currentTarget.blur();
+                                                        }}
+                                                        onChange={(event) => {
+                                                            const value = event.target.value;
+
+                                                            if (/^\d*$/.test(value)) {
+                                                                setPointsUsed(value);
+
+                                                                if (validationErrors.points_used) {
+                                                                    setValidationErrors((current) => ({
+                                                                        ...current,
+                                                                        points_used: undefined,
+                                                                    }));
+                                                                }
+                                                            }
+                                                        }}
+                                                        maxLength={9}
+                                                        autoComplete="off"
+                                                        aria-invalid={!!validationErrors.points_used}
+                                                        aria-describedby={
+                                                            validationErrors.points_used
+                                                                ? 'points-used-error points-used-help'
+                                                                : 'points-used-help'
+                                                        }
+                                                        placeholder="0"
+                                                        className={`block h-11 w-full rounded-xl border bg-white px-4 text-[15px] text-gray-950 outline-none transition-[border-color,box-shadow,background-color] placeholder:text-gray-400 ${
+                                                            validationErrors.points_used
+                                                                ? 'border-red-500 bg-red-50/40 focus:border-red-600 focus:ring-2 focus:ring-red-600/15'
+                                                                : 'border-black/[0.07] hover:border-black/[0.13] focus:border-red-900 focus:ring-2 focus:ring-red-900/10'
+                                                        }`}
+                                                    />
+
+                                                    <p
+                                                        id="points-used-help"
+                                                        className="mt-1.5 text-xs text-gray-500"
+                                                    >
+                                                        Maximum usable: {maxPointsUsable} points
+                                                    </p>
+
+                                                    {validationErrors.points_used && (
+                                                        <p
+                                                            id="points-used-error"
+                                                            role="alert"
+                                                            className="mt-1.5 text-sm text-red-600"
+                                                        >
+                                                            {validationErrors.points_used[0]}
+                                                        </p>
+                                                    )}
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        {/* Transaction Summary */}
+                                        <div className="rounded-xl border border-gray-100 bg-gray-50 p-5">
+                                            <div className="space-y-4">
+                                                <div className="flex items-center justify-between gap-4">
+                                                    <span className="text-sm text-gray-500">
+                                                        Purchase Amount
+                                                    </span>
+                                                    <span className="text-sm font-semibold text-gray-900">
+                                                        ₱{purchaseValue.toFixed(2)}
+                                                    </span>
+                                                </div>
+
+                                                {usePoints && pointsUsedValue > 0 && (
+                                                    <div className="flex items-center justify-between gap-4">
+                                                        <span className="text-sm text-gray-500">
+                                                            Points Used
+                                                        </span>
+                                                        <span className="text-sm font-semibold text-red-600">
+                                                            −₱{pointsUsedValue.toFixed(2)}
+                                                        </span>
+                                                    </div>
+                                                )}
+
+                                                <div className="border-t border-gray-200 pt-4">
+                                                    <div className="flex items-center justify-between gap-4">
+                                                        <span className="text-sm font-semibold text-gray-800">
+                                                            Amount Paid
+                                                        </span>
+                                                        <span className="text-xl font-bold text-gray-900">
+                                                            ₱{amountPaid.toFixed(2)}
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
                                         {/* Points Preview */}
                                         <div className="rounded-xl border border-yellow-100 bg-yellow-50 p-5">
                                             <div className="flex items-center justify-between gap-4">
@@ -561,8 +750,7 @@ export default function QRScannerPage() {
                                                     </p>
 
                                                     <p className="mt-1 text-xs text-yellow-700">
-                                                        Every ₱100 spent earns 1
-                                                        point.
+                                                        Every ₱100 actually paid earns 1 point.
                                                     </p>
                                                 </div>
 
@@ -579,7 +767,9 @@ export default function QRScannerPage() {
                                                 onClick={handleSubmit}
                                                 disabled={
                                                     isSubmitting ||
-                                                    purchaseAmount === ''
+                                                    purchaseAmount === '' ||
+                                                    (usePoints &&
+                                                        (pointsUsed === '' || pointsInputInvalid))
                                                 }
                                                 aria-busy={isSubmitting}
                                                 className="inline-flex min-h-[44px] w-full items-center justify-center gap-2 rounded-xl bg-red-600 px-5 text-sm font-semibold text-white shadow-sm transition-[background-color,box-shadow,transform] hover:bg-red-700 hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:shadow-sm sm:w-auto"
