@@ -9,6 +9,7 @@ use App\Models\PointTransaction;
 use App\Models\Transaction;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 
 class TransactionController extends Controller
 {
@@ -120,6 +121,11 @@ class TransactionController extends Controller
                 'min:0.01',
                 'max:99999999.99',
             ],
+            'points_used' => [
+                'nullable',
+                'integer',
+                'min:0',
+            ],
         ]);
 
         $result = DB::transaction(function () use ($validated, $request) {
@@ -134,34 +140,76 @@ class TransactionController extends Controller
 
             $previousPoints = $customer->points;
 
-            $pointsEarned = intdiv(
-                (int) $validated['purchase_amount'],
-                100
+            $pointsUsed = $validated['points_used'] ?? 0;
+
+            if ($pointsUsed > $customer->points) {
+                throw ValidationException::withMessages([
+                    'points_used' => 'The customer does not have enough points.',
+                ]);
+            }
+
+            $purchaseAmountCents = (int) round(
+                (float) $validated['purchase_amount'] * 100
             );
+
+            $pointsUsedCents = $pointsUsed * 100;
+
+            if ($pointsUsedCents > $purchaseAmountCents) {
+                throw ValidationException::withMessages([
+                    'points_used' => 'Points used cannot exceed the purchase amount.',
+                ]);
+            }
+
+            $amountPaidCents = $purchaseAmountCents - $pointsUsedCents;
+
+            $pointsEarned = intdiv($amountPaidCents, 10000);
+
+            $newPoints = $previousPoints - $pointsUsed + $pointsEarned;
 
             $transaction = Transaction::create([
                 'customer_id' => $customer->id,
                 'cashier_id' => $request->user()->id,
                 'receipt_number' => $validated['receipt_number'] ?? null,
                 'purchase_amount' => $validated['purchase_amount'],
+                'points_used' => $pointsUsed,
+                'amount_paid' => $amountPaidCents / 100,
                 'points_earned' => $pointsEarned,
                 'created_at' => now(),
             ]);
 
-            $customer->increment('points', $pointsEarned);
+            if ($pointsUsed > 0) {
+                $customer->decrement('points', $pointsUsed);
 
-            $customer->refresh();
+                $customer->refresh();
 
-            PointTransaction::create([
-                'customer_id' => $customer->id,
-                'transaction_id' => $transaction->id,
-                'redemption_id' => null,
-                'type' => 'earned',
-                'points' => $pointsEarned,
-                'balance_after' => $customer->points,
-                'description' => 'Points earned from purchase.',
-                'created_at' => now(),
-            ]);
+                PointTransaction::create([
+                    'customer_id' => $customer->id,
+                    'transaction_id' => $transaction->id,
+                    'redemption_id' => null,
+                    'type' => 'redeemed',
+                    'points' => -$pointsUsed,
+                    'balance_after' => $customer->points,
+                    'description' => 'Points used for purchase.',
+                    'created_at' => now(),
+                ]);
+            }
+
+            if ($pointsEarned > 0) {
+                $customer->increment('points', $pointsEarned);
+
+                $customer->refresh();
+
+                PointTransaction::create([
+                    'customer_id' => $customer->id,
+                    'transaction_id' => $transaction->id,
+                    'redemption_id' => null,
+                    'type' => 'earned',
+                    'points' => $pointsEarned,
+                    'balance_after' => $customer->points,
+                    'description' => 'Points earned from purchase.',
+                    'created_at' => now(),
+                ]);
+            }
 
             return [
                 'transaction' => $transaction,

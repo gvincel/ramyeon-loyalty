@@ -125,6 +125,293 @@ class TransactionProcessingTest extends TestCase
         ]);
     }
 
+    public function test_cashier_can_use_points_for_partial_purchase_payment(): void
+    {
+        $cashier = User::factory()->create([
+            'role' => 'cashier',
+            'is_active' => true,
+        ]);
+
+        $customer = Customer::create([
+            'customer_code' => 'TEST-POINT-003',
+            'first_name' => 'Partial',
+            'last_name' => 'Usage',
+            'phone_number' => '09811111111',
+            'password' => 'TestPassword123',
+            'is_active' => true,
+            'points' => 100,
+        ]);
+
+        $response = $this
+            ->actingAs($cashier)
+            ->postJson(route('cashier.transactions.store'), [
+                'customer_id' => $customer->id,
+                'receipt_number' => 'OR-POINT-003',
+                'purchase_amount' => 500.00,
+                'points_used' => 100,
+            ]);
+
+        $response->assertOk()
+            ->assertJson([
+                'message' => 'Transaction completed successfully.',
+                'points_earned' => 4,
+                'previous_points' => 100,
+                'new_points' => 4,
+            ]);
+
+        $transaction = Transaction::where('receipt_number', 'OR-POINT-003')->first();
+
+        $this->assertNotNull($transaction);
+
+        $this->assertSame(100, $transaction->points_used);
+        $this->assertSame('400.00', $transaction->amount_paid);
+
+        $this->assertDatabaseHas('point_transactions', [
+            'customer_id' => $customer->id,
+            'transaction_id' => $transaction->id,
+            'redemption_id' => null,
+            'type' => 'redeemed',
+            'points' => -100,
+            'balance_after' => 0,
+        ]);
+
+        $this->assertDatabaseHas('point_transactions', [
+            'customer_id' => $customer->id,
+            'transaction_id' => $transaction->id,
+            'redemption_id' => null,
+            'type' => 'earned',
+            'points' => 4,
+            'balance_after' => 4,
+        ]);
+
+        $this->assertDatabaseHas('customers', [
+            'id' => $customer->id,
+            'points' => 4,
+        ]);
+    }
+
+    public function test_cashier_can_use_points_to_pay_full_purchase_amount(): void
+    {
+        $cashier = User::factory()->create([
+            'role' => 'cashier',
+            'is_active' => true,
+        ]);
+
+        $customer = Customer::create([
+            'customer_code' => 'TEST-POINT-004',
+            'first_name' => 'Full',
+            'last_name' => 'Payment',
+            'phone_number' => '09812222222',
+            'password' => 'TestPassword123',
+            'is_active' => true,
+            'points' => 350,
+        ]);
+
+        $response = $this
+            ->actingAs($cashier)
+            ->postJson(route('cashier.transactions.store'), [
+                'customer_id' => $customer->id,
+                'receipt_number' => 'OR-POINT-004',
+                'purchase_amount' => 350.00,
+                'points_used' => 350,
+            ]);
+
+        $response->assertOk()
+            ->assertJson([
+                'message' => 'Transaction completed successfully.',
+                'points_earned' => 0,
+                'previous_points' => 350,
+                'new_points' => 0,
+            ]);
+
+        $transaction = Transaction::where('receipt_number', 'OR-POINT-004')->first();
+
+        $this->assertNotNull($transaction);
+
+        $this->assertSame(350, $transaction->points_used);
+        $this->assertSame('0.00', $transaction->amount_paid);
+
+        $this->assertDatabaseHas('point_transactions', [
+            'customer_id' => $customer->id,
+            'transaction_id' => $transaction->id,
+            'redemption_id' => null,
+            'type' => 'redeemed',
+            'points' => -350,
+            'balance_after' => 0,
+        ]);
+
+        $this->assertDatabaseMissing('point_transactions', [
+            'customer_id' => $customer->id,
+            'transaction_id' => $transaction->id,
+            'type' => 'earned',
+        ]);
+
+        $this->assertDatabaseHas('customers', [
+            'id' => $customer->id,
+            'points' => 0,
+        ]);
+    }
+
+    public function test_customer_cannot_use_more_points_than_their_balance(): void
+    {
+        $cashier = User::factory()->create([
+            'role' => 'cashier',
+            'is_active' => true,
+        ]);
+
+        $customer = Customer::create([
+            'customer_code' => 'TEST-POINT-005',
+            'first_name' => 'Insufficient',
+            'last_name' => 'Points',
+            'phone_number' => '09813333333',
+            'password' => 'TestPassword123',
+            'is_active' => true,
+            'points' => 50,
+        ]);
+
+        $response = $this
+            ->actingAs($cashier)
+            ->postJson(route('cashier.transactions.store'), [
+                'customer_id' => $customer->id,
+                'receipt_number' => 'OR-POINT-005',
+                'purchase_amount' => 500.00,
+                'points_used' => 100,
+            ]);
+
+        $response->assertUnprocessable()
+            ->assertJsonValidationErrors('points_used');
+
+        $this->assertDatabaseMissing('transactions', [
+            'receipt_number' => 'OR-POINT-005',
+        ]);
+
+        $this->assertDatabaseCount('point_transactions', 0);
+
+        $this->assertDatabaseHas('customers', [
+            'id' => $customer->id,
+            'points' => 50,
+        ]);
+    }
+
+    public function test_customer_cannot_use_more_points_than_purchase_amount(): void
+    {
+        $cashier = User::factory()->create([
+            'role' => 'cashier',
+            'is_active' => true,
+        ]);
+
+        $customer = Customer::create([
+            'customer_code' => 'TEST-POINT-006',
+            'first_name' => 'Purchase',
+            'last_name' => 'Limit',
+            'phone_number' => '09814444444',
+            'password' => 'TestPassword123',
+            'is_active' => true,
+            'points' => 500,
+        ]);
+
+        $response = $this
+            ->actingAs($cashier)
+            ->postJson(route('cashier.transactions.store'), [
+                'customer_id' => $customer->id,
+                'receipt_number' => 'OR-POINT-006',
+                'purchase_amount' => 100.00,
+                'points_used' => 200,
+            ]);
+
+        $response->assertUnprocessable()
+            ->assertJsonValidationErrors('points_used');
+
+        $this->assertDatabaseMissing('transactions', [
+            'receipt_number' => 'OR-POINT-006',
+        ]);
+
+        $this->assertDatabaseCount('point_transactions', 0);
+
+        $this->assertDatabaseHas('customers', [
+            'id' => $customer->id,
+            'points' => 500,
+        ]);
+    }
+
+    public function test_invalid_points_used_value_is_rejected(): void
+    {
+        $cashier = User::factory()->create([
+            'role' => 'cashier',
+            'is_active' => true,
+        ]);
+
+        $customer = Customer::create([
+            'customer_code' => 'TEST-POINT-007',
+            'first_name' => 'Invalid',
+            'last_name' => 'Points',
+            'phone_number' => '09815555555',
+            'password' => 'TestPassword123',
+            'is_active' => true,
+            'points' => 100,
+        ]);
+
+        $response = $this
+            ->actingAs($cashier)
+            ->postJson(route('cashier.transactions.store'), [
+                'customer_id' => $customer->id,
+                'receipt_number' => 'OR-POINT-007',
+                'purchase_amount' => 500.00,
+                'points_used' => -10,
+            ]);
+
+        $response->assertUnprocessable()
+            ->assertJsonValidationErrors('points_used');
+
+        $this->assertDatabaseMissing('transactions', [
+            'receipt_number' => 'OR-POINT-007',
+        ]);
+
+        $this->assertDatabaseHas('customers', [
+            'id' => $customer->id,
+            'points' => 100,
+        ]);
+    }
+
+   public function test_non_integer_points_used_value_is_rejected(): void
+    {
+        $cashier = User::factory()->create([
+            'role' => 'cashier',
+            'is_active' => true,
+        ]);
+
+        $customer = Customer::create([
+            'customer_code' => 'TEST-POINT-008',
+            'first_name' => 'Decimal',
+            'last_name' => 'Points',
+            'phone_number' => '09816666666',
+            'password' => 'TestPassword123',
+            'is_active' => true,
+            'points' => 100,
+        ]);
+
+        $response = $this
+            ->actingAs($cashier)
+            ->postJson(route('cashier.transactions.store'), [
+                'customer_id' => $customer->id,
+                'receipt_number' => 'OR-POINT-008',
+                'purchase_amount' => 500.00,
+                'points_used' => 10.5,
+            ]);
+
+        $response->assertUnprocessable()
+            ->assertJsonValidationErrors('points_used');
+
+        $this->assertDatabaseMissing('transactions', [
+            'receipt_number' => 'OR-POINT-008',
+        ]);
+
+        $this->assertDatabaseHas('customers', [
+            'id' => $customer->id,
+            'points' => 100,
+        ]);
+    }
+
     #[DataProvider('purchaseAmountPointsProvider')]
     public function test_points_are_calculated_correctly_at_purchase_boundaries(
         float $purchaseAmount,
@@ -151,6 +438,7 @@ class TransactionProcessingTest extends TestCase
                 'customer_id' => $customer->id,
                 'receipt_number' => 'OR-BOUNDARY-' . $purchaseAmount,
                 'purchase_amount' => $purchaseAmount,
+                'points_used' => 0,
             ]);
 
         $response->assertOk()

@@ -16,6 +16,8 @@ class Transaction extends Model
         'cashier_id',
         'receipt_number',
         'purchase_amount',
+        'points_used',
+        'amount_paid',
         'points_earned',
         'created_at',
     ];
@@ -24,6 +26,8 @@ class Transaction extends Model
     {
         return [
             'purchase_amount' => 'decimal:2',
+            'points_used' => 'integer',
+            'amount_paid' => 'decimal:2',
             'points_earned' => 'integer',
             'created_at' => 'datetime',
         ];

@@ -33,6 +33,8 @@ class TransactionHistoryTest extends TestCase
             'cashier_id' => $cashier->id,
             'receipt_number' => 'OR-TEST-001',
             'purchase_amount' => 350.00,
+            'points_used' => 0,
+            'amount_paid' => 350.00,
             'points_earned' => 3,
             'created_at' => now(),
         ]);
@@ -74,6 +76,8 @@ class TransactionHistoryTest extends TestCase
             'cashier_id' => $cashier->id,
             'receipt_number' => 'OR-OWN-001',
             'purchase_amount' => 200.00,
+            'points_used' => 0,
+            'amount_paid' => 200.00,
             'points_earned' => 2,
             'created_at' => now(),
         ]);
@@ -83,6 +87,8 @@ class TransactionHistoryTest extends TestCase
             'cashier_id' => $otherCashier->id,
             'receipt_number' => 'OR-OTHER-001',
             'purchase_amount' => 500.00,
+            'points_used' => 0,
+            'amount_paid' => 500.00,
             'points_earned' => 5,
             'created_at' => now(),
         ]);
@@ -121,6 +127,8 @@ class TransactionHistoryTest extends TestCase
             'cashier_id' => $cashier->id,
             'receipt_number' => 'OR-TEST-002',
             'purchase_amount' => 350.00,
+            'points_used' => 0,
+            'amount_paid' => 350.00,
             'points_earned' => 3,
             'created_at' => now(),
         ]);
