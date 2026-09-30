@@ -54,6 +54,7 @@ export default function QRScannerPage() {
     const [purchaseAmount, setPurchaseAmount] = useState('');
     const [usePoints, setUsePoints] = useState(false);
     const [pointsUsed, setPointsUsed] = useState('');
+    const [customerCode, setCustomerCode] = useState('');
 
     const resetCustomerState = () => {
         setCustomer(null);
@@ -118,6 +119,69 @@ export default function QRScannerPage() {
             setIsLoading(false);
         }
     }, []);
+
+    const handleCustomerCodeLookup = useCallback(async () => {
+        const code = customerCode.trim();
+
+        if (!code) {
+            setError('Please enter a customer code.');
+            return;
+        }
+
+        setCustomer(null);
+        setError(null);
+        setSuccess(null);
+        setValidationErrors({});
+        setReceiptNumber('');
+        setPurchaseAmount('');
+        setUsePoints(false);
+        setPointsUsed('');
+        setRewards([]);
+        setIsLoading(true);
+
+        try {
+            const response = await axios.post(
+                route('cashier.transactions.find-customer-by-code'),
+                {
+                    customer_code: code,
+                },
+            );
+
+            const customerData = response.data.customer;
+
+            setCustomer(customerData);
+
+            setIsLoadingRewards(true);
+
+            try {
+                const rewardsResponse = await axios.post(
+                    route('cashier.rewards.available'),
+                    { customer_id: customerData.id },
+                );
+
+                setRewards(rewardsResponse.data.rewards);
+            } catch {
+                setRewards([]);
+            } finally {
+                setIsLoadingRewards(false);
+            }
+
+            setCustomerCode('');
+        } catch (error) {
+            if (axios.isAxiosError(error)) {
+                setError(
+                    error.response?.data?.message ||
+                        'Unable to find customer.',
+                );
+            } else {
+                setError(
+                    'Something went wrong while finding the customer.',
+                );
+            }
+        } finally {
+            setIsLoading(false);
+        }
+    }, [customerCode]);
 
     const handleError = useCallback((errorMessage: string) => {
         setError(errorMessage);
@@ -324,6 +388,62 @@ export default function QRScannerPage() {
                                     don&apos;t see a preview, check your
                                     browser&apos;s camera permission settings.
                                 </p>
+
+                                <div className="my-6 flex items-center gap-4">
+                                    <div className="h-px flex-1 bg-gray-200" />
+                                    <span className="text-xs font-medium uppercase tracking-wider text-gray-400">
+                                        or
+                                    </span>
+                                    <div className="h-px flex-1 bg-gray-200" />
+                                </div>
+
+                                <div className="mx-auto max-w-xl">
+                                    <label
+                                        htmlFor="customer_code"
+                                        className="mb-1.5 block text-sm font-medium text-gray-800"
+                                    >
+                                        Enter Customer Code
+                                    </label>
+
+                                    <div className="flex flex-col gap-3 sm:flex-row">
+                                        <input
+                                            id="customer_code"
+                                            type="text"
+                                            value={customerCode}
+                                            onChange={(event) => {
+                                                setCustomerCode(event.target.value);
+                                                setError(null);
+                                            }}
+                                            onKeyDown={(event) => {
+                                                if (event.key === 'Enter') {
+                                                    event.preventDefault();
+                                                    void handleCustomerCodeLookup();
+                                                }
+                                            }}
+                                            maxLength={50}
+                                            autoComplete="off"
+                                            placeholder="e.g. RC-000123"
+                                            aria-describedby="customer-code-help"
+                                            className="block h-11 min-w-0 flex-1 rounded-xl border border-black/[0.07] bg-[#f8f8f9] px-4 text-[15px] text-gray-950 outline-none transition-[border-color,box-shadow,background-color] placeholder:text-gray-400 hover:border-black/[0.13] focus:border-red-900 focus:bg-white focus:ring-2 focus:ring-red-900/10"
+                                        />
+
+                                        <button
+                                            type="button"
+                                            onClick={() => void handleCustomerCodeLookup()}
+                                            disabled={isLoading || customerCode.trim() === ''}
+                                            className="inline-flex min-h-[44px] shrink-0 items-center justify-center rounded-xl bg-red-600 px-5 text-sm font-semibold text-white shadow-sm transition-[background-color,box-shadow,transform] hover:bg-red-700 hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:shadow-sm"
+                                        >
+                                            Find Customer
+                                        </button>
+                                    </div>
+
+                                    <p
+                                        id="customer-code-help"
+                                        className="mt-2 text-xs text-gray-500"
+                                    >
+                                        Enter the customer code shown on the customer record.
+                                    </p>
+                                </div>
                             </div>
                         </div>
                     )}

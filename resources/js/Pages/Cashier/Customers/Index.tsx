@@ -37,6 +37,7 @@ export default function Index({
 }) {
     const { flash } = usePage<PageProps>().props;
     const [search, setSearch] = useState(filters.search ?? '');
+    const [copiedCustomerId, setCopiedCustomerId] = useState<number | null>(null);
 
     const submitSearch = (event: FormEvent) => {
         event.preventDefault();
@@ -55,6 +56,25 @@ export default function Index({
             {},
             { preserveState: true, replace: true },
         );
+    };
+
+    const handleCopyCustomerCode = async (
+        customerId: number,
+        customerCode: string,
+    ) => {
+        try {
+            await navigator.clipboard.writeText(customerCode);
+
+            setCopiedCustomerId(customerId);
+
+            window.setTimeout(() => {
+                setCopiedCustomerId((current) =>
+                    current === customerId ? null : current,
+                );
+            }, 2000);
+        } catch {
+            setCopiedCustomerId(null);
+        }
     };
 
     return (
@@ -138,7 +158,7 @@ export default function Index({
 
                             <Link
                                 href={route('cashier.customers.register')}
-                                className="inline-flex shrink-0 items-center justify-center gap-2 rounded-lg bg-red-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
+                                className="inline-flex shrink-0 items-center justify-center gap-2 rounded-lg bg-red-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-red-700 focus:outline-none focus:ring-1 focus:ring-red-400 focus:ring-offset-2"
                             >
                                 <svg
                                     className="h-4 w-4"
@@ -241,8 +261,66 @@ export default function Index({
                                                 </td>
 
                                                 <td className="px-6 py-4">
-                                                    <span className="inline-flex rounded-md bg-gray-50 px-2.5 py-1 font-medium text-gray-700 ring-1 ring-gray-200">
-                                                        {customer.customer_code}
+                                                    <span className="inline-flex items-center gap-1.5">
+                                                        <span className="inline-flex rounded-md bg-gray-50 px-2.5 py-1 font-medium text-gray-700 ring-1 ring-gray-200">
+                                                            {customer.customer_code}
+                                                        </span>
+
+                                                        <button
+                                                            type="button"
+                                                            onClick={() =>
+                                                                void handleCopyCustomerCode(
+                                                                    customer.id,
+                                                                    customer.customer_code,
+                                                                )
+                                                            }
+                                                            aria-label={
+                                                                copiedCustomerId === customer.id
+                                                                    ? 'Customer code copied'
+                                                                    : 'Copy customer code'
+                                                            }
+                                                            title={
+                                                                copiedCustomerId === customer.id
+                                                                    ? 'Copied'
+                                                                    : 'Copy customer code'
+                                                            }
+                                                            className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-gray-200 bg-white text-gray-500 transition-colors hover:bg-gray-50 hover:text-gray-700 focus:outline-none focus:ring-1 focus:ring-red-400 focus:ring-offset-1"
+                                                        >
+                                                            {copiedCustomerId === customer.id ? (
+                                                                <svg
+                                                                    className="h-4 w-4 text-green-600"
+                                                                    viewBox="0 0 24 24"
+                                                                    fill="none"
+                                                                    stroke="currentColor"
+                                                                    strokeWidth="2"
+                                                                    strokeLinecap="round"
+                                                                    strokeLinejoin="round"
+                                                                    aria-hidden="true"
+                                                                >
+                                                                    <path d="M20 6L9 17l-5-5" />
+                                                                </svg>
+                                                            ) : (
+                                                                <svg
+                                                                    className="h-4 w-4"
+                                                                    viewBox="0 0 24 24"
+                                                                    fill="none"
+                                                                    stroke="currentColor"
+                                                                    strokeWidth="2"
+                                                                    strokeLinecap="round"
+                                                                    strokeLinejoin="round"
+                                                                    aria-hidden="true"
+                                                                >
+                                                                    <rect
+                                                                        x="9"
+                                                                        y="9"
+                                                                        width="11"
+                                                                        height="11"
+                                                                        rx="2"
+                                                                    />
+                                                                    <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" />
+                                                                </svg>
+                                                            )}
+                                                        </button>
                                                     </span>
                                                 </td>
 

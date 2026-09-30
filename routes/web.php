@@ -3,6 +3,7 @@
 use App\Http\Controllers\Admin\CashierController;
 use App\Http\Controllers\Admin\CustomerController;
 use App\Http\Controllers\Cashier\CustomerController as CashierCustomerController;
+use App\Http\Controllers\Cashier\DashboardController as CashierDashboardController;
 use App\Http\Controllers\Admin\RewardController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Customer\AuthController as CustomerAuthController;
@@ -142,9 +143,10 @@ Route::middleware(['auth', 'role:admin'])->group(function () {
 
 Route::middleware(['auth', 'role:cashier'])->group(function () {
 
-    Route::get('/cashier/dashboard', function () {
-        return Inertia::render('Cashier/Dashboard');
-    })->name('cashier.dashboard');
+        Route::get('/cashier/dashboard', [
+            CashierDashboardController::class,
+            'index',
+        ])->name('cashier.dashboard');
 
     Route::get('/cashier/customers/register', function () {
         return Inertia::render('Cashier/Customers/Register');
@@ -178,6 +180,11 @@ Route::middleware(['auth', 'role:cashier'])->group(function () {
         \App\Http\Controllers\Cashier\TransactionController::class,
         'findCustomer',
     ])->name('cashier.transactions.find-customer');
+
+    Route::post('/cashier/transactions/find-customer-by-code', [
+        \App\Http\Controllers\Cashier\TransactionController::class,
+        'findCustomerByCode',
+    ])->name('cashier.transactions.find-customer-by-code');
 
     Route::post('/cashier/transactions', [
         \App\Http\Controllers\Cashier\TransactionController::class,

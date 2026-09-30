@@ -24,16 +24,21 @@ export default function QRScanner({
         const updateVideoSize = () => {
             const video = scannerElement?.querySelector('video');
 
-            if (video) {
-                video.style.width = '100%';
-                video.style.height = 'auto';
-                video.style.display = 'block';
+            if (!video) {
+                return;
             }
+
+            video.style.width = '100%';
+            video.style.height = 'auto';
+            video.style.display = 'block';
+            video.style.objectFit = 'cover';
         };
 
         const resizeObserver = scannerElement
             ? new ResizeObserver(() => {
-                  updateVideoSize();
+                  requestAnimationFrame(() => {
+                      updateVideoSize();
+                  });
               })
             : null;
 

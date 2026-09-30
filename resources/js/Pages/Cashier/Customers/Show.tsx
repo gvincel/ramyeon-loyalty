@@ -1,5 +1,5 @@
 import { Head, Link } from '@inertiajs/react';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import CashierLayout from '@/Layouts/CashierLayout';
 import AdminPageHeader from '@/Components/AdminPageHeader';
 import AdminModal from '@/Components/AdminModal';
@@ -71,36 +71,25 @@ function InfoRow({
 
 export default function Show({ customer }: Props) {
     const [showFullQr, setShowFullQr] = useState(false);
+    const [copied, setCopied] = useState(false);
 
     const fullName = `${customer.first_name} ${customer.last_name}`;
     const qr = customer.qr_code;
     const hasQr = qr !== null && qr.is_active;
 
-    /* Lock page scroll while the full-size QR modal is open */
-    const isModalOpen = showFullQr && hasQr;
+    const handleCopyCustomerCode = async () => {
+        try {
+            await navigator.clipboard.writeText(customer.customer_code);
 
-    useEffect(() => {
-        if (!isModalOpen) return;
+            setCopied(true);
 
-        const { body, documentElement } = document;
-        const previousOverflow = body.style.overflow;
-        const previousPaddingRight = body.style.paddingRight;
-
-        // Compensate for the scrollbar disappearing so the page doesn't jump sideways
-        const scrollbarWidth =
-            window.innerWidth - documentElement.clientWidth;
-
-        body.style.overflow = 'hidden';
-
-        if (scrollbarWidth > 0) {
-            body.style.paddingRight = `${scrollbarWidth}px`;
+            window.setTimeout(() => {
+                setCopied(false);
+            }, 2000);
+        } catch {
+            setCopied(false);
         }
-
-        return () => {
-            body.style.overflow = previousOverflow;
-            body.style.paddingRight = previousPaddingRight;
-        };
-    }, [isModalOpen]);
+    };
 
     return (
         <CashierLayout>
@@ -174,8 +163,57 @@ export default function Show({ customer }: Props) {
 
                             <dl className="flex flex-1 flex-col divide-y divide-gray-100">
                                 <InfoRow label="Customer Code">
-                                    <span className="inline-flex rounded-md bg-gray-50 px-2.5 py-1 font-medium text-gray-700 ring-1 ring-gray-200">
-                                        {customer.customer_code}
+                                    <span className="inline-flex items-center gap-1.5">
+                                        <span className="inline-flex rounded-md bg-gray-50 px-2.5 py-1 font-medium text-gray-700 ring-1 ring-gray-200">
+                                            {customer.customer_code}
+                                        </span>
+
+                                        <button
+                                            type="button"
+                                            onClick={() => void handleCopyCustomerCode()}
+                                            aria-label={
+                                                copied
+                                                    ? 'Customer code copied'
+                                                    : 'Copy customer code'
+                                            }
+                                            title={copied ? 'Copied' : 'Copy customer code'}
+                                            className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-gray-200 bg-white text-gray-500 transition-colors hover:bg-gray-50 hover:text-gray-700 focus:outline-none focus:ring-1 focus:ring-red-400 focus:ring-offset-1"
+                                        >
+                                            {copied ? (
+                                                <svg
+                                                    className="h-4 w-4 text-green-600"
+                                                    viewBox="0 0 24 24"
+                                                    fill="none"
+                                                    stroke="currentColor"
+                                                    strokeWidth="2"
+                                                    strokeLinecap="round"
+                                                    strokeLinejoin="round"
+                                                    aria-hidden="true"
+                                                >
+                                                    <path d="M20 6L9 17l-5-5" />
+                                                </svg>
+                                            ) : (
+                                                <svg
+                                                    className="h-4 w-4"
+                                                    viewBox="0 0 24 24"
+                                                    fill="none"
+                                                    stroke="currentColor"
+                                                    strokeWidth="2"
+                                                    strokeLinecap="round"
+                                                    strokeLinejoin="round"
+                                                    aria-hidden="true"
+                                                >
+                                                    <rect
+                                                        x="9"
+                                                        y="9"
+                                                        width="11"
+                                                        height="11"
+                                                        rx="2"
+                                                    />
+                                                    <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" />
+                                                </svg>
+                                            )}
+                                        </button>
                                     </span>
                                 </InfoRow>
 
@@ -326,7 +364,7 @@ export default function Show({ customer }: Props) {
             </div>
 
             {/* Full-size QR modal */}
-            {isModalOpen && (
+            {showFullQr && hasQr && (
                 <AdminModal
                     title="Customer QR Code"
                     description="Full-size view for easy scanning."

@@ -102,6 +102,39 @@ class TransactionController extends Controller
         ]);
     }
 
+    public function findCustomerByCode(Request $request)
+    {
+        $validated = $request->validate([
+            'customer_code' => [
+                'required',
+                'string',
+                'max:50',
+            ],
+        ]);
+
+        $customer = Customer::query()
+            ->where('customer_code', $validated['customer_code'])
+            ->where('is_active', true)
+            ->first();
+
+        if (!$customer) {
+            return response()->json([
+                'message' => 'Customer not found or inactive.',
+            ], 404);
+        }
+
+        return response()->json([
+            'customer' => [
+                'id' => $customer->id,
+                'customer_code' => $customer->customer_code,
+                'first_name' => $customer->first_name,
+                'last_name' => $customer->last_name,
+                'phone_number' => $customer->phone_number,
+                'points' => $customer->points,
+            ],
+        ]);
+    }
+
     public function store(Request $request)
     {
         $validated = $request->validate([
