@@ -42,6 +42,12 @@ export default function CustomerLayout({
             path: '/loyalty/point-history',
             icon: 'history',
         },
+        {
+            label: 'Redemption History',
+            href: route('customer.redemption-history'),
+            path: '/loyalty/redemption-history',
+            icon: 'redeem',
+        },
     ];
 
     useEffect(() => {

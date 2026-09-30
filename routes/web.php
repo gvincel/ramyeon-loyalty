@@ -43,6 +43,13 @@ Route::middleware('guest:customer')->group(function () {
 
     Route::post('/loyalty/login', [CustomerAuthController::class, 'store'])
         ->name('customer.login.store');
+
+    Route::get('/loyalty/register', [CustomerAuthController::class, 'register'])
+        ->name('customer.register');
+
+    Route::post('/loyalty/register', [CustomerAuthController::class, 'storeRegistration'])
+        ->middleware('throttle:5,1')
+        ->name('customer.register.store');
 });
 
 Route::middleware('auth:customer')->group(function () {
@@ -65,6 +72,11 @@ Route::middleware('auth:customer')->group(function () {
         \App\Http\Controllers\Customer\PointTransactionController::class,
         'index',
     ])->name('customer.point-history');
+
+    Route::get('/loyalty/redemption-history', [
+        \App\Http\Controllers\Customer\RedemptionHistoryController::class,
+        'index',
+    ])->name('customer.redemption-history');
 
     Route::post('/loyalty/logout', [CustomerAuthController::class, 'destroy'])
         ->name('customer.logout');
