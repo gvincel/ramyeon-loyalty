@@ -1,5 +1,7 @@
 import { Head } from '@inertiajs/react';
 
+import { useRef, useState } from 'react';
+
 import { QRCodeSVG } from 'qrcode.react';
 
 import CustomerLayout from '@/Layouts/CustomerLayout';
@@ -22,6 +24,91 @@ type DashboardProps = {
 };
 
 export default function Dashboard({ customer }: DashboardProps) {
+    const qrContainerRef = useRef<HTMLDivElement>(null);
+    const [savingQr, setSavingQr] = useState(false);
+    const [qrSaveError, setQrSaveError] = useState<string | null>(null);
+
+    const handleSaveQr = async () => {
+        const svg = qrContainerRef.current?.querySelector('svg');
+        if (!svg) {
+            return;
+        }
+
+        setSavingQr(true);
+        setQrSaveError(null);
+
+        let objectUrl: string | null = null;
+
+        try {
+            const serializer = new XMLSerializer();
+            const svgString = serializer.serializeToString(svg);
+            const svgBlob = new Blob([svgString], {
+                type: 'image/svg+xml;charset=utf-8',
+            });
+            objectUrl = URL.createObjectURL(svgBlob);
+
+            const image = new Image();
+
+            await new Promise<void>((resolve, reject) => {
+                image.onload = () => resolve();
+                image.onerror = () =>
+                    reject(new Error('Failed to load QR image'));
+                image.src = objectUrl as string;
+            });
+
+            const scale = 2;
+            const size = 200;
+            const padding = 32;
+            const totalSize = size + padding * 2;
+
+            const canvas = document.createElement('canvas');
+            canvas.width = totalSize * scale;
+            canvas.height = totalSize * scale;
+
+            const ctx = canvas.getContext('2d');
+            if (!ctx) {
+                throw new Error('Canvas not supported');
+            }
+
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.drawImage(
+                image,
+                padding * scale,
+                padding * scale,
+                size * scale,
+                size * scale,
+            );
+
+            URL.revokeObjectURL(objectUrl);
+            objectUrl = null;
+
+            const blob = await new Promise<Blob | null>((resolve) =>
+                canvas.toBlob(resolve, 'image/png'),
+            );
+
+            if (!blob) {
+                throw new Error('Failed to generate PNG');
+            }
+
+            const downloadUrl = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = downloadUrl;
+            link.download = `Ramyeon-Loyalty-QR-${customer.customer_code}.png`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(downloadUrl);
+        } catch {
+            setQrSaveError('Could not save the QR code. Please try again.');
+        } finally {
+            if (objectUrl) {
+                URL.revokeObjectURL(objectUrl);
+            }
+            setSavingQr(false);
+        }
+    };
+
     return (
         <CustomerLayout>
             <Head title="My Loyalty Dashboard" />
@@ -170,7 +257,10 @@ export default function Dashboard({ customer }: DashboardProps) {
 
                             <div className="flex flex-1 items-center justify-center py-6">
                                 {customer.qr_token ? (
-                                    <div className="inline-flex rounded-xl border border-slate-200 bg-white p-4">
+                                    <div
+                                        ref={qrContainerRef}
+                                        className="inline-flex rounded-xl border border-slate-200 bg-white p-4"
+                                    >
                                         <QRCodeSVG
                                             value={customer.qr_token}
                                             size={200}
@@ -203,6 +293,41 @@ export default function Dashboard({ customer }: DashboardProps) {
                                     </div>
                                 )}
                             </div>
+
+                            {customer.qr_token && (
+                                <div className="pb-4">
+                                    <button
+                                        type="button"
+                                        onClick={handleSaveQr}
+                                        disabled={savingQr}
+                                        className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-4 text-sm font-medium text-slate-700 transition hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
+                                    >
+                                        <span
+                                            className="material-symbols-outlined text-[18px]"
+                                            aria-hidden="true"
+                                        >
+                                            {savingQr
+                                                ? 'progress_activity'
+                                                : 'download'}
+                                        </span>
+
+                                        <span>
+                                            {savingQr
+                                                ? 'Saving…'
+                                                : 'Save QR Code'}
+                                        </span>
+                                    </button>
+
+                                    {qrSaveError && (
+                                        <p
+                                            role="alert"
+                                            className="mt-2 text-xs text-red-700"
+                                        >
+                                            {qrSaveError}
+                                        </p>
+                                    )}
+                                </div>
+                            )}
 
                             <div className="border-t border-slate-100 pt-4">
                                 <p className="text-sm leading-6 text-slate-500">
