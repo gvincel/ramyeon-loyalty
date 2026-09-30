@@ -105,7 +105,7 @@ export default function Index({
                         error={flash.error}
                     />
 
-                    {/* Search + Register */}
+                    {/* Search */}
                     <div className="mb-6 overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm">
                         <div className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5">
                             <form
@@ -156,25 +156,6 @@ export default function Index({
                                 )}
                             </form>
 
-                            <Link
-                                href={route('cashier.customers.register')}
-                                className="inline-flex shrink-0 items-center justify-center gap-2 rounded-lg bg-red-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-red-700 focus:outline-none focus:ring-1 focus:ring-red-400 focus:ring-offset-2"
-                            >
-                                <svg
-                                    className="h-4 w-4"
-                                    viewBox="0 0 24 24"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    strokeWidth="2"
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    aria-hidden="true"
-                                >
-                                    <path d="M12 5v14" />
-                                    <path d="M5 12h14" />
-                                </svg>
-                                Register Customer
-                            </Link>
                         </div>
                     </div>
 

@@ -1,4 +1,4 @@
-import { Head, useForm } from '@inertiajs/react';
+import { Head, Link, useForm } from '@inertiajs/react';
 import { FormEventHandler, useState } from 'react';
 import GuestLayout from '@/Layouts/GuestLayout';
 
@@ -240,8 +240,14 @@ export default function Login() {
 
                 {/* Footer Note */}
                 <div className="border-t border-slate-100 bg-slate-50/70 px-6 py-4 text-center sm:px-8">
-                    <p className="text-xs leading-5 text-slate-500">
-                        Your account is managed by Ramyeon Corner staff.
+                    <p className="text-sm text-slate-600">
+                        Don&apos;t have an account?{' '}
+                        <Link
+                            href={route('customer.register')}
+                            className="font-semibold text-red-700 underline-offset-4 transition hover:text-red-800 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2"
+                        >
+                            Register here
+                        </Link>
                     </p>
                 </div>
             </div>

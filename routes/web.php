@@ -143,14 +143,10 @@ Route::middleware(['auth', 'role:admin'])->group(function () {
 
 Route::middleware(['auth', 'role:cashier'])->group(function () {
 
-        Route::get('/cashier/dashboard', [
-            CashierDashboardController::class,
-            'index',
-        ])->name('cashier.dashboard');
-
-    Route::get('/cashier/customers/register', function () {
-        return Inertia::render('Cashier/Customers/Register');
-    })->name('cashier.customers.register');
+    Route::get('/cashier/dashboard', [
+        CashierDashboardController::class,
+        'index',
+    ])->name('cashier.dashboard');
 
     Route::get('/cashier/customers', [
         CashierCustomerController::class,
@@ -161,11 +157,6 @@ Route::middleware(['auth', 'role:cashier'])->group(function () {
         CashierCustomerController::class,
         'show',
     ])->whereNumber('customer')->name('cashier.customers.show');
-
-    Route::post('/cashier/customers', [
-        CashierCustomerController::class,
-        'store',
-    ])->name('cashier.customers.store');
 
     Route::get('/cashier/qr-scanner', function () {
         return Inertia::render('Cashier/QRScanner');
