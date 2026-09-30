@@ -33,7 +33,7 @@ class RewardRedemptionController extends Controller
 
         $today = now()->toDateString();
 
-        $rewards = Reward::where('is_active', true)
+                $rewards = Reward::where('is_active', true)
             ->where(function ($query) use ($today) {
                 $query->whereNull('start_date')
                     ->orWhereDate('start_date', '<=', $today);
@@ -44,6 +44,22 @@ class RewardRedemptionController extends Controller
             })
             ->orderBy('points_required')
             ->get();
+
+        // Count this customer's completed redemptions per reward
+        $counts = RewardRedemption::where('customer_id', $customer->id)
+            ->where('status', 'completed')
+            ->whereIn('reward_id', $rewards->pluck('id'))
+            ->selectRaw('reward_id, COUNT(*) as total')
+            ->groupBy('reward_id')
+            ->pluck('total', 'reward_id');
+
+        $rewards = $rewards->map(function ($reward) use ($counts) {
+            $reward->times_redeemed = (int) ($counts[$reward->id] ?? 0);
+            $reward->is_maxed = $reward->redemption_limit !== null
+                && $reward->times_redeemed >= $reward->redemption_limit;
+
+            return $reward;
+        });
 
         return response()->json([
             'rewards' => $rewards,
@@ -89,8 +105,22 @@ class RewardRedemptionController extends Controller
                 })
                 ->first();
 
-            if (!$reward) {
+                        if (!$reward) {
                 abort(404, 'Reward is inactive or unavailable.');
+            }
+
+            if ($reward->redemption_limit !== null) {
+                $completedCount = RewardRedemption::where('customer_id', $customer->id)
+                    ->where('reward_id', $reward->id)
+                    ->where('status', 'completed')
+                    ->count();
+
+                if ($completedCount >= $reward->redemption_limit) {
+                    abort(
+                        422,
+                        "This customer has already reached the redemption limit for {$reward->reward_name} ({$reward->redemption_limit})."
+                    );
+                }
             }
 
             if ($customer->points < $reward->points_required) {

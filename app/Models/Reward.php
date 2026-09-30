@@ -18,6 +18,7 @@ class Reward extends Model
         'start_date',
         'end_date',
         'is_active',
+        'redemption_limit',
     ];
 
     protected function casts(): array
@@ -28,6 +29,7 @@ class Reward extends Model
             'start_date' => 'date',
             'end_date' => 'date',
             'is_active' => 'boolean',
+            'redemption_limit' => 'integer',
         ];
     }
 

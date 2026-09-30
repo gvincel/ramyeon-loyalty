@@ -59,6 +59,12 @@ class RewardController extends Controller
                 'required',
                 'boolean',
             ],
+            'redemption_limit' => [
+                'nullable',
+                'integer',
+                'min:1',
+                'max:1000',
+            ],
         ]);
 
         if ($validated['reward_type'] === 'free_item') {
@@ -110,9 +116,15 @@ class RewardController extends Controller
                 'date',
                 'after_or_equal:start_date',
             ],
-            'is_active' => [
+                'is_active' => [
                 'required',
                 'boolean',
+            ],
+            'redemption_limit' => [
+                'nullable',
+                'integer',
+                'min:1',
+                'max:1000',
             ],
         ]);
 

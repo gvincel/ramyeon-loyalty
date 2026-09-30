@@ -32,6 +32,9 @@ interface Reward {
     start_date: string | null;
     end_date: string | null;
     is_active: boolean;
+    redemption_limit: number | null;
+    times_redeemed: number;
+    is_maxed: boolean;
 }
 
 export default function QRScannerPage() {
@@ -1005,14 +1008,25 @@ export default function QRScannerPage() {
                                             rewards.length > 0 && (
                                                 <div className="space-y-4">
                                                     {rewards.map((reward) => {
-                                                        const canRedeem =
+                                                        const canAfford =
                                                             customer.points >=
                                                             reward.points_required;
+
+                                                        const isMaxed =
+                                                            reward.is_maxed;
+
+                                                        const canRedeem =
+                                                            canAfford &&
+                                                            !isMaxed;
 
                                                         return (
                                                             <div
                                                                 key={reward.id}
-                                                                className="rounded-xl border border-gray-100 bg-white p-4 shadow-sm"
+                                                                className={`rounded-xl border bg-white p-4 shadow-sm ${
+                                                                    isMaxed
+                                                                        ? 'border-gray-200 opacity-75'
+                                                                        : 'border-gray-100'
+                                                                }`}
                                                             >
                                                                 <div className="flex items-start justify-between gap-3">
                                                                     <div className="min-w-0">
@@ -1046,6 +1060,35 @@ export default function QRScannerPage() {
                                                                     </p>
                                                                 )}
 
+                                                                {isMaxed && (
+                                                                    <div className="mt-3 flex items-center gap-2 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2">
+                                                                        <svg
+                                                                            className="h-4 w-4 shrink-0 text-gray-500"
+                                                                            viewBox="0 0 24 24"
+                                                                            fill="none"
+                                                                            stroke="currentColor"
+                                                                            strokeWidth="1.8"
+                                                                            aria-hidden="true"
+                                                                        >
+                                                                            <path
+                                                                                strokeLinecap="round"
+                                                                                strokeLinejoin="round"
+                                                                                d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                                                                            />
+                                                                        </svg>
+
+                                                                        <p className="text-xs font-medium text-gray-600">
+                                                                            Already claimed{' '}
+                                                                            <span className="font-semibold text-gray-800">
+                                                                                {reward.times_redeemed}
+                                                                                {reward.redemption_limit
+                                                                                    ? `/${reward.redemption_limit}`
+                                                                                    : ''}
+                                                                            </span>
+                                                                        </p>
+                                                                    </div>
+                                                                )}
+
                                                                 <button
                                                                     type="button"
                                                                     disabled={
@@ -1062,17 +1105,20 @@ export default function QRScannerPage() {
                                                                 >
                                                                     {redeemingRewardId ===
                                                                     reward.id
-                                                                        ? 'Redeeming…'
+                                                                        ? 'Redeemingâ€¦'
+                                                                        : isMaxed
+                                                                        ? 'Already Claimed'
                                                                         : 'Redeem Reward'}
                                                                 </button>
 
-                                                                {!canRedeem && (
-                                                                    <p className="mt-2 text-center text-xs font-medium text-red-600">
-                                                                        Not
-                                                                        enough
-                                                                        points
-                                                                    </p>
-                                                                )}
+                                                                {!isMaxed &&
+                                                                    !canAfford && (
+                                                                        <p className="mt-2 text-center text-xs font-medium text-red-600">
+                                                                            Not
+                                                                            enough
+                                                                            points
+                                                                        </p>
+                                                                    )}
                                                             </div>
                                                         );
                                                     })}

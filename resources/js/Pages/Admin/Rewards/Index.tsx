@@ -17,6 +17,7 @@ interface Reward {
     start_date: string | null;
     end_date: string | null;
     is_active: boolean;
+    redemption_limit: number | null;
 }
 
 interface Props {
@@ -33,6 +34,7 @@ export default function Index({ rewards }: Props) {
         start_date: '',
         end_date: '',
         is_active: true,
+        redemption_limit: '',
     });
 
     const { flash } = usePage<PageProps>().props;
@@ -82,6 +84,9 @@ export default function Index({ rewards }: Props) {
             start_date: reward.start_date ?? '',
             end_date: reward.end_date ?? '',
             is_active: reward.is_active,
+            redemption_limit: reward.redemption_limit
+                ? String(reward.redemption_limit)
+                : '',
         });
         setShowForm(true);
     };
@@ -193,6 +198,9 @@ export default function Index({ rewards }: Props) {
                                                 Value
                                             </th>
                                             <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
+                                                Limit
+                                            </th>
+                                            <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
                                                 Status
                                             </th>
                                             <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
@@ -236,6 +244,12 @@ export default function Index({ rewards }: Props) {
                                                               reward.reward_value,
                                                           ).toFixed(2)}`
                                                         : '-'}
+                                                </td>
+
+                                                <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-700">
+                                                    {reward.redemption_limit
+                                                        ? `${reward.redemption_limit} per customer`
+                                                        : 'Unlimited'}
                                                 </td>
 
                                                 <td className="whitespace-nowrap px-6 py-4">
@@ -451,6 +465,43 @@ export default function Index({ rewards }: Props) {
                                 {errors.reward_value && (
                                     <p className="mt-1 text-sm text-red-600">
                                         {errors.reward_value}
+                                    </p>
+                                )}
+                            </div>
+
+                            {/* Redemption Limit */}
+                            <div>
+                                <label
+                                    htmlFor="redemption_limit"
+                                    className="mb-1.5 block text-sm font-medium text-gray-700"
+                                >
+                                    Redemption Limit
+                                </label>
+
+                                <input
+                                    id="redemption_limit"
+                                    type="number"
+                                    min="1"
+                                    max="1000"
+                                    value={data.redemption_limit}
+                                    onChange={(event) =>
+                                        setData(
+                                            'redemption_limit',
+                                            event.target.value,
+                                        )
+                                    }
+                                    placeholder="Leave blank for unlimited"
+                                    className="w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm outline-none transition focus:border-red-500 focus:ring-2 focus:ring-red-100"
+                                />
+
+                                <p className="mt-1 text-xs text-gray-500">
+                                    Max times each customer can redeem this
+                                    reward. Leave blank for unlimited.
+                                </p>
+
+                                {errors.redemption_limit && (
+                                    <p className="mt-1 text-sm text-red-600">
+                                        {errors.redemption_limit}
                                     </p>
                                 )}
                             </div>

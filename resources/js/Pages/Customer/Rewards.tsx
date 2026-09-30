@@ -11,6 +11,9 @@ type Reward = {
     description: string | null;
     start_date: string | null;
     end_date: string | null;
+    redemption_limit: number | null;
+    times_redeemed: number;
+    is_maxed: boolean;
 };
 
 type RewardsProps = {
@@ -65,7 +68,11 @@ export default function Rewards({ rewards }: RewardsProps) {
                             {rewards.map((reward) => (
                                 <article
                                     key={reward.id}
-                                    className="flex h-full flex-col rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition duration-200 hover:-translate-y-0.5 hover:shadow-md sm:p-6"
+                                    className={`flex h-full flex-col rounded-2xl border bg-white p-5 shadow-sm transition duration-200 sm:p-6 ${
+                                        reward.is_maxed
+                                            ? 'border-slate-200 opacity-75'
+                                            : 'border-slate-200 hover:-translate-y-0.5 hover:shadow-md'
+                                    }`}
                                 >
                                     <div className="flex items-start justify-between gap-4">
                                         <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-red-50 ring-1 ring-red-100">
@@ -118,6 +125,27 @@ export default function Rewards({ rewards }: RewardsProps) {
                                             <p className="mt-3 text-sm leading-6 text-slate-500">
                                                 {reward.description}
                                             </p>
+                                        )}
+
+                                        {reward.is_maxed && (
+                                            <div className="mt-3 flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
+                                                <span
+                                                    className="material-symbols-outlined text-[18px] text-slate-500"
+                                                    aria-hidden="true"
+                                                >
+                                                    check_circle
+                                                </span>
+
+                                                <p className="text-xs font-medium text-slate-600">
+                                                    Already claimed{' '}
+                                                    <span className="font-semibold text-slate-800">
+                                                        {reward.times_redeemed}
+                                                        {reward.redemption_limit
+                                                            ? `/${reward.redemption_limit}`
+                                                            : ''}
+                                                    </span>
+                                                </p>
+                                            </div>
                                         )}
                                     </div>
 
