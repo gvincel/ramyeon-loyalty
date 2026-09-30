@@ -230,6 +230,34 @@ export default function CashierLayout({
                     </Link>
 
                     <Link
+                        href={route('cashier.register-qr')}
+                        className={`flex items-center rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
+                            route().current('cashier.register-qr')
+                                ? 'bg-red-50 text-red-700'
+                                : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'
+                        }`}
+                        aria-current={
+                            route().current('cashier.register-qr')
+                                ? 'page'
+                                : undefined
+                        }
+                    >
+                        <span className="material-symbols-outlined text-[20px]" aria-hidden="true">
+                            how_to_reg
+                        </span>
+
+                        <span
+                            className={`whitespace-nowrap transition-all duration-300 ${
+                                isSidebarCollapsed
+                                    ? 'ml-3 w-auto opacity-100 md:ml-0 md:w-0 md:overflow-hidden md:opacity-0'
+                                    : 'ml-3 w-auto opacity-100'
+                            }`}
+                        >
+                            Registration QR
+                        </span>
+                    </Link>
+
+                    <Link
                         href={route('cashier.transactions.index')}
                         className={`flex items-center rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
                             route().current('cashier.transactions.*')

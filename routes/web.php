@@ -4,6 +4,7 @@ use App\Http\Controllers\Admin\CashierController;
 use App\Http\Controllers\Admin\CustomerController;
 use App\Http\Controllers\Cashier\CustomerController as CashierCustomerController;
 use App\Http\Controllers\Cashier\DashboardController as CashierDashboardController;
+use App\Http\Controllers\Cashier\RegisterQrController;
 use App\Http\Controllers\Admin\RewardController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Customer\AuthController as CustomerAuthController;
@@ -157,6 +158,11 @@ Route::middleware(['auth', 'role:cashier'])->group(function () {
         CashierCustomerController::class,
         'show',
     ])->whereNumber('customer')->name('cashier.customers.show');
+
+    Route::get('/cashier/register-qr', [
+        RegisterQrController::class,
+        'index',
+    ])->name('cashier.register-qr');
 
     Route::get('/cashier/qr-scanner', function () {
         return Inertia::render('Cashier/QRScanner');
