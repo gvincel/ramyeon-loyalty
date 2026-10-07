@@ -11,7 +11,7 @@ import { useState } from 'react';
 interface CustomerQrCode {
     id: number;
     qr_token: string;
-    is_active: boolean;
+    is_active: boolean; //sadsad//
     created_at: string;
     revoked_at: string | null;
 }
