@@ -103,37 +103,45 @@ class TransactionController extends Controller
     }
 
     public function findCustomerByCode(Request $request)
-    {
-        $validated = $request->validate([
-            'customer_code' => [
-                'required',
-                'string',
-                'max:50',
-            ],
-        ]);
+{
+    $search = trim($request->input('customer_code', ''));
 
-        $customer = Customer::query()
-            ->where('customer_code', $validated['customer_code'])
-            ->where('is_active', true)
-            ->first();
-
-        if (!$customer) {
-            return response()->json([
-                'message' => 'Customer not found or inactive.',
-            ], 404);
-        }
-
+    if ($search === '') {
         return response()->json([
-            'customer' => [
-                'id' => $customer->id,
-                'customer_code' => $customer->customer_code,
-                'first_name' => $customer->first_name,
-                'last_name' => $customer->last_name,
-                'phone_number' => $customer->phone_number,
-                'points' => $customer->points,
-            ],
-        ]);
+            'message' => 'Please enter a customer code or customer name.',
+        ], 422);
     }
+
+    $customer = Customer::query()
+        ->where('is_active', true)
+        ->where(function ($query) use ($search) {
+            $query->where('customer_code', $search)
+                ->orWhere('first_name', 'like', "%{$search}%")
+                ->orWhere('last_name', 'like', "%{$search}%")
+                ->orWhereRaw(
+                    "CONCAT(first_name, ' ', last_name) LIKE ?",
+                    ["%{$search}%"]
+                );
+        })
+        ->first();
+
+    if (!$customer) {
+        return response()->json([
+            'message' => 'Customer not found or inactive.',
+        ], 404);
+    }
+
+    return response()->json([
+        'customer' => [
+            'id' => $customer->id,
+            'customer_code' => $customer->customer_code,
+            'first_name' => $customer->first_name,
+            'last_name' => $customer->last_name,
+            'phone_number' => $customer->phone_number,
+            'points' => $customer->points,
+        ],
+    ]);
+}
 
     public function store(Request $request)
     {

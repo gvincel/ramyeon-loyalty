@@ -57,6 +57,8 @@ export default function QRScannerPage() {
     const [purchaseAmount, setPurchaseAmount] = useState('');
     const [usePoints, setUsePoints] = useState(false);
     const [pointsUsed, setPointsUsed] = useState('');
+
+    // This field now accepts customer code OR customer name.
     const [customerCode, setCustomerCode] = useState('');
 
     const resetCustomerState = () => {
@@ -69,8 +71,35 @@ export default function QRScannerPage() {
         setUsePoints(false);
         setPointsUsed('');
         setRewards([]);
+        setCustomerCode('');
     };
 
+    /**
+     * Load available rewards for a customer.
+     */
+    const loadCustomerRewards = async (customerId: number) => {
+        setIsLoadingRewards(true);
+
+        try {
+            const rewardsResponse = await axios.post(
+                route('cashier.rewards.available'),
+                {
+                    customer_id: customerId,
+                },
+            );
+
+            setRewards(rewardsResponse.data.rewards);
+        } catch {
+            setRewards([]);
+        } finally {
+            setIsLoadingRewards(false);
+        }
+    };
+
+    /**
+     * QR scanner lookup.
+     * This behavior remains the same.
+     */
     const handleScan = useCallback(async (decodedText: string) => {
         setCustomer(null);
         setError(null);
@@ -86,7 +115,9 @@ export default function QRScannerPage() {
         try {
             const response = await axios.post(
                 route('cashier.transactions.find-customer'),
-                { qr_token: decodedText },
+                {
+                    qr_token: decodedText,
+                },
             );
 
             const customerData = response.data.customer;
@@ -98,7 +129,9 @@ export default function QRScannerPage() {
             try {
                 const rewardsResponse = await axios.post(
                     route('cashier.rewards.available'),
-                    { customer_id: customerData.id },
+                    {
+                        customer_id: customerData.id,
+                    },
                 );
 
                 setRewards(rewardsResponse.data.rewards);
@@ -123,11 +156,22 @@ export default function QRScannerPage() {
         }
     }, []);
 
+    /**
+     * Manual customer lookup.
+     *
+     * This now sends the entered value as both:
+     * - customer_code
+     * - search
+     *
+     * The backend will decide whether it matches
+     * the customer code, first name, last name,
+     * full name, or phone number.
+     */
     const handleCustomerCodeLookup = useCallback(async () => {
-        const code = customerCode.trim();
+        const searchValue = customerCode.trim();
 
-        if (!code) {
-            setError('Please enter a customer code.');
+        if (!searchValue) {
+            setError('Please enter a customer code or customer name.');
             return;
         }
 
@@ -146,7 +190,8 @@ export default function QRScannerPage() {
             const response = await axios.post(
                 route('cashier.transactions.find-customer-by-code'),
                 {
-                    customer_code: code,
+                    customer_code: searchValue,
+                    search: searchValue,
                 },
             );
 
@@ -159,7 +204,9 @@ export default function QRScannerPage() {
             try {
                 const rewardsResponse = await axios.post(
                     route('cashier.rewards.available'),
-                    { customer_id: customerData.id },
+                    {
+                        customer_id: customerData.id,
+                    },
                 );
 
                 setRewards(rewardsResponse.data.rewards);
@@ -190,6 +237,9 @@ export default function QRScannerPage() {
         setError(errorMessage);
     }, []);
 
+    /**
+     * Complete transaction.
+     */
     const handleSubmit = async () => {
         if (!customer) return;
 
@@ -243,6 +293,9 @@ export default function QRScannerPage() {
         }
     };
 
+    /**
+     * Redeem reward.
+     */
     const handleRedeemReward = async (rewardId: number) => {
         if (!customer) return;
 
@@ -270,12 +323,14 @@ export default function QRScannerPage() {
             try {
                 const rewardsResponse = await axios.post(
                     route('cashier.rewards.available'),
-                    { customer_id: customer.id },
+                    {
+                        customer_id: customer.id,
+                    },
                 );
 
                 setRewards(rewardsResponse.data.rewards);
             } catch {
-                // Redemption already succeeded. Keep updated points.
+                // Redemption succeeded.
             }
         } catch (error) {
             if (axios.isAxiosError(error)) {
@@ -328,11 +383,11 @@ export default function QRScannerPage() {
 
             <div className="min-h-screen bg-gray-50 p-4 sm:p-6 lg:p-8">
                 <div className="mx-auto max-w-7xl">
-                    {/* Header */}
+
                     <AdminPageHeader
                         eyebrow="QR Access"
                         title="QR Scanner"
-                        description="Scan a customer's QR code to process purchases and reward redemptions."
+                        description="Scan a customer's QR code or search by customer code or name to process purchases and reward redemptions."
                         action={
                             customer && (
                                 <button
@@ -356,29 +411,36 @@ export default function QRScannerPage() {
                                         <path d="M3.51 9a9 9 0 0114.85-3.36L23 10" />
                                         <path d="M1 14l4.64 4.36A9 9 0 0020.49 15" />
                                     </svg>
+
                                     Scan Another
                                 </button>
                             )
                         }
                     />
 
-                    <FlashMessage success={success} error={error} />
+                    <FlashMessage
+                        success={success}
+                        error={error}
+                    />
 
-                    {/* Scanner state — no customer yet */}
+                    {/* CUSTOMER LOOKUP */}
                     {!customer && !isLoading && (
                         <div className="overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm">
+
                             <div className="border-b border-gray-100 px-6 py-5">
                                 <h2 className="text-lg font-bold tracking-tight text-gray-900">
                                     Customer Lookup
                                 </h2>
 
                                 <p className="mt-1 text-sm text-gray-500">
-                                    Point the camera at the customer&apos;s
-                                    QR code to begin.
+                                    Scan the customer's QR code or search
+                                    using their customer code or name.
                                 </p>
                             </div>
 
                             <div className="p-6">
+
+                                {/* QR SCANNER */}
                                 <div className="mx-auto max-w-xl">
                                     <QRScanner
                                         onScan={handleScan}
@@ -392,48 +454,62 @@ export default function QRScannerPage() {
                                     browser&apos;s camera permission settings.
                                 </p>
 
+                                {/* OR */}
                                 <div className="my-6 flex items-center gap-4">
                                     <div className="h-px flex-1 bg-gray-200" />
+
                                     <span className="text-xs font-medium uppercase tracking-wider text-gray-400">
                                         or
                                     </span>
+
                                     <div className="h-px flex-1 bg-gray-200" />
                                 </div>
 
+                                {/* MANUAL CUSTOMER SEARCH */}
                                 <div className="mx-auto max-w-xl">
+
                                     <label
                                         htmlFor="customer_code"
                                         className="mb-1.5 block text-sm font-medium text-gray-800"
                                     >
-                                        Enter Customer Code
+                                        Find Customer
                                     </label>
 
                                     <div className="flex flex-col gap-3 sm:flex-row">
+
                                         <input
                                             id="customer_code"
                                             type="text"
                                             value={customerCode}
                                             onChange={(event) => {
-                                                setCustomerCode(event.target.value);
+                                                setCustomerCode(
+                                                    event.target.value,
+                                                );
                                                 setError(null);
                                             }}
                                             onKeyDown={(event) => {
                                                 if (event.key === 'Enter') {
                                                     event.preventDefault();
+
                                                     void handleCustomerCodeLookup();
                                                 }
                                             }}
-                                            maxLength={50}
+                                            maxLength={100}
                                             autoComplete="off"
-                                            placeholder="e.g. RC-000123"
+                                            placeholder="Enter customer code or name"
                                             aria-describedby="customer-code-help"
                                             className="block h-11 min-w-0 flex-1 rounded-xl border border-black/[0.07] bg-[#f8f8f9] px-4 text-[15px] text-gray-950 outline-none transition-[border-color,box-shadow,background-color] placeholder:text-gray-400 hover:border-black/[0.13] focus:border-red-900 focus:bg-white focus:ring-2 focus:ring-red-900/10"
                                         />
 
                                         <button
                                             type="button"
-                                            onClick={() => void handleCustomerCodeLookup()}
-                                            disabled={isLoading || customerCode.trim() === ''}
+                                            onClick={() =>
+                                                void handleCustomerCodeLookup()
+                                            }
+                                            disabled={
+                                                isLoading ||
+                                                customerCode.trim() === ''
+                                            }
                                             className="inline-flex min-h-[44px] shrink-0 items-center justify-center rounded-xl bg-red-600 px-5 text-sm font-semibold text-white shadow-sm transition-[background-color,box-shadow,transform] hover:bg-red-700 hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:shadow-sm"
                                         >
                                             Find Customer
@@ -444,17 +520,20 @@ export default function QRScannerPage() {
                                         id="customer-code-help"
                                         className="mt-2 text-xs text-gray-500"
                                     >
-                                        Enter the customer code shown on the customer record.
+                                        Enter the customer code or full name 
+                                        
                                     </p>
+
                                 </div>
                             </div>
                         </div>
                     )}
 
-                    {/* Loading state */}
+                    {/* LOADING */}
                     {isLoading && (
                         <div className="overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm">
                             <div className="flex flex-col items-center justify-center px-6 py-16">
+
                                 <svg
                                     className="h-8 w-8 animate-spin text-red-600 motion-reduce:animate-none"
                                     viewBox="0 0 24 24"
@@ -469,6 +548,7 @@ export default function QRScannerPage() {
                                         strokeOpacity="0.25"
                                         strokeWidth="3"
                                     />
+
                                     <path
                                         d="M21 12a9 9 0 00-9-9"
                                         stroke="currentColor"
@@ -480,24 +560,29 @@ export default function QRScannerPage() {
                                 <p className="mt-4 text-sm font-medium text-gray-700">
                                     Looking up customer…
                                 </p>
+
                             </div>
                         </div>
                     )}
 
-                    {/* Customer found state */}
+                    {/* CUSTOMER FOUND */}
                     {customer && (
                         <>
-                            {/* Customer summary card */}
+                            {/* CUSTOMER SUMMARY */}
                             <div className="relative overflow-hidden rounded-2xl border border-red-100 bg-white p-6 shadow-sm">
+
                                 <div className="absolute left-0 top-0 h-full w-1 bg-red-600" />
 
                                 <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
+
                                     <div className="flex min-w-0 items-center gap-4">
+
                                         <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-red-50 text-sm font-bold text-red-600">
                                             {initials}
                                         </div>
 
                                         <div className="min-w-0">
+
                                             <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
                                                 Customer
                                             </p>
@@ -512,10 +597,12 @@ export default function QRScannerPage() {
                                                 {' · '}
                                                 {customer.customer_code}
                                             </p>
+
                                         </div>
                                     </div>
 
                                     <div className="shrink-0 rounded-xl bg-gray-50 px-5 py-3 ring-1 ring-gray-200">
+
                                         <p className="text-xs font-medium uppercase tracking-wide text-gray-500">
                                             Current Points
                                         </p>
@@ -523,15 +610,19 @@ export default function QRScannerPage() {
                                         <p className="mt-1 text-2xl font-bold text-yellow-600">
                                             {customer.points}
                                         </p>
+
                                     </div>
                                 </div>
                             </div>
 
-                            {/* Two-column: transaction (primary) + rewards (secondary) */}
+                            {/* TRANSACTION + REWARDS */}
                             <div className="mt-6 grid gap-6 lg:grid-cols-5">
-                                {/* Transaction Details — primary */}
+
+                                {/* TRANSACTION */}
                                 <div className="overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm lg:col-span-3">
+
                                     <div className="border-b border-gray-100 px-6 py-5">
+
                                         <h2 className="text-lg font-bold tracking-tight text-gray-900">
                                             Transaction Details
                                         </h2>
@@ -540,11 +631,14 @@ export default function QRScannerPage() {
                                             Enter the purchase information to
                                             earn loyalty points.
                                         </p>
+
                                     </div>
 
                                     <div className="space-y-5 p-6">
-                                        {/* Receipt Number */}
+
+                                        {/* RECEIPT */}
                                         <div>
+
                                             <label
                                                 htmlFor="receipt_number"
                                                 className="mb-1.5 block text-sm font-medium text-gray-800"
@@ -576,16 +670,8 @@ export default function QRScannerPage() {
                                                         );
                                                     }
                                                 }}
-                                                maxLength={50}
+                                                maxLength={100}
                                                 autoComplete="off"
-                                                aria-invalid={
-                                                    !!validationErrors.receipt_number
-                                                }
-                                                aria-describedby={
-                                                    validationErrors.receipt_number
-                                                        ? 'receipt-error'
-                                                        : undefined
-                                                }
                                                 placeholder="Enter receipt number"
                                                 className={`block h-11 w-full rounded-xl border px-4 text-[15px] text-gray-950 outline-none transition-[border-color,box-shadow,background-color] placeholder:text-gray-400 ${
                                                     validationErrors.receipt_number
@@ -595,21 +681,19 @@ export default function QRScannerPage() {
                                             />
 
                                             {validationErrors.receipt_number && (
-                                                <p
-                                                    id="receipt-error"
-                                                    role="alert"
-                                                    className="mt-1.5 text-sm text-red-600"
-                                                >
+                                                <p className="mt-1.5 text-sm text-red-600">
                                                     {
                                                         validationErrors
                                                             .receipt_number[0]
                                                     }
                                                 </p>
                                             )}
+
                                         </div>
 
-                                        {/* Purchase Amount */}
+                                        {/* PURCHASE AMOUNT */}
                                         <div>
+
                                             <label
                                                 htmlFor="purchase_amount"
                                                 className="mb-1.5 block text-sm font-medium text-gray-800"
@@ -618,6 +702,7 @@ export default function QRScannerPage() {
                                             </label>
 
                                             <div className="relative">
+
                                                 <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-[15px] text-gray-500">
                                                     ₱
                                                 </span>
@@ -629,12 +714,9 @@ export default function QRScannerPage() {
                                                     value={purchaseAmount}
                                                     onKeyDown={(event) => {
                                                         if (
-                                                            event.key ===
-                                                                '-' ||
-                                                            event.key ===
-                                                                '+' ||
-                                                            event.key ===
-                                                                'e' ||
+                                                            event.key === '-' ||
+                                                            event.key === '+' ||
+                                                            event.key === 'e' ||
                                                             event.key === 'E'
                                                         ) {
                                                             event.preventDefault();
@@ -652,16 +734,40 @@ export default function QRScannerPage() {
                                                                 value,
                                                             )
                                                         ) {
-                                                            setPurchaseAmount(value);
+                                                            setPurchaseAmount(
+                                                                value,
+                                                            );
 
-                                                            if (usePoints && /^\d+$/.test(pointsUsed)) {
-                                                                const newPurchaseValue = Number(value);
-                                                                const newMaxPoints = customer
-                                                                    ? Math.min(customer.points, Math.floor(newPurchaseValue))
-                                                                    : 0;
+                                                            if (
+                                                                usePoints &&
+                                                                /^\d+$/.test(
+                                                                    pointsUsed,
+                                                                )
+                                                            ) {
+                                                                const newPurchaseValue =
+                                                                    Number(value);
 
-                                                                if (Number(pointsUsed) > newMaxPoints) {
-                                                                    setPointsUsed(String(newMaxPoints));
+                                                                const newMaxPoints =
+                                                                    customer
+                                                                        ? Math.min(
+                                                                              customer.points,
+                                                                              Math.floor(
+                                                                                  newPurchaseValue,
+                                                                              ),
+                                                                          )
+                                                                        : 0;
+
+                                                                if (
+                                                                    Number(
+                                                                        pointsUsed,
+                                                                    ) >
+                                                                    newMaxPoints
+                                                                ) {
+                                                                    setPointsUsed(
+                                                                        String(
+                                                                            newMaxPoints,
+                                                                        ),
+                                                                    );
                                                                 }
                                                             }
 
@@ -669,23 +775,19 @@ export default function QRScannerPage() {
                                                                 validationErrors.purchase_amount ||
                                                                 validationErrors.points_used
                                                             ) {
-                                                                setValidationErrors((current) => ({
-                                                                    ...current,
-                                                                    purchase_amount: undefined,
-                                                                    points_used: undefined,
-                                                                }));
+                                                                setValidationErrors(
+                                                                    (current) => ({
+                                                                        ...current,
+                                                                        purchase_amount:
+                                                                            undefined,
+                                                                        points_used:
+                                                                            undefined,
+                                                                    }),
+                                                                );
                                                             }
                                                         }
                                                     }}
                                                     autoComplete="off"
-                                                    aria-invalid={
-                                                        !!validationErrors.purchase_amount
-                                                    }
-                                                    aria-describedby={
-                                                        validationErrors.purchase_amount
-                                                            ? 'amount-error'
-                                                            : undefined
-                                                    }
                                                     placeholder="0.00"
                                                     className={`block h-11 w-full rounded-xl border pl-9 pr-4 text-[15px] text-gray-950 outline-none transition-[border-color,box-shadow,background-color] placeholder:text-gray-400 ${
                                                         validationErrors.purchase_amount
@@ -693,45 +795,55 @@ export default function QRScannerPage() {
                                                             : 'border-black/[0.07] bg-[#f8f8f9] hover:border-black/[0.13] focus:border-red-900 focus:bg-white focus:ring-2 focus:ring-red-900/10'
                                                     }`}
                                                 />
+
                                             </div>
 
                                             {validationErrors.purchase_amount && (
-                                                <p
-                                                    id="amount-error"
-                                                    role="alert"
-                                                    className="mt-1.5 text-sm text-red-600"
-                                                >
+                                                <p className="mt-1.5 text-sm text-red-600">
                                                     {
                                                         validationErrors
                                                             .purchase_amount[0]
                                                     }
                                                 </p>
                                             )}
+
                                         </div>
 
-                                        {/* Use Points */}
+                                        {/* USE POINTS */}
                                         <div className="rounded-xl border border-gray-100 bg-gray-50 p-5">
+
                                             <div className="flex items-start gap-3">
+
                                                 <input
                                                     id="use_points"
                                                     type="checkbox"
                                                     checked={usePoints}
                                                     onChange={(event) => {
-                                                        setUsePoints(event.target.checked);
+                                                        setUsePoints(
+                                                            event.target.checked,
+                                                        );
 
-                                                        if (!event.target.checked) {
+                                                        if (
+                                                            !event.target.checked
+                                                        ) {
                                                             setPointsUsed('');
-                                                            setValidationErrors((current) => ({
-                                                                ...current,
-                                                                points_used: undefined,
-                                                            }));
+                                                            setValidationErrors(
+                                                                (current) => ({
+                                                                    ...current,
+                                                                    points_used:
+                                                                        undefined,
+                                                                }),
+                                                            );
                                                         }
                                                     }}
-                                                    disabled={customer.points <= 0}
+                                                    disabled={
+                                                        customer.points <= 0
+                                                    }
                                                     className="mt-0.5 h-4 w-4 rounded border-gray-300 text-red-600 focus:ring-2 focus:ring-red-500/20"
                                                 />
 
                                                 <div className="min-w-0">
+
                                                     <label
                                                         htmlFor="use_points"
                                                         className="block cursor-pointer text-sm font-semibold text-gray-800"
@@ -740,18 +852,23 @@ export default function QRScannerPage() {
                                                     </label>
 
                                                     <p className="mt-1 text-xs leading-5 text-gray-500">
-                                                        Use the customer&apos;s loyalty points to reduce the
-                                                        amount they need to pay.
+                                                        Use the customer&apos;s
+                                                        loyalty points to reduce
+                                                        the amount they need to
+                                                        pay.
                                                     </p>
 
                                                     <p className="mt-2 text-xs font-medium text-gray-600">
-                                                        Available: {customer.points} points
+                                                        Available:{' '}
+                                                        {customer.points} points
                                                     </p>
+
                                                 </div>
                                             </div>
 
                                             {usePoints && (
                                                 <div className="mt-4">
+
                                                     <label
                                                         htmlFor="points_used"
                                                         className="mb-1.5 block text-sm font-medium text-gray-800"
@@ -764,127 +881,148 @@ export default function QRScannerPage() {
                                                         type="text"
                                                         inputMode="numeric"
                                                         value={pointsUsed}
-                                                        onKeyDown={(event) => {
-                                                            if (
-                                                                event.key === '-' ||
-                                                                event.key === '+' ||
-                                                                event.key === '.' ||
-                                                                event.key === 'e' ||
-                                                                event.key === 'E'
-                                                            ) {
-                                                                event.preventDefault();
-                                                            }
-                                                        }}
-                                                        onWheel={(event) => {
-                                                            event.currentTarget.blur();
-                                                        }}
                                                         onChange={(event) => {
-                                                            const value = event.target.value;
+                                                            const value =
+                                                                event.target
+                                                                    .value;
 
-                                                            if (/^\d*$/.test(value)) {
-                                                                setPointsUsed(value);
+                                                            if (
+                                                                /^\d*$/.test(
+                                                                    value,
+                                                                )
+                                                            ) {
+                                                                setPointsUsed(
+                                                                    value,
+                                                                );
 
-                                                                if (validationErrors.points_used) {
-                                                                    setValidationErrors((current) => ({
-                                                                        ...current,
-                                                                        points_used: undefined,
-                                                                    }));
+                                                                if (
+                                                                    validationErrors.points_used
+                                                                ) {
+                                                                    setValidationErrors(
+                                                                        (
+                                                                            current,
+                                                                        ) => ({
+                                                                            ...current,
+                                                                            points_used:
+                                                                                undefined,
+                                                                        }),
+                                                                    );
                                                                 }
                                                             }
                                                         }}
                                                         maxLength={9}
                                                         autoComplete="off"
-                                                        aria-invalid={!!validationErrors.points_used}
-                                                        aria-describedby={
-                                                            validationErrors.points_used
-                                                                ? 'points-used-error points-used-help'
-                                                                : 'points-used-help'
-                                                        }
                                                         placeholder="0"
                                                         className={`block h-11 w-full rounded-xl border bg-white px-4 text-[15px] text-gray-950 outline-none transition-[border-color,box-shadow,background-color] placeholder:text-gray-400 ${
                                                             validationErrors.points_used
-                                                                ? 'border-red-500 bg-red-50/40 focus:border-red-600 focus:ring-2 focus:ring-red-600/15'
-                                                                : 'border-black/[0.07] hover:border-black/[0.13] focus:border-red-900 focus:ring-2 focus:ring-red-900/10'
+                                                                ? 'border-red-500 bg-red-50/40'
+                                                                : 'border-black/[0.07]'
                                                         }`}
                                                     />
 
-                                                    <p
-                                                        id="points-used-help"
-                                                        className="mt-1.5 text-xs text-gray-500"
-                                                    >
-                                                        Maximum usable: {maxPointsUsable} points
+                                                    <p className="mt-1.5 text-xs text-gray-500">
+                                                        Maximum usable:{' '}
+                                                        {maxPointsUsable} points
                                                     </p>
 
                                                     {validationErrors.points_used && (
-                                                        <p
-                                                            id="points-used-error"
-                                                            role="alert"
-                                                            className="mt-1.5 text-sm text-red-600"
-                                                        >
-                                                            {validationErrors.points_used[0]}
+                                                        <p className="mt-1.5 text-sm text-red-600">
+                                                            {
+                                                                validationErrors
+                                                                    .points_used[0]
+                                                            }
                                                         </p>
                                                     )}
+
                                                 </div>
                                             )}
+
                                         </div>
 
-                                        {/* Transaction Summary */}
+                                        {/* TRANSACTION SUMMARY */}
                                         <div className="rounded-xl border border-gray-100 bg-gray-50 p-5">
+
                                             <div className="space-y-4">
+
                                                 <div className="flex items-center justify-between gap-4">
                                                     <span className="text-sm text-gray-500">
                                                         Purchase Amount
                                                     </span>
+
                                                     <span className="text-sm font-semibold text-gray-900">
-                                                        ₱{purchaseValue.toFixed(2)}
+                                                        ₱
+                                                        {purchaseValue.toFixed(
+                                                            2,
+                                                        )}
                                                     </span>
                                                 </div>
 
-                                                {usePoints && pointsUsedValue > 0 && (
-                                                    <div className="flex items-center justify-between gap-4">
-                                                        <span className="text-sm text-gray-500">
-                                                            Points Used
-                                                        </span>
-                                                        <span className="text-sm font-semibold text-red-600">
-                                                            −₱{pointsUsedValue.toFixed(2)}
-                                                        </span>
-                                                    </div>
-                                                )}
+                                                {usePoints &&
+                                                    pointsUsedValue > 0 && (
+                                                        <div className="flex items-center justify-between gap-4">
+                                                            <span className="text-sm text-gray-500">
+                                                                Points Used
+                                                            </span>
+
+                                                            <span className="text-sm font-semibold text-red-600">
+                                                                −₱
+                                                                {pointsUsedValue.toFixed(
+                                                                    2,
+                                                                )}
+                                                            </span>
+                                                        </div>
+                                                    )}
 
                                                 <div className="border-t border-gray-200 pt-4">
+
                                                     <div className="flex items-center justify-between gap-4">
+
                                                         <span className="text-sm font-semibold text-gray-800">
                                                             Amount Paid
                                                         </span>
+
                                                         <span className="text-xl font-bold text-gray-900">
-                                                            ₱{amountPaid.toFixed(2)}
+                                                            ₱
+                                                            {amountPaid.toFixed(
+                                                                2,
+                                                            )}
                                                         </span>
+
                                                     </div>
+
                                                 </div>
+
                                             </div>
                                         </div>
 
-                                        {/* Points Preview */}
+                                        {/* POINTS PREVIEW */}
                                         <div className="rounded-xl border border-yellow-100 bg-yellow-50 p-5">
+
                                             <div className="flex items-center justify-between gap-4">
+
                                                 <div>
+
                                                     <p className="text-sm font-semibold text-yellow-800">
                                                         Points to Earn
                                                     </p>
 
                                                     <p className="mt-1 text-xs text-yellow-700">
-                                                        Every ₱100 actually paid earns 1 point.
+                                                        Every ₱100 actually paid
+                                                        earns 1 point.
                                                     </p>
+
                                                 </div>
 
                                                 <span className="text-3xl font-bold text-yellow-700">
                                                     {pointsEarned}
                                                 </span>
+
                                             </div>
                                         </div>
 
-                                        {/* Submit */}
+                                        {/* SUBMIT */}
                                         <div className="border-t border-gray-100 pt-5">
+
                                             <button
                                                 type="button"
                                                 onClick={handleSubmit}
@@ -892,47 +1030,26 @@ export default function QRScannerPage() {
                                                     isSubmitting ||
                                                     purchaseAmount === '' ||
                                                     (usePoints &&
-                                                        (pointsUsed === '' || pointsInputInvalid))
+                                                        (pointsUsed === '' ||
+                                                            pointsInputInvalid))
                                                 }
-                                                aria-busy={isSubmitting}
-                                                className="inline-flex min-h-[44px] w-full items-center justify-center gap-2 rounded-xl bg-red-600 px-5 text-sm font-semibold text-white shadow-sm transition-[background-color,box-shadow,transform] hover:bg-red-700 hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:shadow-sm sm:w-auto"
+                                                className="inline-flex min-h-[44px] w-full items-center justify-center gap-2 rounded-xl bg-red-600 px-5 text-sm font-semibold text-white shadow-sm transition-[background-color,box-shadow,transform] hover:bg-red-700 hover:shadow-md disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
                                             >
-                                                {isSubmitting ? (
-                                                    <>
-                                                        <svg
-                                                            className="h-4 w-4 animate-spin motion-reduce:animate-none"
-                                                            viewBox="0 0 24 24"
-                                                            fill="none"
-                                                            aria-hidden="true"
-                                                        >
-                                                            <circle
-                                                                cx="12"
-                                                                cy="12"
-                                                                r="9"
-                                                                stroke="currentColor"
-                                                                strokeOpacity="0.25"
-                                                                strokeWidth="3"
-                                                            />
-                                                            <path
-                                                                d="M21 12a9 9 0 00-9-9"
-                                                                stroke="currentColor"
-                                                                strokeWidth="3"
-                                                                strokeLinecap="round"
-                                                            />
-                                                        </svg>
-                                                        Processing…
-                                                    </>
-                                                ) : (
-                                                    'Complete Transaction'
-                                                )}
+                                                {isSubmitting
+                                                    ? 'Processing…'
+                                                    : 'Complete Transaction'}
                                             </button>
+
                                         </div>
+
                                     </div>
                                 </div>
 
-                                {/* Available Rewards — secondary */}
+                                {/* REWARDS */}
                                 <div className="overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm lg:col-span-2">
+
                                     <div className="border-b border-gray-100 px-6 py-5">
+
                                         <h2 className="text-lg font-bold tracking-tight text-gray-900">
                                             Available Rewards
                                         </h2>
@@ -940,16 +1057,18 @@ export default function QRScannerPage() {
                                         <p className="mt-1 text-sm text-gray-500">
                                             Rewards this customer can redeem.
                                         </p>
+
                                     </div>
 
                                     <div className="p-6">
+
                                         {isLoadingRewards && (
                                             <div className="flex flex-col items-center justify-center py-10">
+
                                                 <svg
-                                                    className="h-6 w-6 animate-spin text-red-600 motion-reduce:animate-none"
+                                                    className="h-6 w-6 animate-spin text-red-600"
                                                     viewBox="0 0 24 24"
                                                     fill="none"
-                                                    aria-hidden="true"
                                                 >
                                                     <circle
                                                         cx="12"
@@ -959,6 +1078,7 @@ export default function QRScannerPage() {
                                                         strokeOpacity="0.25"
                                                         strokeWidth="3"
                                                     />
+
                                                     <path
                                                         d="M21 12a9 9 0 00-9-9"
                                                         stroke="currentColor"
@@ -970,12 +1090,14 @@ export default function QRScannerPage() {
                                                 <p className="mt-3 text-sm text-gray-500">
                                                     Loading rewards…
                                                 </p>
+
                                             </div>
                                         )}
 
                                         {!isLoadingRewards &&
                                             rewards.length === 0 && (
                                                 <div className="py-10 text-center">
+
                                                     <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-gray-100 text-gray-400">
                                                         <svg
                                                             className="h-6 w-6"
@@ -983,7 +1105,6 @@ export default function QRScannerPage() {
                                                             fill="none"
                                                             stroke="currentColor"
                                                             strokeWidth="1.7"
-                                                            aria-hidden="true"
                                                         >
                                                             <path
                                                                 strokeLinecap="round"
@@ -1001,13 +1122,16 @@ export default function QRScannerPage() {
                                                         Eligible rewards will
                                                         appear here.
                                                     </p>
+
                                                 </div>
                                             )}
 
                                         {!isLoadingRewards &&
                                             rewards.length > 0 && (
                                                 <div className="space-y-4">
+
                                                     {rewards.map((reward) => {
+
                                                         const canAfford =
                                                             customer.points >=
                                                             reward.points_required;
@@ -1028,8 +1152,11 @@ export default function QRScannerPage() {
                                                                         : 'border-gray-100'
                                                                 }`}
                                                             >
+
                                                                 <div className="flex items-start justify-between gap-3">
+
                                                                     <div className="min-w-0">
+
                                                                         <h3 className="truncate font-bold text-gray-900">
                                                                             {
                                                                                 reward.reward_name
@@ -1042,6 +1169,7 @@ export default function QRScannerPage() {
                                                                             }{' '}
                                                                             points
                                                                         </p>
+
                                                                     </div>
 
                                                                     <span className="shrink-0 rounded-full bg-gray-100 px-2.5 py-1 text-xs font-medium capitalize text-gray-600">
@@ -1050,6 +1178,7 @@ export default function QRScannerPage() {
                                                                             ' ',
                                                                         )}
                                                                     </span>
+
                                                                 </div>
 
                                                                 {reward.description && (
@@ -1061,31 +1190,21 @@ export default function QRScannerPage() {
                                                                 )}
 
                                                                 {isMaxed && (
-                                                                    <div className="mt-3 flex items-center gap-2 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2">
-                                                                        <svg
-                                                                            className="h-4 w-4 shrink-0 text-gray-500"
-                                                                            viewBox="0 0 24 24"
-                                                                            fill="none"
-                                                                            stroke="currentColor"
-                                                                            strokeWidth="1.8"
-                                                                            aria-hidden="true"
-                                                                        >
-                                                                            <path
-                                                                                strokeLinecap="round"
-                                                                                strokeLinejoin="round"
-                                                                                d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-                                                                            />
-                                                                        </svg>
+                                                                    <div className="mt-3 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2">
 
                                                                         <p className="text-xs font-medium text-gray-600">
-                                                                            Already claimed{' '}
+                                                                            Already
+                                                                            claimed{' '}
                                                                             <span className="font-semibold text-gray-800">
-                                                                                {reward.times_redeemed}
+                                                                                {
+                                                                                    reward.times_redeemed
+                                                                                }
                                                                                 {reward.redemption_limit
                                                                                     ? `/${reward.redemption_limit}`
                                                                                     : ''}
                                                                             </span>
                                                                         </p>
+
                                                                     </div>
                                                                 )}
 
@@ -1096,16 +1215,16 @@ export default function QRScannerPage() {
                                                                         redeemingRewardId !==
                                                                             null
                                                                     }
-                                                                    aria-busy={
-                                                                        redeemingRewardId ===
-                                                                        reward.id
+                                                                    onClick={() =>
+                                                                        setSelectedReward(
+                                                                            reward,
+                                                                        )
                                                                     }
-                                                                    onClick={() => setSelectedReward(reward)}
-                                                                    className="mt-4 inline-flex min-h-[44px] w-full items-center justify-center rounded-lg bg-red-600 px-4 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-red-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                                                                    className="mt-4 inline-flex min-h-[44px] w-full items-center justify-center rounded-lg bg-red-600 px-4 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-50"
                                                                 >
                                                                     {redeemingRewardId ===
                                                                     reward.id
-                                                                        ? 'Redeemingâ€¦'
+                                                                        ? 'Redeeming…'
                                                                         : isMaxed
                                                                         ? 'Already Claimed'
                                                                         : 'Redeem Reward'}
@@ -1119,19 +1238,24 @@ export default function QRScannerPage() {
                                                                             points
                                                                         </p>
                                                                     )}
+
                                                             </div>
                                                         );
                                                     })}
+
                                                 </div>
                                             )}
+
                                     </div>
                                 </div>
+
                             </div>
                         </>
                     )}
                 </div>
             </div>
 
+            {/* REWARD CONFIRMATION MODAL */}
             {selectedReward && (
                 <AdminModal
                     title="Confirm Reward Redemption"
@@ -1148,7 +1272,7 @@ export default function QRScannerPage() {
                                 type="button"
                                 onClick={() => setSelectedReward(null)}
                                 disabled={redeemingRewardId !== null}
-                                className="inline-flex min-h-[44px] items-center justify-center rounded-lg border border-gray-300 bg-white px-5 text-sm font-semibold text-gray-700 shadow-sm transition-colors hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-300 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                                className="inline-flex min-h-[44px] items-center justify-center rounded-lg border border-gray-300 bg-white px-5 text-sm font-semibold text-gray-700 shadow-sm transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
                             >
                                 Cancel
                             </button>
@@ -1159,7 +1283,7 @@ export default function QRScannerPage() {
                                     handleRedeemReward(selectedReward.id)
                                 }
                                 disabled={redeemingRewardId !== null}
-                                className="inline-flex min-h-[44px] items-center justify-center rounded-lg bg-red-600 px-5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-red-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                                className="inline-flex min-h-[44px] items-center justify-center rounded-lg bg-red-600 px-5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-50"
                             >
                                 {redeemingRewardId === selectedReward.id
                                     ? 'Redeeming…'
@@ -1169,21 +1293,26 @@ export default function QRScannerPage() {
                     }
                 >
                     <div className="space-y-5 p-6">
+
                         <div className="rounded-xl bg-gray-50 p-4">
+
                             <p className="text-xs font-semibold uppercase tracking-wider text-gray-500">
                                 Customer
                             </p>
 
                             <p className="mt-1 font-semibold text-gray-900">
-                                {customer?.first_name} {customer?.last_name}
+                                {customer?.first_name}{' '}
+                                {customer?.last_name}
                             </p>
 
                             <p className="mt-1 text-sm text-gray-500">
                                 {customer?.customer_code}
                             </p>
+
                         </div>
 
                         <div>
+
                             <p className="text-xs font-semibold uppercase tracking-wider text-gray-500">
                                 Reward
                             </p>
@@ -1197,10 +1326,13 @@ export default function QRScannerPage() {
                                     {selectedReward.description}
                                 </p>
                             )}
+
                         </div>
 
                         <div className="grid grid-cols-2 gap-3">
+
                             <div className="rounded-xl border border-gray-100 bg-white p-4">
+
                                 <p className="text-xs font-medium text-gray-500">
                                     Current Points
                                 </p>
@@ -1208,9 +1340,11 @@ export default function QRScannerPage() {
                                 <p className="mt-1 text-lg font-bold text-gray-900">
                                     {customer?.points ?? 0}
                                 </p>
+
                             </div>
 
                             <div className="rounded-xl border border-gray-100 bg-white p-4">
+
                                 <p className="text-xs font-medium text-gray-500">
                                     Points to Use
                                 </p>
@@ -1218,10 +1352,13 @@ export default function QRScannerPage() {
                                 <p className="mt-1 text-lg font-bold text-red-600">
                                     {selectedReward.points_required}
                                 </p>
+
                             </div>
+
                         </div>
 
                         <div className="rounded-xl border border-yellow-200 bg-yellow-50 p-4">
+
                             <p className="text-sm leading-6 text-yellow-800">
                                 This will deduct{' '}
                                 <span className="font-bold">
@@ -1229,7 +1366,9 @@ export default function QRScannerPage() {
                                 </span>{' '}
                                 from the customer's balance.
                             </p>
+
                         </div>
+
                     </div>
                 </AdminModal>
             )}
