@@ -71,13 +71,24 @@ class CustomerController extends Controller
    /**
  * Permanently delete a customer and their related records.
  */
+/**
+ * Permanently delete a customer and their related records.
+ */
 public function destroy(Customer $customer)
 {
+    // Delete QR code
     $customer->qrCode()->delete();
-    $customer->transactions()->delete();
-    $customer->rewardRedemptions()->delete();
+
+    // Delete point transactions FIRST
     $customer->pointTransactions()->delete();
 
+    // Delete reward redemptions
+    $customer->rewardRedemptions()->delete();
+
+    // Now transactions can be safely deleted
+    $customer->transactions()->delete();
+
+    // Finally delete the customer
     $customer->delete();
 
     return back()->with(
