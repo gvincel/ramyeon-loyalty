@@ -153,6 +153,16 @@ Route::middleware(['auth', 'role:cashier'])->group(function () {
         CashierCustomerController::class,
         'show',
     ])->whereNumber('customer')->name('cashier.customers.show');
+   
+    Route::patch('/cashier/customers/{customer}/status', [
+    CashierCustomerController::class,
+    'toggleStatus',
+    ])->whereNumber('customer')->name('cashier.customers.toggle-status');
+
+    Route::delete('/cashier/customers/{customer}', [
+    CashierCustomerController::class,
+    'destroy',
+])->whereNumber('customer')->name('cashier.customers.destroy');
 
     Route::get('/cashier/register-qr', [
         RegisterQrController::class,
