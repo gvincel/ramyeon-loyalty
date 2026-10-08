@@ -10,7 +10,6 @@ class CustomerController extends Controller
 {
     /**
      * Display a paginated, searchable list of customers.
-     * Cashiers can view customers but cannot edit or manage them.
      */
     public function index(Request $request)
     {
@@ -20,9 +19,9 @@ class CustomerController extends Controller
             ->when($search !== '', function ($query) use ($search) {
                 $query->where(function ($q) use ($search) {
                     $q->where('first_name', 'like', "%{$search}%")
-                      ->orWhere('last_name', 'like', "%{$search}%")
-                      ->orWhere('customer_code', 'like', "%{$search}%")
-                      ->orWhere('phone_number', 'like', "%{$search}%");
+                        ->orWhere('last_name', 'like', "%{$search}%")
+                        ->orWhere('customer_code', 'like', "%{$search}%")
+                        ->orWhere('phone_number', 'like', "%{$search}%");
                 });
             })
             ->orderBy('last_name')
@@ -32,7 +31,7 @@ class CustomerController extends Controller
 
         return inertia('Cashier/Customers/Index', [
             'customers' => $customers,
-            'filters'   => [
+            'filters' => [
                 'search' => $search,
             ],
         ]);
@@ -49,4 +48,42 @@ class CustomerController extends Controller
             'customer' => $customer,
         ]);
     }
+
+    /**
+     * Activate or deactivate a customer.
+     */
+    public function toggleStatus(Customer $customer)
+    {
+        $customer->is_active = !$customer->is_active;
+        $customer->save();
+
+        return back()->with(
+            'success',
+            $customer->is_active
+                ? 'Customer activated successfully.'
+                : 'Customer deactivated successfully.'
+        );
+    }
+
+    /**
+     * Permanently delete a customer.
+     */
+   /**
+ * Permanently delete a customer and their related records.
+ */
+public function destroy(Customer $customer)
+{
+    $customer->qrCode()->delete();
+    $customer->transactions()->delete();
+    $customer->rewardRedemptions()->delete();
+    $customer->pointTransactions()->delete();
+
+    $customer->delete();
+
+    return back()->with(
+        'success',
+        'Customer and all related records deleted successfully.'
+    );
+}
+
 }

@@ -1,5 +1,6 @@
 import { Head, Link, router, usePage } from '@inertiajs/react';
 import { FormEvent, useState } from 'react';
+
 import CashierLayout from '@/Layouts/CashierLayout';
 import AdminPageHeader from '@/Components/AdminPageHeader';
 import StatusBadge from '@/Components/StatusBadge';
@@ -25,7 +26,11 @@ interface Paginated<T> {
     total: number;
     from: number | null;
     to: number | null;
-    links: { url: string | null; label: string; active: boolean }[];
+    links: {
+        url: string | null;
+        label: string;
+        active: boolean;
+    }[];
 }
 
 export default function Index({
@@ -36,28 +41,47 @@ export default function Index({
     filters: { search: string };
 }) {
     const { flash } = usePage<PageProps>().props;
-    const [search, setSearch] = useState(filters.search ?? '');
-    const [copiedCustomerId, setCopiedCustomerId] = useState<number | null>(null);
 
+    const [search, setSearch] = useState(filters.search ?? '');
+
+    const [copiedCustomerId, setCopiedCustomerId] =
+        useState<number | null>(null);
+
+    /**
+     * Search customers
+     */
     const submitSearch = (event: FormEvent) => {
         event.preventDefault();
 
         router.get(
             route('cashier.customers.index'),
             { search },
-            { preserveState: true, replace: true },
+            {
+                preserveState: true,
+                replace: true,
+            },
         );
     };
 
+    /**
+     * Clear search
+     */
     const clearSearch = () => {
         setSearch('');
+
         router.get(
             route('cashier.customers.index'),
             {},
-            { preserveState: true, replace: true },
+            {
+                preserveState: true,
+                replace: true,
+            },
         );
     };
 
+    /**
+     * Copy customer code
+     */
     const handleCopyCustomerCode = async (
         customerId: number,
         customerCode: string,
@@ -77,12 +101,57 @@ export default function Index({
         }
     };
 
+    /**
+     * Activate / Deactivate customer
+     */
+    const toggleCustomerStatus = (customer: Customer) => {
+        const action = customer.is_active
+            ? 'deactivate'
+            : 'activate';
+
+        if (
+            !window.confirm(
+                `Are you sure you want to ${action} this customer?`,
+            )
+        ) {
+            return;
+        }
+
+        router.patch(
+            route(
+                'cashier.customers.toggle-status',
+                customer.id,
+            ),
+        );
+    };
+
+    /**
+     * Delete customer
+     */
+    const deleteCustomer = (customer: Customer) => {
+        if (
+            !window.confirm(
+                `Are you sure you want to permanently delete ${customer.first_name} ${customer.last_name}?`,
+            )
+        ) {
+            return;
+        }
+
+        router.delete(
+            route(
+                'cashier.customers.destroy',
+                customer.id,
+            ),
+        );
+    };
+
     return (
         <CashierLayout>
             <Head title="Customer Records" />
 
             <div className="min-h-screen bg-gray-50 p-4 sm:p-6 lg:p-8">
                 <div className="mx-auto max-w-7xl">
+
                     {/* Header */}
                     <AdminPageHeader
                         eyebrow="Customer Management"
@@ -93,8 +162,11 @@ export default function Index({
                                 <p className="text-[11px] font-medium uppercase tracking-wider text-gray-400">
                                     Records
                                 </p>
+
                                 <p className="mt-1 text-sm font-semibold text-gray-800">
-                                    {customers.total.toLocaleString('en-PH')}
+                                    {customers.total.toLocaleString(
+                                        'en-PH',
+                                    )}
                                 </p>
                             </div>
                         }
@@ -123,7 +195,12 @@ export default function Index({
                                         strokeLinejoin="round"
                                         className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400"
                                     >
-                                        <circle cx="11" cy="11" r="7" />
+                                        <circle
+                                            cx="11"
+                                            cy="11"
+                                            r="7"
+                                        />
+
                                         <path d="M21 21l-4.3-4.3" />
                                     </svg>
 
@@ -155,7 +232,6 @@ export default function Index({
                                     </button>
                                 )}
                             </form>
-
                         </div>
                     </div>
 
@@ -169,13 +245,19 @@ export default function Index({
                                     </h2>
 
                                     <p className="mt-1 text-sm text-gray-500">
-                                        Registered customers and their loyalty account details.
+                                        Registered customers and their loyalty
+                                        account details.
                                     </p>
                                 </div>
 
                                 <span className="hidden rounded-full bg-gray-50 px-3 py-1.5 text-xs font-semibold text-gray-600 ring-1 ring-gray-200 sm:inline-flex">
-                                    {customers.total.toLocaleString('en-PH')} customer
-                                    {customers.total !== 1 ? 's' : ''}
+                                    {customers.total.toLocaleString(
+                                        'en-PH',
+                                    )}{' '}
+                                    customer
+                                    {customers.total !== 1
+                                        ? 's'
+                                        : ''}
                                 </span>
                             </div>
                         </div>
@@ -212,132 +294,183 @@ export default function Index({
 
                                 <tbody className="divide-y divide-gray-100">
                                     {customers.data.length > 0 ? (
-                                        customers.data.map((customer) => (
-                                            <tr
-                                                key={customer.id}
-                                                className="transition-colors hover:bg-gray-50/70"
-                                            >
-                                                <td className="px-6 py-4">
-                                                    <div className="flex items-center gap-3">
-                                                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-red-50 text-sm font-bold text-red-600">
-                                                            {customer.first_name
-                                                                .charAt(0)
-                                                                .toUpperCase()}
-                                                            {customer.last_name
-                                                                .charAt(0)
-                                                                .toUpperCase()}
+                                        customers.data.map(
+                                            (customer) => (
+                                                <tr
+                                                    key={customer.id}
+                                                    className="transition-colors hover:bg-gray-50/70"
+                                                >
+                                                    {/* Customer */}
+                                                    <td className="px-6 py-4">
+                                                        <div className="flex items-center gap-3">
+                                                            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-red-50 text-sm font-bold text-red-600">
+                                                                {customer.first_name
+                                                                    .charAt(0)
+                                                                    .toUpperCase()}
+                                                                {customer.last_name
+                                                                    .charAt(0)
+                                                                    .toUpperCase()}
+                                                            </div>
+
+                                                            <div className="min-w-0">
+                                                                <p className="truncate font-semibold text-gray-900">
+                                                                    {customer.first_name}{' '}
+                                                                    {customer.last_name}
+                                                                </p>
+
+                                                                <p className="truncate text-sm text-gray-500">
+                                                                    {customer.email ??
+                                                                        'No email address'}
+                                                                </p>
+                                                            </div>
                                                         </div>
+                                                    </td>
 
-                                                        <div className="min-w-0">
-                                                            <p className="truncate font-semibold text-gray-900">
-                                                                {customer.first_name}{' '}
-                                                                {customer.last_name}
-                                                            </p>
+                                                    {/* Customer Code */}
+                                                    <td className="px-6 py-4">
+                                                        <span className="inline-flex items-center gap-1.5">
+                                                            <span className="inline-flex rounded-md bg-gray-50 px-2.5 py-1 font-medium text-gray-700 ring-1 ring-gray-200">
+                                                                {
+                                                                    customer.customer_code
+                                                                }
+                                                            </span>
 
-                                                            <p className="mt-0.5 max-w-[220px] truncate text-xs text-gray-500">
-                                                                {customer.email || 'No email'}
-                                                            </p>
-                                                        </div>
-                                                    </div>
-                                                </td>
+                                                            <button
+                                                                type="button"
+                                                                onClick={() =>
+                                                                    void handleCopyCustomerCode(
+                                                                        customer.id,
+                                                                        customer.customer_code,
+                                                                    )
+                                                                }
+                                                                aria-label={
+                                                                    copiedCustomerId ===
+                                                                    customer.id
+                                                                        ? 'Customer code copied'
+                                                                        : 'Copy customer code'
+                                                                }
+                                                                title={
+                                                                    copiedCustomerId ===
+                                                                    customer.id
+                                                                        ? 'Copied'
+                                                                        : 'Copy customer code'
+                                                                }
+                                                                className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-gray-200 bg-white text-gray-500 transition-colors hover:bg-gray-50 hover:text-gray-700 focus:outline-none focus:ring-1 focus:ring-red-400 focus:ring-offset-1"
+                                                            >
+                                                                {copiedCustomerId ===
+                                                                customer.id ? (
+                                                                    <svg
+                                                                        className="h-4 w-4 text-green-600"
+                                                                        viewBox="0 0 24 24"
+                                                                        fill="none"
+                                                                        stroke="currentColor"
+                                                                        strokeWidth="2"
+                                                                        strokeLinecap="round"
+                                                                        strokeLinejoin="round"
+                                                                        aria-hidden="true"
+                                                                    >
+                                                                        <path d="M20 6L9 17l-5-5" />
+                                                                    </svg>
+                                                                ) : (
+                                                                    <svg
+                                                                        className="h-4 w-4"
+                                                                        viewBox="0 0 24 24"
+                                                                        fill="none"
+                                                                        stroke="currentColor"
+                                                                        strokeWidth="2"
+                                                                        strokeLinecap="round"
+                                                                        strokeLinejoin="round"
+                                                                        aria-hidden="true"
+                                                                    >
+                                                                        <rect
+                                                                            x="9"
+                                                                            y="9"
+                                                                            width="11"
+                                                                            height="11"
+                                                                            rx="2"
+                                                                        />
 
-                                                <td className="px-6 py-4">
-                                                    <span className="inline-flex items-center gap-1.5">
-                                                        <span className="inline-flex rounded-md bg-gray-50 px-2.5 py-1 font-medium text-gray-700 ring-1 ring-gray-200">
-                                                            {customer.customer_code}
+                                                                        <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" />
+                                                                    </svg>
+                                                                )}
+                                                            </button>
                                                         </span>
+                                                    </td>
 
-                                                        <button
-                                                            type="button"
-                                                            onClick={() =>
-                                                                void handleCopyCustomerCode(
+                                                    {/* Phone */}
+                                                    <td className="px-6 py-4 text-gray-600">
+                                                        {
+                                                            customer.phone_number
+                                                        }
+                                                    </td>
+
+                                                    {/* Points */}
+                                                    <td className="px-6 py-4">
+                                                        <span className="font-semibold text-gray-900">
+                                                            {Number(
+                                                                customer.points,
+                                                            ).toLocaleString(
+                                                                'en-PH',
+                                                            )}
+                                                        </span>
+                                                    </td>
+
+                                                    {/* Status */}
+                                                    <td className="px-6 py-4">
+                                                        <StatusBadge
+                                                            active={
+                                                                customer.is_active
+                                                            }
+                                                        />
+                                                    </td>
+
+                                                    {/* Actions */}
+                                                    <td className="px-6 py-4">
+                                                        <div className="flex justify-end gap-3">
+                                                            <Link
+                                                                href={route(
+                                                                    'cashier.customers.show',
                                                                     customer.id,
-                                                                    customer.customer_code,
-                                                                )
-                                                            }
-                                                            aria-label={
-                                                                copiedCustomerId === customer.id
-                                                                    ? 'Customer code copied'
-                                                                    : 'Copy customer code'
-                                                            }
-                                                            title={
-                                                                copiedCustomerId === customer.id
-                                                                    ? 'Copied'
-                                                                    : 'Copy customer code'
-                                                            }
-                                                            className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-gray-200 bg-white text-gray-500 transition-colors hover:bg-gray-50 hover:text-gray-700 focus:outline-none focus:ring-1 focus:ring-red-400 focus:ring-offset-1"
-                                                        >
-                                                            {copiedCustomerId === customer.id ? (
-                                                                <svg
-                                                                    className="h-4 w-4 text-green-600"
-                                                                    viewBox="0 0 24 24"
-                                                                    fill="none"
-                                                                    stroke="currentColor"
-                                                                    strokeWidth="2"
-                                                                    strokeLinecap="round"
-                                                                    strokeLinejoin="round"
-                                                                    aria-hidden="true"
-                                                                >
-                                                                    <path d="M20 6L9 17l-5-5" />
-                                                                </svg>
-                                                            ) : (
-                                                                <svg
-                                                                    className="h-4 w-4"
-                                                                    viewBox="0 0 24 24"
-                                                                    fill="none"
-                                                                    stroke="currentColor"
-                                                                    strokeWidth="2"
-                                                                    strokeLinecap="round"
-                                                                    strokeLinejoin="round"
-                                                                    aria-hidden="true"
-                                                                >
-                                                                    <rect
-                                                                        x="9"
-                                                                        y="9"
-                                                                        width="11"
-                                                                        height="11"
-                                                                        rx="2"
-                                                                    />
-                                                                    <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" />
-                                                                </svg>
-                                                            )}
-                                                        </button>
-                                                    </span>
-                                                </td>
+                                                                )}
+                                                                className="text-sm font-semibold text-red-600 transition-colors hover:text-red-700"
+                                                            >
+                                                                View
+                                                            </Link>
 
-                                                <td className="px-6 py-4 text-gray-600">
-                                                    {customer.phone_number}
-                                                </td>
+                                                            <button
+                                                                type="button"
+                                                                onClick={() =>
+                                                                    toggleCustomerStatus(
+                                                                        customer,
+                                                                    )
+                                                                }
+                                                                className={`text-sm font-semibold transition-colors ${
+                                                                    customer.is_active
+                                                                        ? 'text-red-600 hover:text-red-700'
+                                                                        : 'text-green-600 hover:text-green-700'
+                                                                }`}
+                                                            >
+                                                                {customer.is_active
+                                                                    ? 'Deactivate'
+                                                                    : 'Activate'}
+                                                            </button>
 
-                                                <td className="px-6 py-4">
-                                                    <span className="font-semibold text-gray-900">
-                                                        {Number(
-                                                            customer.points,
-                                                        ).toLocaleString('en-PH')}
-                                                    </span>
-                                                </td>
-
-                                                <td className="px-6 py-4">
-                                                    <StatusBadge
-                                                        active={customer.is_active}
-                                                    />
-                                                </td>
-
-                                                <td className="px-6 py-4">
-                                                    <div className="flex justify-end gap-3">
-                                                        <Link
-                                                            href={route(
-                                                                'cashier.customers.show',
-                                                                customer.id,
-                                                            )}
-                                                            className="text-sm font-semibold text-red-600 transition-colors hover:text-red-700"
-                                                        >
-                                                            View
-                                                        </Link>
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                        ))
+                                                            <button
+                                                                type="button"
+                                                                onClick={() =>
+                                                                    deleteCustomer(
+                                                                        customer,
+                                                                    )
+                                                                }
+                                                                className="text-sm font-semibold text-gray-500 transition-colors hover:text-gray-700"
+                                                            >
+                                                                Delete
+                                                            </button>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            ),
+                                        )
                                     ) : (
                                         <tr>
                                             <td
@@ -412,41 +545,46 @@ export default function Index({
                                     </p>
 
                                     <div className="flex flex-wrap items-center gap-1">
-                                        {customers.links.map((link, index) => {
-                                            if (link.url === null) {
+                                        {customers.links.map(
+                                            (link, index) => {
+                                                if (
+                                                    link.url ===
+                                                    null
+                                                ) {
+                                                    return (
+                                                        <span
+                                                            key={index}
+                                                            className="rounded-md px-3 py-1.5 text-sm text-gray-300"
+                                                        >
+                                                            <span
+                                                                dangerouslySetInnerHTML={{
+                                                                    __html: link.label,
+                                                                }}
+                                                            />
+                                                        </span>
+                                                    );
+                                                }
+
                                                 return (
-                                                    <span
+                                                    <Link
                                                         key={index}
-                                                        className="rounded-md px-3 py-1.5 text-sm text-gray-300"
+                                                        href={link.url}
+                                                        preserveScroll
+                                                        className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
+                                                            link.active
+                                                                ? 'bg-red-600 text-white'
+                                                                : 'text-gray-700 hover:bg-gray-100'
+                                                        }`}
                                                     >
                                                         <span
                                                             dangerouslySetInnerHTML={{
                                                                 __html: link.label,
                                                             }}
                                                         />
-                                                    </span>
+                                                    </Link>
                                                 );
-                                            }
-
-                                            return (
-                                                <Link
-                                                    key={index}
-                                                    href={link.url}
-                                                    preserveScroll
-                                                    className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
-                                                        link.active
-                                                            ? 'bg-red-600 text-white'
-                                                            : 'text-gray-700 hover:bg-gray-100'
-                                                    }`}
-                                                >
-                                                    <span
-                                                        dangerouslySetInnerHTML={{
-                                                            __html: link.label,
-                                                        }}
-                                                    />
-                                                </Link>
-                                            );
-                                        })}
+                                            },
+                                        )}
                                     </div>
                                 </div>
                             )}
