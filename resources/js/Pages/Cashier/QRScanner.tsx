@@ -17,7 +17,6 @@ interface Customer {
 }
 
 interface ValidationErrors {
-    receipt_number?: string[];
     purchase_amount?: string[];
     points_used?: string[];
 }
@@ -53,7 +52,6 @@ export default function QRScannerPage() {
         null,
     );
 
-    const [receiptNumber, setReceiptNumber] = useState('');
     const [purchaseAmount, setPurchaseAmount] = useState('');
     const [usePoints, setUsePoints] = useState(false);
     const [pointsUsed, setPointsUsed] = useState('');
@@ -66,34 +64,11 @@ export default function QRScannerPage() {
         setError(null);
         setSuccess(null);
         setValidationErrors({});
-        setReceiptNumber('');
         setPurchaseAmount('');
         setUsePoints(false);
         setPointsUsed('');
         setRewards([]);
         setCustomerCode('');
-    };
-
-    /**
-     * Load available rewards for a customer.
-     */
-    const loadCustomerRewards = async (customerId: number) => {
-        setIsLoadingRewards(true);
-
-        try {
-            const rewardsResponse = await axios.post(
-                route('cashier.rewards.available'),
-                {
-                    customer_id: customerId,
-                },
-            );
-
-            setRewards(rewardsResponse.data.rewards);
-        } catch {
-            setRewards([]);
-        } finally {
-            setIsLoadingRewards(false);
-        }
     };
 
     /**
@@ -105,7 +80,6 @@ export default function QRScannerPage() {
         setError(null);
         setSuccess(null);
         setValidationErrors({});
-        setReceiptNumber('');
         setPurchaseAmount('');
         setUsePoints(false);
         setPointsUsed('');
@@ -179,7 +153,6 @@ export default function QRScannerPage() {
         setError(null);
         setSuccess(null);
         setValidationErrors({});
-        setReceiptNumber('');
         setPurchaseAmount('');
         setUsePoints(false);
         setPointsUsed('');
@@ -253,10 +226,6 @@ export default function QRScannerPage() {
                 route('cashier.transactions.store'),
                 {
                     customer_id: customer.id,
-                    receipt_number:
-                        receiptNumber.trim() !== ''
-                            ? receiptNumber.trim()
-                            : null,
                     purchase_amount: purchaseAmount,
                     points_used: usePoints ? pointsUsedValue : 0,
                 },
@@ -269,7 +238,6 @@ export default function QRScannerPage() {
                 points: response.data.new_points,
             });
 
-            setReceiptNumber('');
             setPurchaseAmount('');
             setUsePoints(false);
             setPointsUsed('');
@@ -635,61 +603,6 @@ export default function QRScannerPage() {
                                     </div>
 
                                     <div className="space-y-5 p-6">
-
-                                        {/* RECEIPT */}
-                                        <div>
-
-                                            <label
-                                                htmlFor="receipt_number"
-                                                className="mb-1.5 block text-sm font-medium text-gray-800"
-                                            >
-                                                Receipt Number{' '}
-                                                <span className="font-normal text-gray-400">
-                                                    (Optional)
-                                                </span>
-                                            </label>
-
-                                            <input
-                                                id="receipt_number"
-                                                type="text"
-                                                value={receiptNumber}
-                                                onChange={(event) => {
-                                                    setReceiptNumber(
-                                                        event.target.value,
-                                                    );
-
-                                                    if (
-                                                        validationErrors.receipt_number
-                                                    ) {
-                                                        setValidationErrors(
-                                                            (current) => ({
-                                                                ...current,
-                                                                receipt_number:
-                                                                    undefined,
-                                                            }),
-                                                        );
-                                                    }
-                                                }}
-                                                maxLength={100}
-                                                autoComplete="off"
-                                                placeholder="Enter receipt number"
-                                                className={`block h-11 w-full rounded-xl border px-4 text-[15px] text-gray-950 outline-none transition-[border-color,box-shadow,background-color] placeholder:text-gray-400 ${
-                                                    validationErrors.receipt_number
-                                                        ? 'border-red-500 bg-red-50/40 focus:border-red-600 focus:ring-2 focus:ring-red-600/15'
-                                                        : 'border-black/[0.07] bg-[#f8f8f9] hover:border-black/[0.13] focus:border-red-900 focus:bg-white focus:ring-2 focus:ring-red-900/10'
-                                                }`}
-                                            />
-
-                                            {validationErrors.receipt_number && (
-                                                <p className="mt-1.5 text-sm text-red-600">
-                                                    {
-                                                        validationErrors
-                                                            .receipt_number[0]
-                                                    }
-                                                </p>
-                                            )}
-
-                                        </div>
 
                                         {/* PURCHASE AMOUNT */}
                                         <div>

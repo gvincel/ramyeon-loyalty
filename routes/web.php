@@ -7,6 +7,7 @@ use App\Http\Controllers\Cashier\DashboardController as CashierDashboardControll
 use App\Http\Controllers\Cashier\RegisterQrController;
 use App\Http\Controllers\Admin\RewardController;
 use App\Http\Controllers\Admin\DashboardController;
+use App\Http\Controllers\Admin\ReportController;
 use App\Http\Controllers\Customer\AuthController as CustomerAuthController;
 use App\Http\Controllers\Customer\RewardController as CustomerRewardController;
 use App\Http\Controllers\ProfileController;
@@ -125,6 +126,12 @@ Route::middleware(['auth', 'role:admin'])->group(function () {
 
     Route::patch('/admin/rewards/{reward}/toggle-status', [RewardController::class, 'toggleStatus'])
     ->name('admin.rewards.toggle-status');
+
+    Route::get('/admin/reports', [ReportController::class, 'index'])
+    ->name('admin.reports.index');
+
+    Route::get('/admin/reports/export', [ReportController::class, 'export'])
+    ->name('admin.reports.export');
 
 });
 
