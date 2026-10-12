@@ -34,7 +34,6 @@ class TransactionProcessingTest extends TestCase
             ->actingAs($cashier)
             ->postJson(route('cashier.transactions.store'), [
                 'customer_id' => $customer->id,
-                'receipt_number' => 'OR-POINT-001',
                 'purchase_amount' => 350.00,
             ]);
 
@@ -44,19 +43,27 @@ class TransactionProcessingTest extends TestCase
                 'points_earned' => 3,
                 'previous_points' => 0,
                 'new_points' => 3,
-            ]);
+            ])
+            ->assertJsonPath('transaction.customer_id', $customer->id)
+            ->assertJsonPath('transaction.cashier_id', $cashier->id);
+
+        $transactionNumber = $response->json('transaction.receipt_number');
+
+        $this->assertIsString($transactionNumber);
+        $this->assertMatchesRegularExpression('/^RC-[A-Z0-9]{8}$/', $transactionNumber);
+
+        $transaction = Transaction::where('receipt_number', $transactionNumber)->first();
+
+        $this->assertNotNull($transaction);
 
         $this->assertDatabaseHas('transactions', [
+            'id' => $transaction->id,
             'customer_id' => $customer->id,
             'cashier_id' => $cashier->id,
-            'receipt_number' => 'OR-POINT-001',
+            'receipt_number' => $transactionNumber,
             'purchase_amount' => 350.00,
             'points_earned' => 3,
         ]);
-
-        $transaction = Transaction::where('receipt_number', 'OR-POINT-001')->first();
-
-        $this->assertNotNull($transaction);
 
         $this->assertDatabaseHas('point_transactions', [
             'customer_id' => $customer->id,
@@ -94,7 +101,6 @@ class TransactionProcessingTest extends TestCase
             ->actingAs($cashier)
             ->postJson(route('cashier.transactions.store'), [
                 'customer_id' => $customer->id,
-                'receipt_number' => 'OR-POINT-002',
                 'purchase_amount' => 250.00,
             ]);
 
@@ -106,7 +112,8 @@ class TransactionProcessingTest extends TestCase
                 'new_points' => 12,
             ]);
 
-        $transaction = Transaction::where('receipt_number', 'OR-POINT-002')->first();
+        $transactionNumber = $response->json('transaction.receipt_number');
+        $transaction = Transaction::where('receipt_number', $transactionNumber)->first();
 
         $this->assertNotNull($transaction);
 
@@ -146,7 +153,6 @@ class TransactionProcessingTest extends TestCase
             ->actingAs($cashier)
             ->postJson(route('cashier.transactions.store'), [
                 'customer_id' => $customer->id,
-                'receipt_number' => 'OR-POINT-003',
                 'purchase_amount' => 500.00,
                 'points_used' => 100,
             ]);
@@ -159,7 +165,10 @@ class TransactionProcessingTest extends TestCase
                 'new_points' => 4,
             ]);
 
-        $transaction = Transaction::where('receipt_number', 'OR-POINT-003')->first();
+
+        $transactionNumber = $response->json('transaction.receipt_number');
+        $transaction = Transaction::where('receipt_number', $transactionNumber)->first();
+
 
         $this->assertNotNull($transaction);
 
@@ -211,7 +220,6 @@ class TransactionProcessingTest extends TestCase
             ->actingAs($cashier)
             ->postJson(route('cashier.transactions.store'), [
                 'customer_id' => $customer->id,
-                'receipt_number' => 'OR-POINT-004',
                 'purchase_amount' => 350.00,
                 'points_used' => 350,
             ]);
@@ -224,7 +232,8 @@ class TransactionProcessingTest extends TestCase
                 'new_points' => 0,
             ]);
 
-        $transaction = Transaction::where('receipt_number', 'OR-POINT-004')->first();
+        $transactionNumber = $response->json('transaction.receipt_number');
+        $transaction = Transaction::where('receipt_number', $transactionNumber)->first();
 
         $this->assertNotNull($transaction);
 
@@ -273,7 +282,6 @@ class TransactionProcessingTest extends TestCase
             ->actingAs($cashier)
             ->postJson(route('cashier.transactions.store'), [
                 'customer_id' => $customer->id,
-                'receipt_number' => 'OR-POINT-005',
                 'purchase_amount' => 500.00,
                 'points_used' => 100,
             ]);
@@ -281,9 +289,7 @@ class TransactionProcessingTest extends TestCase
         $response->assertUnprocessable()
             ->assertJsonValidationErrors('points_used');
 
-        $this->assertDatabaseMissing('transactions', [
-            'receipt_number' => 'OR-POINT-005',
-        ]);
+        $this->assertDatabaseCount('transactions', 0);
 
         $this->assertDatabaseCount('point_transactions', 0);
 
@@ -314,7 +320,6 @@ class TransactionProcessingTest extends TestCase
             ->actingAs($cashier)
             ->postJson(route('cashier.transactions.store'), [
                 'customer_id' => $customer->id,
-                'receipt_number' => 'OR-POINT-006',
                 'purchase_amount' => 100.00,
                 'points_used' => 200,
             ]);
@@ -322,9 +327,7 @@ class TransactionProcessingTest extends TestCase
         $response->assertUnprocessable()
             ->assertJsonValidationErrors('points_used');
 
-        $this->assertDatabaseMissing('transactions', [
-            'receipt_number' => 'OR-POINT-006',
-        ]);
+        $this->assertDatabaseCount('transactions', 0);
 
         $this->assertDatabaseCount('point_transactions', 0);
 
@@ -355,7 +358,6 @@ class TransactionProcessingTest extends TestCase
             ->actingAs($cashier)
             ->postJson(route('cashier.transactions.store'), [
                 'customer_id' => $customer->id,
-                'receipt_number' => 'OR-POINT-007',
                 'purchase_amount' => 500.00,
                 'points_used' => -10,
             ]);
@@ -363,9 +365,7 @@ class TransactionProcessingTest extends TestCase
         $response->assertUnprocessable()
             ->assertJsonValidationErrors('points_used');
 
-        $this->assertDatabaseMissing('transactions', [
-            'receipt_number' => 'OR-POINT-007',
-        ]);
+        $this->assertDatabaseCount('transactions', 0);
 
         $this->assertDatabaseHas('customers', [
             'id' => $customer->id,
@@ -394,7 +394,6 @@ class TransactionProcessingTest extends TestCase
             ->actingAs($cashier)
             ->postJson(route('cashier.transactions.store'), [
                 'customer_id' => $customer->id,
-                'receipt_number' => 'OR-POINT-008',
                 'purchase_amount' => 500.00,
                 'points_used' => 10.5,
             ]);
@@ -402,9 +401,7 @@ class TransactionProcessingTest extends TestCase
         $response->assertUnprocessable()
             ->assertJsonValidationErrors('points_used');
 
-        $this->assertDatabaseMissing('transactions', [
-            'receipt_number' => 'OR-POINT-008',
-        ]);
+        $this->assertDatabaseCount('transactions', 0);
 
         $this->assertDatabaseHas('customers', [
             'id' => $customer->id,
@@ -436,7 +433,6 @@ class TransactionProcessingTest extends TestCase
             ->actingAs($cashier)
             ->postJson(route('cashier.transactions.store'), [
                 'customer_id' => $customer->id,
-                'receipt_number' => 'OR-BOUNDARY-' . $purchaseAmount,
                 'purchase_amount' => $purchaseAmount,
                 'points_used' => 0,
             ]);
@@ -475,16 +471,13 @@ class TransactionProcessingTest extends TestCase
             ->actingAs($cashier)
             ->postJson(route('cashier.transactions.store'), [
                 'customer_id' => $customer->id,
-                'receipt_number' => 'OR-VALIDATION-001',
                 'purchase_amount' => 0,
             ]);
 
         $response->assertUnprocessable()
             ->assertJsonValidationErrors('purchase_amount');
 
-        $this->assertDatabaseMissing('transactions', [
-            'receipt_number' => 'OR-VALIDATION-001',
-        ]);
+        $this->assertDatabaseCount('transactions', 0);
 
         $this->assertDatabaseMissing('point_transactions', [
             'customer_id' => $customer->id,
@@ -517,16 +510,13 @@ class TransactionProcessingTest extends TestCase
             ->actingAs($cashier)
             ->postJson(route('cashier.transactions.store'), [
                 'customer_id' => $customer->id,
-                'receipt_number' => 'OR-VALIDATION-002',
                 'purchase_amount' => -100,
             ]);
 
         $response->assertUnprocessable()
             ->assertJsonValidationErrors('purchase_amount');
 
-        $this->assertDatabaseMissing('transactions', [
-            'receipt_number' => 'OR-VALIDATION-002',
-        ]);
+        $this->assertDatabaseCount('transactions', 0);
 
         $this->assertDatabaseMissing('point_transactions', [
             'customer_id' => $customer->id,
@@ -549,16 +539,13 @@ class TransactionProcessingTest extends TestCase
             ->actingAs($cashier)
             ->postJson(route('cashier.transactions.store'), [
                 'customer_id' => 999999,
-                'receipt_number' => 'OR-VALIDATION-003',
                 'purchase_amount' => 500.00,
             ]);
 
         $response->assertUnprocessable()
             ->assertJsonValidationErrors('customer_id');
 
-        $this->assertDatabaseMissing('transactions', [
-            'receipt_number' => 'OR-VALIDATION-003',
-        ]);
+        $this->assertDatabaseCount('transactions', 0);
 
         $this->assertDatabaseCount('point_transactions', 0);
     }
@@ -584,7 +571,6 @@ class TransactionProcessingTest extends TestCase
             ->actingAs($cashier)
             ->postJson(route('cashier.transactions.store'), [
                 'customer_id' => $customer->id,
-                'receipt_number' => 'OR-VALIDATION-004',
                 'purchase_amount' => 500.00,
             ]);
 
@@ -593,9 +579,7 @@ class TransactionProcessingTest extends TestCase
                 'message' => 'Customer is inactive or does not exist.',
             ]);
 
-        $this->assertDatabaseMissing('transactions', [
-            'receipt_number' => 'OR-VALIDATION-004',
-        ]);
+        $this->assertDatabaseCount('transactions', 0);
 
         $this->assertDatabaseCount('point_transactions', 0);
 
@@ -626,16 +610,13 @@ class TransactionProcessingTest extends TestCase
             ->actingAs($cashier)
             ->postJson(route('cashier.transactions.store'), [
                 'customer_id' => $customer->id,
-                'receipt_number' => 'OR-VALIDATION-005',
                 'purchase_amount' => 100000000.00,
             ]);
 
         $response->assertUnprocessable()
             ->assertJsonValidationErrors('purchase_amount');
 
-        $this->assertDatabaseMissing('transactions', [
-            'receipt_number' => 'OR-VALIDATION-005',
-        ]);
+        $this->assertDatabaseCount('transactions', 0);
 
         $this->assertDatabaseCount('point_transactions', 0);
 

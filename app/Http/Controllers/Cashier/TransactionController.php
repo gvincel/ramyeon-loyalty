@@ -151,11 +151,6 @@ class TransactionController extends Controller
                 'integer',
                 'exists:customers,id',
             ],
-            'receipt_number' => [
-                'nullable',
-                'string',
-                'max:50',
-            ],
             'purchase_amount' => [
                 'required',
                 'numeric',
@@ -207,10 +202,16 @@ class TransactionController extends Controller
 
             $newPoints = $previousPoints - $pointsUsed + $pointsEarned;
 
+            $transactionNumber = 'RC-' . strtoupper(\Illuminate\Support\Str::random(8));
+
+            while (Transaction::where('receipt_number', $transactionNumber)->exists()) {
+                $transactionNumber = 'RC-' . strtoupper(\Illuminate\Support\Str::random(8));
+            }
+
             $transaction = Transaction::create([
                 'customer_id' => $customer->id,
                 'cashier_id' => $request->user()->id,
-                'receipt_number' => $validated['receipt_number'] ?? null,
+                'receipt_number' => $transactionNumber,
                 'purchase_amount' => $validated['purchase_amount'],
                 'points_used' => $pointsUsed,
                 'amount_paid' => $amountPaidCents / 100,
