@@ -58,6 +58,26 @@ export default function Index({
         );
     };
 
+    const toggleCustomerStatus = (customer: Customer) => {
+        const action = customer.is_active ? 'deactivate' : 'activate';
+
+        if (
+            !window.confirm(
+                `Are you sure you want to ${action} ${customer.first_name} ${customer.last_name}'s account?`,
+            )
+        ) {
+            return;
+        }
+
+        router.patch(
+            route('cashier.customers.toggle-status', customer.id),
+            {},
+            {
+                preserveScroll: true,
+            },
+        );
+    };
+
     const handleCopyCustomerCode = async (
         customerId: number,
         customerCode: string,
@@ -324,16 +344,26 @@ export default function Index({
                                                 </td>
 
                                                 <td className="px-6 py-4">
-                                                    <div className="flex justify-end gap-3">
+                                                    <div className="flex items-center justify-end gap-4">
                                                         <Link
-                                                            href={route(
-                                                                'cashier.customers.show',
-                                                                customer.id,
-                                                            )}
+                                                            href={route('cashier.customers.show', customer.id)}
                                                             className="text-sm font-semibold text-red-600 transition-colors hover:text-red-700"
                                                         >
                                                             View
                                                         </Link>
+
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => toggleCustomerStatus(customer)}
+                                                            className={`text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:underline ${
+                                                                customer.is_active
+                                                                    ? 'text-red-600 hover:text-red-700'
+                                                                    : 'text-green-600 hover:text-green-700'
+                                                            }`}
+                                                            aria-label={`${customer.is_active ? 'Deactivate' : 'Activate'} ${customer.first_name} ${customer.last_name}`}
+                                                        >
+                                                            {customer.is_active ? 'Deactivate' : 'Activate'}
+                                                        </button>
                                                     </div>
                                                 </td>
                                             </tr>

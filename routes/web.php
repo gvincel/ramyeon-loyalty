@@ -2,12 +2,13 @@
 
 use App\Http\Controllers\Admin\CashierController;
 use App\Http\Controllers\Admin\CustomerController;
-use App\Http\Controllers\Cashier\CustomerController as CashierCustomerController;
-use App\Http\Controllers\Cashier\DashboardController as CashierDashboardController;
-use App\Http\Controllers\Cashier\RegisterQrController;
 use App\Http\Controllers\Admin\RewardController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\ReportController;
+use App\Http\Controllers\Admin\BackupController;
+use App\Http\Controllers\Cashier\CustomerController as CashierCustomerController;
+use App\Http\Controllers\Cashier\DashboardController as CashierDashboardController;
+use App\Http\Controllers\Cashier\RegisterQrController;
 use App\Http\Controllers\Customer\AuthController as CustomerAuthController;
 use App\Http\Controllers\Customer\RewardController as CustomerRewardController;
 use App\Http\Controllers\ProfileController;
@@ -50,7 +51,10 @@ Route::middleware('guest:customer')->group(function () {
         ->name('customer.register.store');
 });
 
-Route::middleware('auth:customer')->group(function () {
+Route::middleware([
+    'auth:customer',
+    \App\Http\Middleware\EnsureCustomerIsActive::class,
+])->group(function () {
     Route::get('/loyalty/dashboard', [
         \App\Http\Controllers\Customer\DashboardController::class,
         'index',
@@ -133,6 +137,9 @@ Route::middleware(['auth', 'role:admin'])->group(function () {
     Route::get('/admin/reports/export', [ReportController::class, 'export'])
     ->name('admin.reports.export');
 
+    Route::post('/admin/backups', [BackupController::class, 'store'])
+    ->name('admin.backups.store');
+
 });
 
 /*
@@ -160,6 +167,11 @@ Route::middleware(['auth', 'role:cashier'])->group(function () {
         CashierCustomerController::class,
         'show',
     ])->whereNumber('customer')->name('cashier.customers.show');
+
+    Route::patch('/cashier/customers/{customer}/status', [
+        CashierCustomerController::class,
+        'toggleStatus',
+    ])->whereNumber('customer')->name('cashier.customers.toggle-status');
 
     Route::get('/cashier/register-qr', [
         RegisterQrController::class,

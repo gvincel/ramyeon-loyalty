@@ -1,6 +1,7 @@
-import { Head } from '@inertiajs/react';
+import { Head, usePage } from '@inertiajs/react';
 import AdminLayout from '@/Layouts/AdminLayout';
 import AdminPageHeader from '@/Components/AdminPageHeader';
+import FlashMessage from '@/Components/FlashMessage';
 
 import {
     Bar,
@@ -70,6 +71,19 @@ interface MonthlyCustomer {
     customer_count: number;
 }
 
+interface FlashProps {
+    auth: {
+        user: {
+            name: string;
+            [key: string]: unknown;
+        };
+    };
+    flash: {
+        success?: string | null;
+        error?: string | null;
+    };
+}
+
 interface Props {
     stats: Stats;
     recentTransactions: Transaction[];
@@ -126,6 +140,8 @@ export default function Dashboard({
     monthlyTransactions,
     monthlyCustomers,
 }: Props) {
+    const { flash } = usePage().props;
+
     const transactionChartData = chartMonths.map((item) => {
         const transaction = monthlyTransactions.find(
             (data) => Number(data.month) === item.monthNumber,
@@ -174,19 +190,75 @@ export default function Dashboard({
                         title="Admin Dashboard"
                         description="Monitor customer activity, purchases, and loyalty performance from one place."
                         action={
-                            <div className="rounded-xl border border-gray-200 bg-white px-4 py-3 shadow-sm">
-                                <p className="text-[11px] font-medium uppercase tracking-wider text-gray-400">
-                                    Today
-                                </p>
-                                <p className="mt-1 text-sm font-semibold text-gray-800">
-                                    {new Date().toLocaleDateString('en-PH', {
-                                        month: 'long',
-                                        day: 'numeric',
-                                        year: 'numeric',
-                                    })}
-                                </p>
+                            <div className="flex flex-wrap items-center gap-3">
+                                <form
+                                    method="POST"
+                                    action={route('admin.backups.store')}
+                                    onSubmit={(event) => {
+                                        const token = document
+                                            .querySelector<HTMLMetaElement>(
+                                                'meta[name="csrf-token"]',
+                                            )
+                                            ?.content;
+
+                                        if (!token) {
+                                            event.preventDefault();
+                                            window.alert(
+                                                'Unable to verify your session. Please refresh the page and try again.',
+                                            );
+                                            return;
+                                        }
+
+                                        const existingToken =
+                                            event.currentTarget.querySelector<HTMLInputElement>(
+                                                'input[name="_token"]',
+                                            );
+
+                                        if (existingToken) {
+                                            existingToken.value = token;
+                                        } else {
+                                            const input = document.createElement('input');
+                                            input.type = 'hidden';
+                                            input.name = '_token';
+                                            input.value = token;
+                                            event.currentTarget.appendChild(input);
+                                        }
+                                    }}
+                                >
+                                    <button
+                                        type="submit"
+                                        className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-red-600 px-4 py-3 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-red-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2"
+                                    >
+                                        <span
+                                            className="material-symbols-outlined text-[20px]"
+                                            aria-hidden="true"
+                                        >
+                                            download
+                                        </span>
+                                        <span>Database Backup</span>
+                                    </button>
+                                </form>
+
+                                <div className="rounded-xl border border-gray-200 bg-white px-4 py-3 shadow-sm">
+                                    <p className="text-[11px] font-medium uppercase tracking-wider text-gray-400">
+                                        Today
+                                    </p>
+                                    <p className="mt-1 text-sm font-semibold text-gray-800">
+                                        {new Date().toLocaleDateString('en-PH', {
+                                            month: 'long',
+                                            day: 'numeric',
+                                            year: 'numeric',
+                                        })}
+                                    </p>
+                                </div>
                             </div>
                         }
+
+                    />
+
+                    <FlashMessage
+                        success={flash.success}
+                        error={flash.error}
                     />
 
                     {/* KPI Cards */}
