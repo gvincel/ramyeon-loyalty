@@ -49,4 +49,23 @@ class CustomerController extends Controller
             'customer' => $customer,
         ]);
     }
+
+    /**
+     * Activate or deactivate a customer account.
+     */
+    public function toggleStatus(Customer $customer)
+    {
+        $customer->update([
+            'is_active' => !$customer->is_active,
+        ]);
+
+        return redirect()
+            ->back()
+            ->with(
+                'success',
+                $customer->is_active
+                    ? 'Customer activated successfully.'
+                    : 'Customer deactivated successfully.'
+            );
+    }
 }

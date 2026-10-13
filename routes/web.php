@@ -50,7 +50,10 @@ Route::middleware('guest:customer')->group(function () {
         ->name('customer.register.store');
 });
 
-Route::middleware('auth:customer')->group(function () {
+Route::middleware([
+    'auth:customer',
+    \App\Http\Middleware\EnsureCustomerIsActive::class,
+])->group(function () {
     Route::get('/loyalty/dashboard', [
         \App\Http\Controllers\Customer\DashboardController::class,
         'index',
@@ -160,6 +163,11 @@ Route::middleware(['auth', 'role:cashier'])->group(function () {
         CashierCustomerController::class,
         'show',
     ])->whereNumber('customer')->name('cashier.customers.show');
+
+    Route::patch('/cashier/customers/{customer}/status', [
+        CashierCustomerController::class,
+        'toggleStatus',
+    ])->whereNumber('customer')->name('cashier.customers.toggle-status');
 
     Route::get('/cashier/register-qr', [
         RegisterQrController::class,

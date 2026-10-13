@@ -85,4 +85,29 @@ class CustomerAuthenticationTest extends TestCase
             route('customer.login', absolute: false)
         );
     }
+
+    public function test_deactivated_customer_with_an_existing_session_is_logged_out(): void
+    {
+        $customer = Customer::factory()->create([
+            'is_active' => true,
+        ]);
+
+        /** @var Customer $customer */
+        $this->actingAs($customer, 'customer');
+
+        // Simulate the account being deactivated by an administrator or cashier.
+        $customer->update([
+            'is_active' => false,
+        ]);
+
+        $response = $this->get(route('customer.dashboard'));
+
+        $response->assertRedirect(route('customer.login', absolute: false));
+        $response->assertSessionHas(
+            'error',
+            'Your account is inactive. Please contact the staff for assistance.'
+        );
+
+        $this->assertGuest('customer');
+    }
 }
