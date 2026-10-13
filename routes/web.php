@@ -2,12 +2,13 @@
 
 use App\Http\Controllers\Admin\CashierController;
 use App\Http\Controllers\Admin\CustomerController;
-use App\Http\Controllers\Cashier\CustomerController as CashierCustomerController;
-use App\Http\Controllers\Cashier\DashboardController as CashierDashboardController;
-use App\Http\Controllers\Cashier\RegisterQrController;
 use App\Http\Controllers\Admin\RewardController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\ReportController;
+use App\Http\Controllers\Admin\BackupController;
+use App\Http\Controllers\Cashier\CustomerController as CashierCustomerController;
+use App\Http\Controllers\Cashier\DashboardController as CashierDashboardController;
+use App\Http\Controllers\Cashier\RegisterQrController;
 use App\Http\Controllers\Customer\AuthController as CustomerAuthController;
 use App\Http\Controllers\Customer\RewardController as CustomerRewardController;
 use App\Http\Controllers\ProfileController;
@@ -135,6 +136,9 @@ Route::middleware(['auth', 'role:admin'])->group(function () {
 
     Route::get('/admin/reports/export', [ReportController::class, 'export'])
     ->name('admin.reports.export');
+
+    Route::post('/admin/backups', [BackupController::class, 'store'])
+    ->name('admin.backups.store');
 
 });
 
