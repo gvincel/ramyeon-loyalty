@@ -12,6 +12,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rules\Password;
 use Illuminate\Validation\ValidationException;
+use Illuminate\Support\Facades\Hash;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -38,15 +39,30 @@ class AuthController extends Controller
 
         $remember = $request->boolean('remember');
 
-        if (! Auth::guard('customer')->attempt([
-            'phone_number' => $credentials['phone_number'],
-            'password' => $credentials['password'],
-            'is_active' => true,
-        ], $remember)) {
+        $customer = Customer::where(
+            'phone_number',
+            $credentials['phone_number']
+        )->first();
+
+        if (
+            ! $customer ||
+            ! Hash::check(
+                $credentials['password'],
+                $customer->password
+            )
+        ) {
             throw ValidationException::withMessages([
                 'phone_number' => 'The phone number or password is incorrect.',
             ]);
         }
+
+        if (! $customer->is_active) {
+            throw ValidationException::withMessages([
+                'phone_number' => 'Your account is inactive. Please contact the staff for assistance.',
+            ]);
+        }
+
+        Auth::guard('customer')->login($customer, $remember);
 
         $request->session()->regenerate();
 

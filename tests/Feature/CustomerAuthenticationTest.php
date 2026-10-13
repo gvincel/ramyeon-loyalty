@@ -53,20 +53,44 @@ class CustomerAuthenticationTest extends TestCase
         $this->assertGuest('customer');
     }
 
-    public function test_inactive_customer_can_not_authenticate(): void
+    public function test_inactive_customer_sees_inactive_account_message(): void
     {
-        $customer = Customer::factory()->create([
+        Customer::factory()->create([
             'phone_number' => '09171234567',
             'password' => 'password123',
             'is_active' => false,
         ]);
 
-        $this->post('/loyalty/login', [
+        $response = $this->post('/loyalty/login', [
             'phone_number' => '09171234567',
             'password' => 'password123',
         ]);
 
         $this->assertGuest('customer');
+
+        $response->assertSessionHasErrors([
+            'phone_number' => 'Your account is inactive. Please contact the staff for assistance.',
+        ]);
+    }
+
+    public function test_inactive_customer_with_wrong_password_sees_generic_error(): void
+    {
+        Customer::factory()->create([
+            'phone_number' => '09171234567',
+            'password' => 'password123',
+            'is_active' => false,
+        ]);
+
+        $response = $this->post('/loyalty/login', [
+            'phone_number' => '09171234567',
+            'password' => 'wrong-password',
+        ]);
+
+        $this->assertGuest('customer');
+
+        $response->assertSessionHasErrors([
+            'phone_number' => 'The phone number or password is incorrect.',
+        ]);
     }
 
     public function test_customer_can_logout(): void
