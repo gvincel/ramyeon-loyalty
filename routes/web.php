@@ -6,6 +6,8 @@ use App\Http\Controllers\Admin\RewardController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\ReportController;
 use App\Http\Controllers\Admin\BackupController;
+use App\Http\Controllers\Admin\FeedbackController as AdminFeedbackController;
+use App\Http\Controllers\Customer\FeedbackController as CustomerFeedbackController;
 use App\Http\Controllers\Cashier\CustomerController as CashierCustomerController;
 use App\Http\Controllers\Cashier\DashboardController as CashierDashboardController;
 use App\Http\Controllers\Cashier\RegisterQrController;
@@ -80,6 +82,16 @@ Route::middleware([
         'index',
     ])->name('customer.redemption-history');
 
+    Route::get('/loyalty/feedback', [
+        CustomerFeedbackController::class,
+        'create',
+    ])->name('customer.feedback.create');
+
+    Route::post('/loyalty/feedback', [
+        CustomerFeedbackController::class,
+        'store',
+    ])->middleware('throttle:5,1')->name('customer.feedback.store');
+
     Route::post('/loyalty/logout', [CustomerAuthController::class, 'destroy'])
         ->name('customer.logout');
 });
@@ -136,6 +148,9 @@ Route::middleware(['auth', 'role:admin'])->group(function () {
 
     Route::get('/admin/reports/export', [ReportController::class, 'export'])
     ->name('admin.reports.export');
+
+    Route::get('/admin/feedback', [AdminFeedbackController::class, 'index',])
+    ->name('admin.feedback.index');
 
     Route::post('/admin/backups', [BackupController::class, 'store'])
     ->name('admin.backups.store');
