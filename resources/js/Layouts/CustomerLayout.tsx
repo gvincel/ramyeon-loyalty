@@ -48,6 +48,12 @@ export default function CustomerLayout({
             path: '/loyalty/redemption-history',
             icon: 'redeem',
         },
+        {
+            label: 'Feedback',
+            href: route('customer.feedback.create'),
+            path: '/loyalty/feedback',
+            icon: 'rate_review',
+        },
     ];
 
     useEffect(() => {
