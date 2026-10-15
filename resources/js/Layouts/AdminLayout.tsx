@@ -354,6 +354,42 @@ export default function AdminLayout({
                             Backup & Recovery
                         </span>
                     </Link>
+
+                    <Link
+                        href={route('admin.feedback.index')}
+                        className={`flex items-center rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
+                            route().current('admin.feedback.*')
+                                ? 'bg-red-50 text-red-700'
+                                : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'
+                        }`}
+                        aria-current={
+                            route().current('admin.feedback.*')
+                                ? 'page'
+                                : undefined
+                        }
+                        title={
+                            isSidebarCollapsed
+                                ? 'Customer Feedback'
+                                : undefined
+                        }
+                    >
+                        <span
+                            className="material-symbols-outlined text-[20px]"
+                            aria-hidden="true"
+                        >
+                            rate_review
+                        </span>
+
+                        <span
+                            className={`whitespace-nowrap transition-all duration-300 ${
+                                isSidebarCollapsed
+                                    ? 'ml-3 w-auto opacity-100 md:ml-0 md:w-0 md:overflow-hidden md:opacity-0'
+                                    : 'ml-3 w-auto opacity-100'
+                            }`}
+                        >
+                            Feedback
+                        </span>
+                    </Link>
                 </nav>
 
                 {/* Account */}
