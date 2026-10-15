@@ -296,10 +296,10 @@ export default function AdminLayout({
                         }
                     >
                         <span
-                            className="material-symbols-outlined text-[20px]"
+                            className="material-symbols-outlined text-[22px]"
                             aria-hidden="true"
                         >
-                            bar_chart
+                            monitoring
                         </span>
 
                         <span
@@ -310,6 +310,48 @@ export default function AdminLayout({
                             }`}
                         >
                             Reports
+                        </span>
+                    </Link>
+
+                    <Link
+                        href={route('admin.backups.index')}
+                        className={`flex items-center rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
+                            route().current('admin.backups.*')
+                                ? 'bg-red-50 text-red-700'
+                                : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'
+                        }`}
+                        aria-current={
+                            route().current('admin.backups.*')
+                                ? 'page'
+                                : undefined
+                        }
+                        title={
+                            isSidebarCollapsed
+                                ? 'Backup & Recovery'
+                                : undefined
+                        }
+                    >
+                        <span
+                            className="relative inline-flex h-5 w-5 shrink-0 items-center justify-center"
+                            aria-hidden="true"
+                        >
+                            <span className="material-symbols-outlined text-[20px]">
+                                database
+                            </span>
+
+                            <span className="material-symbols-outlined absolute -bottom-1 -right-1 rounded-full bg-white text-[12px] leading-none">
+                                settings_backup_restore
+                            </span>
+                        </span>
+
+                        <span
+                            className={`whitespace-nowrap transition-all duration-300 ${
+                                isSidebarCollapsed
+                                    ? 'ml-3 w-auto opacity-100 md:ml-0 md:w-0 md:overflow-hidden md:opacity-0'
+                                    : 'ml-3 w-auto opacity-100'
+                            }`}
+                        >
+                            Backup & Recovery
                         </span>
                     </Link>
 
@@ -325,7 +367,11 @@ export default function AdminLayout({
                                 ? 'page'
                                 : undefined
                         }
-                        title={isSidebarCollapsed ? 'Customer Feedback' : undefined}
+                        title={
+                            isSidebarCollapsed
+                                ? 'Customer Feedback'
+                                : undefined
+                        }
                     >
                         <span
                             className="material-symbols-outlined text-[20px]"

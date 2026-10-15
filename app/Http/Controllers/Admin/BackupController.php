@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\RedirectResponse;
+use Inertia\Inertia;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Process;
 use Illuminate\Support\Facades\Storage;
@@ -13,6 +14,11 @@ use Throwable;
 
 class BackupController extends Controller
 {
+    public function index()
+    {
+        return Inertia::render('Admin/Backups');
+    }
+
     public function store(): BinaryFileResponse|RedirectResponse
     {
         $connection = config('database.default');

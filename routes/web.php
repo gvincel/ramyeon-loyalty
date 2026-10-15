@@ -149,7 +149,10 @@ Route::middleware(['auth', 'role:admin'])->group(function () {
     Route::get('/admin/reports/export', [ReportController::class, 'export'])
     ->name('admin.reports.export');
 
-    Route::get('/admin/feedback', [AdminFeedbackController::class, 'index',])
+    Route::get('/admin/backups', [BackupController::class, 'index'])
+    ->name('admin.backups.index');
+
+    Route::get('/admin/feedback', [AdminFeedbackController::class, 'index'])
     ->name('admin.feedback.index');
 
     Route::post('/admin/backups', [BackupController::class, 'store'])
