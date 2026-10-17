@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Services\AuditLogger;
 use App\Http\Controllers\Controller;
 use App\Models\Customer;
 use App\Models\RewardRedemption;
@@ -162,6 +163,18 @@ class ReportController extends Controller
             '-to-' .
             $endDate->toDateString() .
             '.csv';
+
+        app(AuditLogger::class)->record(
+            'report.export_requested',
+            'CSV report export initiated.',
+            null,
+            [
+                'period' => $reportDateRange['period'],
+                'start_date' => $startDate->toDateString(),
+                'end_date' => $endDate->toDateString(),
+                'record_count' => $transactions->count(),
+            ],
+        );
 
         return response()->streamDownload(function () use ($transactions) {
             $handle = fopen('php://output', 'w');

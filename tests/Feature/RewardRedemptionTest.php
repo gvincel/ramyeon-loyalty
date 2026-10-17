@@ -60,6 +60,16 @@ class RewardRedemptionTest extends TestCase
 
         $this->assertNotNull($redemption);
 
+        $this->assertDatabaseHas('audit_logs', [
+            'actor_id' => $cashier->id,
+            'actor_name' => $cashier->name,
+            'actor_role' => 'cashier',
+            'action' => 'reward.redeemed',
+            'subject_type' => 'RewardRedemption',
+            'subject_id' => $redemption->id,
+            'description' => 'Reward redeemed successfully.',
+        ]);
+
         $this->assertDatabaseHas('reward_redemptions', [
             'id' => $redemption->id,
             'customer_id' => $customer->id,
@@ -486,6 +496,16 @@ class RewardRedemptionTest extends TestCase
         $this->assertDatabaseHas('customers', [
             'id' => $customer->id,
             'points' => 500,
+        ]);
+
+        $this->assertDatabaseHas('audit_logs', [
+            'actor_id' => $cashier->id,
+            'actor_name' => $cashier->name,
+            'actor_role' => 'cashier',
+            'action' => 'reward_redemption.cancelled',
+            'subject_type' => 'RewardRedemption',
+            'subject_id' => $redemption->id,
+            'description' => 'Reward redemption cancelled and points refunded.',
         ]);
     }
 

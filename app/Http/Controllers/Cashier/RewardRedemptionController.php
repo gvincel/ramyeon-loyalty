@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Cashier;
 
+use App\Services\AuditLogger;
 use App\Http\Controllers\Controller;
 use App\Models\Customer;
 use App\Models\PointTransaction;
@@ -154,6 +155,16 @@ class RewardRedemptionController extends Controller
                 'created_at' => now(),
             ]);
 
+            app(AuditLogger::class)->record(
+                'reward.redeemed',
+                'Reward redeemed successfully.',
+                $redemption,
+                [
+                    'points_used' => $reward->points_required,
+                    'points_required' => $reward->points_required,
+                ],
+            );
+
             return [
                 'redemption' => $redemption,
                 'customer' => $customer,
@@ -292,6 +303,15 @@ class RewardRedemptionController extends Controller
                 'description' => 'Points refunded from cancelled reward redemption.',
                 'created_at' => now(),
             ]);
+
+            app(AuditLogger::class)->record(
+                'reward_redemption.cancelled',
+                'Reward redemption cancelled and points refunded.',
+                $redemption,
+                [
+                    'points_refunded' => $redemption->points_used,
+                ],
+            );
         });
 
         return redirect()

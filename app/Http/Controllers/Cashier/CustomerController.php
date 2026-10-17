@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers\Cashier;
 
+use App\Services\AuditLogger;
+use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\Controller;
 use App\Models\Customer;
 use Illuminate\Http\Request;
@@ -55,9 +57,32 @@ class CustomerController extends Controller
      */
     public function toggleStatus(Customer $customer)
     {
-        $customer->update([
-            'is_active' => !$customer->is_active,
-        ]);
+        $previousStatus = $customer->is_active ? 'active' : 'inactive';
+        $newIsActive = ! $customer->is_active;
+
+        DB::transaction(function () use (
+            $customer,
+            $previousStatus,
+            $newIsActive,
+        ): void {
+            $customer->update([
+                'is_active' => $newIsActive,
+            ]);
+
+            app(AuditLogger::class)->record(
+                $newIsActive
+                    ? 'customer.activated'
+                    : 'customer.deactivated',
+                $newIsActive
+                    ? 'Customer activated.'
+                    : 'Customer deactivated.',
+                $customer,
+                [
+                    'previous_status' => $previousStatus,
+                    'new_status' => $newIsActive ? 'active' : 'inactive',
+                ],
+            );
+        });
 
         return redirect()
             ->back()

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Cashier;
 
+use App\Services\AuditLogger;
 use App\Http\Controllers\Controller;
 use App\Models\Customer;
 use App\Models\CustomerQrCode;
@@ -252,6 +253,17 @@ class TransactionController extends Controller
                     'created_at' => now(),
                 ]);
             }
+
+            app(AuditLogger::class)->record(
+                'transaction.created',
+                'Purchase transaction completed.',
+                $transaction,
+                [
+                    'points_used' => $pointsUsed,
+                    'points_earned' => $pointsEarned,
+                    'receipt_number' => $transaction->receipt_number,
+                ],
+            );
 
             return [
                 'transaction' => $transaction,

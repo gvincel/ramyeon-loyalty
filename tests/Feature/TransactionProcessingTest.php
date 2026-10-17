@@ -56,6 +56,16 @@ class TransactionProcessingTest extends TestCase
 
         $this->assertNotNull($transaction);
 
+        $this->assertDatabaseHas('audit_logs', [
+            'actor_id' => $cashier->id,
+            'actor_name' => $cashier->name,
+            'actor_role' => 'cashier',
+            'action' => 'transaction.created',
+            'subject_type' => 'Transaction',
+            'subject_id' => $transaction->id,
+            'description' => 'Purchase transaction completed.',
+        ]);
+
         $this->assertDatabaseHas('transactions', [
             'id' => $transaction->id,
             'customer_id' => $customer->id,
@@ -582,6 +592,8 @@ class TransactionProcessingTest extends TestCase
         $this->assertDatabaseCount('transactions', 0);
 
         $this->assertDatabaseCount('point_transactions', 0);
+
+        $this->assertDatabaseCount('audit_logs', 0);
 
         $this->assertDatabaseHas('customers', [
             'id' => $customer->id,

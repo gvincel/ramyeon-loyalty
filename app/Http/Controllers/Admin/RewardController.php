@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Services\AuditLogger;
+use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\Controller;
 use App\Models\Reward;
 use Illuminate\Http\Request;
@@ -71,7 +73,19 @@ class RewardController extends Controller
             $validated['reward_value'] = null;
         }
 
-        Reward::create($validated);
+        DB::transaction(function () use ($validated): void {
+            $reward = Reward::create($validated);
+
+            app(AuditLogger::class)->record(
+                'reward.created',
+                'Reward created.',
+                $reward,
+                [
+                    'points_required' => $reward->points_required,
+                    'reward_type' => $reward->reward_type,
+                ],
+            );
+        });
 
         return redirect()
             ->route('admin.rewards.index')
@@ -132,7 +146,18 @@ class RewardController extends Controller
             $validated['reward_value'] = null;
         }
 
-        $reward->update($validated);
+        DB::transaction(function () use ($reward, $validated): void {
+            $reward->update($validated);
+
+            app(AuditLogger::class)->record(
+                'reward.updated',
+                'Reward configuration updated.',
+                $reward,
+                [
+                    'changed_fields' => implode(',', array_keys($validated)),
+                ],
+            );
+        });
 
         return redirect()
             ->route('admin.rewards.index')
@@ -141,9 +166,28 @@ class RewardController extends Controller
 
     public function toggleStatus(Reward $reward)
     {
-        $reward->update([
-            'is_active' => ! $reward->is_active,
-        ]);
+        $previousStatus = $reward->is_active ? 'active' : 'inactive';
+        $newIsActive = ! $reward->is_active;
+
+        DB::transaction(function () use (
+            $reward,
+            $previousStatus,
+            $newIsActive,
+        ): void {
+            $reward->update([
+                'is_active' => $newIsActive,
+            ]);
+
+            app(AuditLogger::class)->record(
+                $newIsActive ? 'reward.activated' : 'reward.deactivated',
+                $newIsActive ? 'Reward activated.' : 'Reward deactivated.',
+                $reward,
+                [
+                    'previous_status' => $previousStatus,
+                    'new_status' => $newIsActive ? 'active' : 'inactive',
+                ],
+            );
+        });
 
         return redirect()
             ->route('admin.rewards.index')

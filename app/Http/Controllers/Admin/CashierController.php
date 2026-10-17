@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Services\AuditLogger;
+use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use Illuminate\Http\Request;
@@ -51,14 +53,22 @@ class CashierController extends Controller
             ],
         ]);
 
-        User::create([
-            'name' => $validated['name'],
-            'username' => $validated['username'],
-            'email' => null,
-            'password' => Hash::make($validated['password']),
-            'role' => 'cashier',
-            'is_active' => true,
-        ]);
+        DB::transaction(function () use ($validated): void {
+            $cashier = User::create([
+                'name' => $validated['name'],
+                'username' => $validated['username'],
+                'email' => null,
+                'password' => Hash::make($validated['password']),
+                'role' => 'cashier',
+                'is_active' => true,
+            ]);
+
+            app(AuditLogger::class)->record(
+                'cashier.created',
+                'Cashier account created.',
+                $cashier,
+            );
+        });
 
         return back()->with('success', 'Cashier account created successfully.');
     }
@@ -83,10 +93,21 @@ class CashierController extends Controller
             ],
         ]);
 
-        $cashier->update([
-            'name' => $validated['name'],
-            'username' => $validated['username'],
-        ]);
+        DB::transaction(function () use ($cashier, $validated): void {
+            $cashier->update([
+                'name' => $validated['name'],
+                'username' => $validated['username'],
+            ]);
+
+            app(AuditLogger::class)->record(
+                'cashier.updated',
+                'Cashier account details updated.',
+                $cashier,
+                [
+                    'changed_fields' => 'name,username',
+                ],
+            );
+        });
 
         return back()->with('success', 'Cashier account updated successfully.');
     }
@@ -100,11 +121,32 @@ class CashierController extends Controller
             abort(404);
         }
 
-        $cashier->update([
-            'is_active' => !$cashier->is_active,
-        ]);
+        $previousStatus = $cashier->is_active ? 'active' : 'inactive';
+        $newIsActive = ! $cashier->is_active;
 
-        $status = $cashier->is_active ? 'activated' : 'deactivated';
+        DB::transaction(function () use (
+            $cashier,
+            $previousStatus,
+            $newIsActive,
+        ): void {
+            $cashier->update([
+                'is_active' => $newIsActive,
+            ]);
+
+            app(AuditLogger::class)->record(
+                $newIsActive ? 'cashier.activated' : 'cashier.deactivated',
+                $newIsActive
+                    ? 'Cashier account activated.'
+                    : 'Cashier account deactivated.',
+                $cashier,
+                [
+                    'previous_status' => $previousStatus,
+                    'new_status' => $newIsActive ? 'active' : 'inactive',
+                ],
+            );
+        });
+
+        $status = $newIsActive ? 'activated' : 'deactivated';
 
         return back()->with(
             'success',
