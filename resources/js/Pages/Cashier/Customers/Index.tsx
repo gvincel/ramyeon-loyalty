@@ -2,6 +2,7 @@ import { Head, Link, router, usePage } from '@inertiajs/react';
 import { FormEvent, useState } from 'react';
 import CashierLayout from '@/Layouts/CashierLayout';
 import AdminPageHeader from '@/Components/AdminPageHeader';
+import AdminModal from '@/Components/AdminModal';
 import StatusBadge from '@/Components/StatusBadge';
 import FlashMessage from '@/Components/FlashMessage';
 import { PageProps } from '@/types';
@@ -38,6 +39,11 @@ export default function Index({
     const { flash } = usePage<PageProps>().props;
     const [search, setSearch] = useState(filters.search ?? '');
     const [copiedCustomerId, setCopiedCustomerId] = useState<number | null>(null);
+
+    const [customerToDelete, setCustomerToDelete] =
+        useState<Customer | null>(null);
+    const [isDeletingCustomer, setIsDeletingCustomer] = useState(false);
+    const [deleteAcknowledged, setDeleteAcknowledged] = useState(false);
 
     const submitSearch = (event: FormEvent) => {
         event.preventDefault();
@@ -77,6 +83,32 @@ export default function Index({
             },
         );
     };
+
+    const deleteCustomer = (customer: Customer) => {
+        setDeleteAcknowledged(false);
+        setCustomerToDelete(customer);
+    };
+
+    const confirmDeleteCustomer = () => {
+        if (
+            !customerToDelete ||
+            !deleteAcknowledged ||
+            isDeletingCustomer
+        ) {
+            return;
+        }
+
+        router.delete(route('cashier.customers.destroy', customerToDelete.id), {
+            preserveScroll: true,
+            onStart: () => setIsDeletingCustomer(true),
+            onSuccess: () => {
+                setCustomerToDelete(null);
+                setDeleteAcknowledged(false);
+            },
+            onFinish: () => setIsDeletingCustomer(false),
+        });
+    };
+
 
     const handleCopyCustomerCode = async (
         customerId: number,
@@ -364,6 +396,15 @@ export default function Index({
                                                         >
                                                             {customer.is_active ? 'Deactivate' : 'Activate'}
                                                         </button>
+
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => deleteCustomer(customer)}
+                                                            className="ml-3 text-sm font-semibold text-red-700 transition-colors hover:text-red-800 focus-visible:outline-none focus-visible:underline"
+                                                            aria-label={`Permanently delete ${customer.first_name} ${customer.last_name}`}
+                                                        >
+                                                            Delete
+                                                        </button>
                                                     </div>
                                                 </td>
                                             </tr>
@@ -483,6 +524,107 @@ export default function Index({
                     </div>
                 </div>
             </div>
+            {customerToDelete && (
+                <AdminModal
+                    title="Permanently delete customer?"
+                    description="Review the consequences before confirming."
+                    onClose={() => {
+                        if (!isDeletingCustomer) {
+                            setCustomerToDelete(null);
+                            setDeleteAcknowledged(false);
+                        }
+                    }}
+                    maxWidthClass="max-w-lg"
+                    titleId="cashier-delete-customer-modal-title"
+                    footer={
+                        <>
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    setCustomerToDelete(null);
+                                    setDeleteAcknowledged(false);
+                                }}
+                                disabled={isDeletingCustomer}
+                                className="rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm font-semibold text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+                            >
+                                Cancel
+                            </button>
+
+                            <button
+                                type="button"
+                                onClick={confirmDeleteCustomer}
+                                disabled={!deleteAcknowledged || isDeletingCustomer}
+                                className="rounded-lg bg-red-700 px-4 py-2.5 text-sm font-semibold text-white hover:bg-red-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                            >
+                                {isDeletingCustomer
+                                    ? 'Deleting...'
+                                    : 'Delete customer permanently'}
+                            </button>
+                        </>
+                    }
+                >
+                    <div className="space-y-4 p-6">
+                        <p className="text-sm text-gray-700">
+                            You are about to permanently delete{' '}
+                            <strong>
+                                {customerToDelete.first_name}{' '}
+                                {customerToDelete.last_name}
+                            </strong>
+                            's account and associated records:
+                        </p>
+
+                        <ul className="list-disc space-y-1 pl-5 text-sm text-gray-700">
+                            <li>Customer profile</li>
+                            <li>Purchase transactions and history</li>
+                            <li>Point transaction history</li>
+                            <li>Reward redemption history</li>
+                            <li>Customer QR code</li>
+                        </ul>
+
+                        <p className="text-sm text-gray-700">
+                            Feedback submissions will be retained, but their
+                            association with this customer will be removed.
+                        </p>
+
+                        <div
+                            role="alert"
+                            className="rounded-lg border border-red-200 bg-red-50 p-4"
+                        >
+                            <p className="text-sm font-bold text-red-800">
+                                Warning: This action cannot be undone.
+                            </p>
+                            <p className="mt-1 text-sm text-red-800">
+                                Historical monthly and yearly reports and exports
+                                may change because this customer's past activity
+                                will be removed.
+                            </p>
+                        </div>
+
+                        <div className="flex items-start gap-3">
+                            <input
+                                id="cashier-confirm-customer-deletion"
+                                type="checkbox"
+                                checked={deleteAcknowledged}
+                                onChange={(event) =>
+                                    setDeleteAcknowledged(event.target.checked)
+                                }
+                                disabled={isDeletingCustomer}
+                                className="mt-1 h-4 w-4 rounded border-gray-300 text-red-600 focus:ring-red-500"
+                            />
+
+                            <label
+                                htmlFor="cashier-confirm-customer-deletion"
+                                className="text-sm text-gray-700"
+                            >
+                                I understand that this permanently deletes the
+                                customer's associated records and may affect
+                                historical reports.
+                            </label>
+                        </div>
+                    </div>
+                </AdminModal>
+            )}
+
         </CashierLayout>
     );
 }

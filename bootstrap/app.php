@@ -1,5 +1,6 @@
 <?php
 
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -32,6 +33,31 @@ return Application::configure(basePath: dirname(__DIR__))
             }
 
             return route('login');
+        });
+
+        $middleware->redirectUsersTo(function (Request $request) {
+            // Customers should return to their own dashboard.
+            if (
+                $request->is('loyalty/*') &&
+                Auth::guard('customer')->check()
+            ) {
+                return route('customer.dashboard');
+            }
+
+            // Staff users should return to the correct role dashboard.
+            $user = $request->user();
+
+            if ($user?->role === 'admin') {
+                return route('admin.dashboard');
+            }
+
+            if ($user?->role === 'cashier') {
+                return route('cashier.dashboard');
+            }
+
+            // Never fall back to "/" or "/login" here, because that
+            // could recreate the redirect loop for an unexpected role.
+            abort(403);
         });
 
         /*
