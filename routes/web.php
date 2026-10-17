@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Admin\AuditLogController;
 use App\Http\Controllers\Admin\CashierController;
 use App\Http\Controllers\Admin\CustomerController;
 use App\Http\Controllers\Admin\RewardController;
@@ -161,6 +162,9 @@ Route::middleware(['auth', 'role:admin'])->group(function () {
 
     Route::post('/admin/backups', [BackupController::class, 'store'])
     ->name('admin.backups.store');
+
+    Route::get('/admin/audit-logs', [AuditLogController::class, 'index'])
+    ->name('admin.audit-logs.index');
 
 });
 

@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Services\AuditLogger;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Support\Facades\DB;
@@ -76,6 +77,12 @@ class Customer extends Authenticatable
 
             // Finally, delete the customer.
             $customer->delete();
+
+            app(AuditLogger::class)->record(
+                'customer.deleted',
+                'Customer and associated records deleted.',
+                $customer,
+            );
         });
     }
 }

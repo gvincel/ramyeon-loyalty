@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Services\AuditLogger;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\RedirectResponse;
 use Inertia\Inertia;
@@ -125,9 +126,22 @@ class BackupController extends Controller
                 );
             }
 
-            return response()
+            $fileSizeBytes = (int) $disk->size($relativePath);
+
+            $response = response()
                 ->download($disk->path($relativePath), $filename)
                 ->deleteFileAfterSend(true);
+
+            app(AuditLogger::class)->record(
+                'backup.created',
+                'Database backup file generated successfully.',
+                null,
+                [
+                    'file_size_bytes' => $fileSizeBytes,
+                ],
+            );
+
+            return $response;
         } catch (Throwable $exception) {
             if ($disk !== null) {
                 try {

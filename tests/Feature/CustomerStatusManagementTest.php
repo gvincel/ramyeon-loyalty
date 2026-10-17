@@ -32,11 +32,31 @@ class CustomerStatusManagementTest extends TestCase
             'is_active' => false,
         ]);
 
+        $this->assertDatabaseHas('audit_logs', [
+            'actor_id' => $admin->id,
+            'actor_role' => 'admin',
+            'action' => 'customer.deactivated',
+            'subject_type' => 'Customer',
+            'subject_id' => $customer->id,
+            'metadata->previous_status' => 'active',
+            'metadata->new_status' => 'inactive',
+        ]);
+
         $this->patch(route('admin.customers.toggle-status', $customer));
 
         $this->assertDatabaseHas('customers', [
             'id' => $customer->id,
             'is_active' => true,
+        ]);
+
+        $this->assertDatabaseHas('audit_logs', [
+            'actor_id' => $admin->id,
+            'actor_role' => 'admin',
+            'action' => 'customer.activated',
+            'subject_type' => 'Customer',
+            'subject_id' => $customer->id,
+            'metadata->previous_status' => 'inactive',
+            'metadata->new_status' => 'active',
         ]);
     }
 
@@ -51,6 +71,7 @@ class CustomerStatusManagementTest extends TestCase
             'is_active' => true,
         ]);
 
+        // Deactivate the customer.
         $this->actingAs($cashier)
             ->patch(route('cashier.customers.toggle-status', $customer));
 
@@ -59,11 +80,34 @@ class CustomerStatusManagementTest extends TestCase
             'is_active' => false,
         ]);
 
+        // Verify the deactivation audit entry.
+        $this->assertDatabaseHas('audit_logs', [
+            'actor_id' => $cashier->id,
+            'actor_role' => 'cashier',
+            'action' => 'customer.deactivated',
+            'subject_type' => 'Customer',
+            'subject_id' => $customer->id,
+            'metadata->previous_status' => 'active',
+            'metadata->new_status' => 'inactive',
+        ]);
+
+        // Activate the customer again.
         $this->patch(route('cashier.customers.toggle-status', $customer));
 
         $this->assertDatabaseHas('customers', [
             'id' => $customer->id,
             'is_active' => true,
+        ]);
+
+        // Verify the activation audit entry.
+        $this->assertDatabaseHas('audit_logs', [
+            'actor_id' => $cashier->id,
+            'actor_role' => 'cashier',
+            'action' => 'customer.activated',
+            'subject_type' => 'Customer',
+            'subject_id' => $customer->id,
+            'metadata->previous_status' => 'inactive',
+            'metadata->new_status' => 'active',
         ]);
     }
 
@@ -131,6 +175,16 @@ class CustomerStatusManagementTest extends TestCase
             ->assertSessionHas('success');
 
         $this->assertCustomerRecordsDeleted($customer, $records);
+
+        $this->assertDatabaseHas('audit_logs', [
+            'actor_id' => $admin->id,
+            'actor_name' => $admin->name,
+            'actor_role' => 'admin',
+            'action' => 'customer.deleted',
+            'subject_type' => 'Customer',
+            'subject_id' => $customer->id,
+            'description' => 'Customer and associated records deleted.',
+        ]);
     }
 
     public function test_cashier_can_delete_customer_and_related_records(): void
@@ -150,6 +204,16 @@ class CustomerStatusManagementTest extends TestCase
             ->assertSessionHas('success');
 
         $this->assertCustomerRecordsDeleted($customer, $records);
+
+        $this->assertDatabaseHas('audit_logs', [
+            'actor_id' => $cashier->id,
+            'actor_name' => $cashier->name,
+            'actor_role' => 'cashier',
+            'action' => 'customer.deleted',
+            'subject_type' => 'Customer',
+            'subject_id' => $customer->id,
+            'description' => 'Customer and associated records deleted.',
+        ]);
     }
 
     public function test_cashier_cannot_use_admin_customer_delete_route(): void
