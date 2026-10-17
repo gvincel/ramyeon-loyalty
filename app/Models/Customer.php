@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
+use Illuminate\Support\Facades\DB;
 
 class Customer extends Authenticatable
 {
@@ -52,5 +53,29 @@ class Customer extends Authenticatable
     public function pointTransactions()
     {
         return $this->hasMany(PointTransaction::class);
+    }
+
+    /**
+     * Permanently delete a customer and their associated records.
+     *
+     * Feedback is retained and anonymized by the existing foreign key.
+     */
+    public function deleteWithRelatedData(): void
+    {
+        DB::transaction(function (): void {
+            $customer = static::query()
+                ->whereKey($this->getKey())
+                ->lockForUpdate()
+                ->firstOrFail();
+
+            // Delete dependent records before their parent records.
+            $customer->pointTransactions()->delete();
+            $customer->rewardRedemptions()->delete();
+            $customer->transactions()->delete();
+            $customer->qrCode()->delete();
+
+            // Finally, delete the customer.
+            $customer->delete();
+        });
     }
 }

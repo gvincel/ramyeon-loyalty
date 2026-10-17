@@ -131,6 +131,10 @@ Route::middleware(['auth', 'role:admin'])->group(function () {
     Route::patch('/admin/customers/{customer}/status', [CustomerController::class, 'toggleStatus'])
     ->name('admin.customers.toggle-status');
 
+    Route::delete('/admin/customers/{customer}', [CustomerController::class, 'destroy'])
+    ->whereNumber('customer')
+    ->name('admin.customers.destroy');
+
     Route::get('/admin/rewards', [RewardController::class, 'index'])
     ->name('admin.rewards.index');
 
@@ -190,6 +194,11 @@ Route::middleware(['auth', 'role:cashier'])->group(function () {
         CashierCustomerController::class,
         'toggleStatus',
     ])->whereNumber('customer')->name('cashier.customers.toggle-status');
+
+    Route::delete('/cashier/customers/{customer}', [
+        CashierCustomerController::class,
+        'destroy',
+    ])->whereNumber('customer')->name('cashier.customers.destroy');
 
     Route::get('/cashier/register-qr', [
         RegisterQrController::class,

@@ -68,4 +68,19 @@ class CustomerController extends Controller
                     : 'Customer deactivated successfully.'
             );
     }
+
+    /**
+     * Permanently delete a customer and their associated records.
+     */
+    public function destroy(Customer $customer)
+    {
+        $customer->deleteWithRelatedData();
+
+        return redirect()
+            ->route('cashier.customers.index')
+            ->with(
+                'success',
+                'Customer and associated records deleted successfully. Historical reports may be affected.'
+            );
+    }
 }
