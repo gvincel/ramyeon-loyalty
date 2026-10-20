@@ -48,17 +48,32 @@ interface Props {
     filters: Filters;
 }
 
-const formatDate = (value: string | null | undefined) => {
-    if (!value) return '—';
+const parseDate = (value: string | null | undefined) => {
+    if (!value) return null;
 
     const date = new Date(value);
 
-    if (Number.isNaN(date.getTime())) return '—';
+    return Number.isNaN(date.getTime()) ? null : date;
+};
 
-    return date.toLocaleString('en-PH', {
+const formatDay = (value: string | null | undefined) => {
+    const date = parseDate(value);
+
+    if (!date) return '—';
+
+    return date.toLocaleDateString('en-PH', {
         year: 'numeric',
         month: 'short',
         day: 'numeric',
+    });
+};
+
+const formatTime = (value: string | null | undefined) => {
+    const date = parseDate(value);
+
+    if (!date) return '';
+
+    return date.toLocaleTimeString('en-PH', {
         hour: 'numeric',
         minute: '2-digit',
     });
@@ -75,6 +90,9 @@ const formatCurrency = (value: string | number) => {
     })}`;
 };
 
+const initialsOf = (customer: Customer) =>
+    `${customer.first_name.charAt(0)}${customer.last_name.charAt(0)}`.toUpperCase();
+
 export default function Index({ transactions, filters }: Props) {
     const { flash } = usePage<PageProps>().props;
 
@@ -84,6 +102,16 @@ export default function Index({ transactions, filters }: Props) {
 
     const hasActiveFilters =
         search !== '' || dateFrom !== '' || dateTo !== '';
+
+    const pageSales = transactions.data.reduce(
+        (sum, transaction) => sum + Number(transaction.purchase_amount),
+        0,
+    );
+
+    const pagePoints = transactions.data.reduce(
+        (sum, transaction) => sum + Number(transaction.points_earned),
+        0,
+    );
 
     const applyFilters = (event: FormEvent) => {
         event.preventDefault();
@@ -117,27 +145,20 @@ export default function Index({ transactions, filters }: Props) {
         );
     };
 
+    const fieldClass =
+        'w-full rounded-xl border border-[#E5E7EB] bg-white px-3.5 py-2.5 text-sm text-[#111827] outline-none transition placeholder:text-[#64748B] hover:border-[#64748B]/50 focus:border-[#DC2626] focus:ring-2 focus:ring-[#DC2626]/15';
+
     return (
         <CashierLayout>
             <Head title="Transaction History" />
 
-            <div className="min-h-screen bg-gray-50 p-4 sm:p-6 lg:p-8">
+            <div className="min-h-screen bg-[#F8FAFC] p-4 sm:p-6 lg:p-8">
                 <div className="mx-auto max-w-7xl">
                     {/* Header */}
                     <AdminPageHeader
                         eyebrow="Transactions"
                         title="Transaction History"
                         description="View purchase transactions processed by you."
-                        action={
-                            <div className="rounded-xl border border-gray-200 bg-white px-4 py-3 shadow-sm">
-                                <p className="text-[11px] font-medium uppercase tracking-wider text-gray-400">
-                                    Records
-                                </p>
-                                <p className="mt-1 text-sm font-semibold text-gray-800">
-                                    {transactions.total.toLocaleString('en-PH')}
-                                </p>
-                            </div>
-                        }
                     />
 
                     <FlashMessage
@@ -145,12 +166,114 @@ export default function Index({ transactions, filters }: Props) {
                         error={flash.error}
                     />
 
+                    {/* Summary */}
+                    <div className="mb-6 grid grid-cols-1 gap-4 md:grid-cols-3">
+                        <div className="flex h-full flex-col rounded-[20px] border border-[#E5E7EB] border-t-2 border-t-[#DC2626] bg-white p-6 shadow-sm">
+                            <div className="flex items-start justify-between gap-4">
+                                <div className="min-w-0">
+                                    <p className="text-sm font-medium text-[#64748B]">
+                                        Total transactions
+                                    </p>
+
+                                    <p className="mt-3 truncate text-3xl font-bold leading-none tracking-tight text-[#111827] tabular-nums">
+                                        {formatNumber(transactions.total)}
+                                    </p>
+                                </div>
+
+                                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#FEF2F2] text-[#DC2626]">
+                                    <span
+                                        className="material-symbols-outlined text-[22px]"
+                                        aria-hidden="true"
+                                    >
+                                        receipt_long
+                                    </span>
+                                </div>
+                            </div>
+
+                            <div className="mt-auto border-t border-[#E5E7EB] pt-4">
+                                <p className="mt-5 text-xs text-[#64748B]">
+                                    {hasActiveFilters
+                                        ? 'Matching your filters'
+                                        : 'All processed by you'}
+                                </p>
+                            </div>
+                        </div>
+
+                        <div className="flex h-full flex-col rounded-[20px] border border-[#E5E7EB] border-t-2 border-t-[#DC2626] bg-white p-6 shadow-sm">
+                            <div className="flex items-start justify-between gap-4">
+                                <div className="min-w-0">
+                                    <p className="text-sm font-medium text-[#64748B]">
+                                        Sales on this page
+                                    </p>
+
+                                    <p className="mt-3 truncate text-3xl font-bold leading-none tracking-tight text-[#111827] tabular-nums">
+                                        {formatCurrency(pageSales)}
+                                    </p>
+                                </div>
+
+                                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#FEF2F2] text-[#DC2626]">
+                                    <span
+                                        className="material-symbols-outlined text-[22px]"
+                                        aria-hidden="true"
+                                    >
+                                        payments
+                                    </span>
+                                </div>
+                            </div>
+
+                            <div className="mt-auto border-t border-[#E5E7EB] pt-4">
+                                <p className="mt-5 text-xs text-[#64748B]">
+                                    {transactions.data.length} transaction
+                                    {transactions.data.length !== 1 ? 's' : ''} shown
+                                </p>
+                            </div>
+                        </div>
+
+                        <div className="flex h-full flex-col rounded-[20px] border border-[#E5E7EB] border-t-2 border-t-[#DC2626] bg-white p-6 shadow-sm">
+                            <div className="flex items-start justify-between gap-4">
+                                <div className="min-w-0">
+                                    <p className="text-sm font-medium text-[#64748B]">
+                                        Points on this page
+                                    </p>
+
+                                    <p className="mt-3 truncate text-3xl font-bold leading-none tracking-tight text-[#111827] tabular-nums">
+                                        +{formatNumber(pagePoints)}
+                                    </p>
+                                </div>
+
+                                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#FEF2F2] text-[#DC2626]">
+                                    <span
+                                        className="material-symbols-outlined text-[22px]"
+                                        aria-hidden="true"
+                                    >
+                                        stars
+                                    </span>
+                                </div>
+                            </div>
+
+                            <div className="mt-auto border-t border-[#E5E7EB] pt-4">
+                                <p className="mt-5 text-xs text-[#64748B]">
+                                    Earned by customers
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
                     {/* Filters */}
-                    <div className="mb-6 overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm">
-                        <form onSubmit={applyFilters} className="p-4 sm:p-5">
-                            <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
-                                {/* Search */}
-                                <div className="relative w-full lg:flex-1">
+                    <form
+                        onSubmit={applyFilters}
+                        className="mb-6 rounded-[20px] border border-[#E5E7EB] bg-white p-4 shadow-sm sm:p-5"
+                    >
+                        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-[minmax(0,1fr)_11rem_11rem_auto] lg:items-end">
+                            <div className="sm:col-span-2 lg:col-span-1">
+                                <label
+                                    htmlFor="filter-search"
+                                    className="mb-1.5 block text-xs font-semibold text-[#111827]"
+                                >
+                                    Search
+                                </label>
+
+                                <div className="relative">
                                     <svg
                                         aria-hidden="true"
                                         viewBox="0 0 24 24"
@@ -159,7 +282,7 @@ export default function Index({ transactions, filters }: Props) {
                                         strokeWidth="1.8"
                                         strokeLinecap="round"
                                         strokeLinejoin="round"
-                                        className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400"
+                                        className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[#DC2626]"
                                     >
                                         <circle cx="11" cy="11" r="7" />
                                         <path d="M21 21l-4.3-4.3" />
@@ -173,262 +296,339 @@ export default function Index({ transactions, filters }: Props) {
                                             setSearch(e.target.value)
                                         }
                                         maxLength={100}
-                                        placeholder="Search customer, code, or receipt…"
-                                        aria-label="Search transactions"
-                                        className="w-full rounded-lg border border-gray-300 py-2.5 pl-10 pr-3 text-sm outline-none transition placeholder:text-gray-400 focus:border-red-500 focus:ring-2 focus:ring-red-100"
+                                        placeholder="Customer, code, or receipt…"
+                                        className={`${fieldClass} pl-10`}
                                     />
-                                </div>
-
-                                {/* Date range */}
-                                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:flex lg:items-center lg:gap-2">
-                                    <input
-                                        id="filter-date-from"
-                                        type="date"
-                                        value={dateFrom}
-                                        onChange={(e) =>
-                                            setDateFrom(e.target.value)
-                                        }
-                                        max={dateTo || undefined}
-                                        aria-label="From date"
-                                        className="w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm outline-none transition focus:border-red-500 focus:ring-2 focus:ring-red-100 lg:w-[9.5rem]"
-                                    />
-
-                                    <input
-                                        id="filter-date-to"
-                                        type="date"
-                                        value={dateTo}
-                                        onChange={(e) =>
-                                            setDateTo(e.target.value)
-                                        }
-                                        min={dateFrom || undefined}
-                                        aria-label="To date"
-                                        className="w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm outline-none transition focus:border-red-500 focus:ring-2 focus:ring-red-100 lg:w-[9.5rem]"
-                                    />
-                                </div>
-
-                                {/* Actions */}
-                                <div className="flex gap-2 lg:ml-auto">
-                                    <button
-                                        type="submit"
-                                        className="inline-flex min-h-[44px] flex-1 items-center justify-center rounded-lg bg-red-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 lg:flex-none"
-                                    >
-                                        Apply
-                                    </button>
-
-                                    {hasActiveFilters && (
-                                        <button
-                                            type="button"
-                                            onClick={clearAll}
-                                            className="inline-flex min-h-[44px] flex-1 items-center justify-center rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm font-semibold text-gray-700 transition-colors hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-300 focus:ring-offset-1 lg:flex-none"
-                                        >
-                                            Clear
-                                        </button>
-                                    )}
                                 </div>
                             </div>
-                        </form>
-                    </div>
 
-                    {/* Transactions Table */}
-                    <div className="overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm">
-                        <div className="border-b border-gray-100 px-6 py-5">
-                            <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
-                                <div>
-                                    <h2 className="text-lg font-bold tracking-tight text-gray-900">
-                                        Transactions
-                                    </h2>
+                            <div>
+                                <label
+                                    htmlFor="filter-date-from"
+                                    className="mb-1.5 block text-xs font-semibold text-[#111827]"
+                                >
+                                    From
+                                </label>
 
-                                    <p className="mt-1 text-sm text-gray-500">
-                                        Purchase transactions processed by you.
-                                    </p>
-                                </div>
+                                <input
+                                    id="filter-date-from"
+                                    type="date"
+                                    value={dateFrom}
+                                    onChange={(e) =>
+                                        setDateFrom(e.target.value)
+                                    }
+                                    max={dateTo || undefined}
+                                    className={fieldClass}
+                                />
+                            </div>
 
-                                <span className="hidden rounded-full bg-gray-50 px-3 py-1.5 text-xs font-semibold text-gray-600 ring-1 ring-gray-200 sm:inline-flex">
-                                    {transactions.total.toLocaleString('en-PH')}{' '}
-                                    record
-                                    {transactions.total !== 1 ? 's' : ''}
-                                </span>
+                            <div>
+                                <label
+                                    htmlFor="filter-date-to"
+                                    className="mb-1.5 block text-xs font-semibold text-[#111827]"
+                                >
+                                    To
+                                </label>
+
+                                <input
+                                    id="filter-date-to"
+                                    type="date"
+                                    value={dateTo}
+                                    onChange={(e) =>
+                                        setDateTo(e.target.value)
+                                    }
+                                    min={dateFrom || undefined}
+                                    className={fieldClass}
+                                />
+                            </div>
+
+                            <div className="flex gap-2 sm:col-span-2 lg:col-span-1">
+                                <button
+                                    type="submit"
+                                    className="inline-flex min-h-[44px] flex-1 items-center justify-center rounded-xl bg-[#DC2626] px-5 text-sm font-semibold text-white shadow-sm transition hover:bg-[#B91C1C] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#DC2626] focus-visible:ring-offset-2 lg:flex-none"
+                                >
+                                    Apply filters
+                                </button>
+
+                                {hasActiveFilters && (
+                                    <button
+                                        type="button"
+                                        onClick={clearAll}
+                                        className="inline-flex min-h-[44px] flex-1 items-center justify-center rounded-xl border border-[#E5E7EB] bg-white px-5 text-sm font-semibold text-[#111827] transition hover:bg-[#F8FAFC] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#DC2626] focus-visible:ring-offset-2 lg:flex-none"
+                                    >
+                                        Reset
+                                    </button>
+                                )}
                             </div>
                         </div>
+                    </form>
 
-                        <div className="overflow-x-auto">
-                            <table className="w-full min-w-[900px] text-left text-sm">
-                                <thead className="border-b border-gray-100 bg-gray-50/70">
-                                    <tr>
-                                        <th className="px-6 py-4 text-xs font-semibold uppercase tracking-wide text-gray-500">
-                                            Customer
-                                        </th>
+                    {/* Transactions */}
+                    <section className="overflow-hidden rounded-[20px] border border-[#E5E7EB] bg-white shadow-sm">
+                        <div className="flex flex-col gap-1 bg-[#B91C1C] px-6 py-5 sm:flex-row sm:items-center sm:justify-between">
+                            <div>
+                                <h2 className="text-lg font-bold tracking-tight text-white">
+                                    Transactions
+                                </h2>
 
-                                        <th className="px-6 py-4 text-xs font-semibold uppercase tracking-wide text-gray-500">
-                                            Receipt
-                                        </th>
+                                <p className="mt-1 text-sm text-[#FECACA]">
+                                    Purchase transactions processed by you.
+                                </p>
+                            </div>
 
-                                        <th className="px-6 py-4 text-xs font-semibold uppercase tracking-wide text-gray-500">
-                                            Purchase Amount
-                                        </th>
+                            {transactions.from !== null &&
+                                transactions.to !== null && (
+                                    <span className="text-xs font-medium text-[#FECACA]">
+                                        Showing {transactions.from}–
+                                        {transactions.to} of{' '}
+                                        {formatNumber(transactions.total)}
+                                    </span>
+                                )}
+                        </div>
 
-                                        <th className="px-6 py-4 text-xs font-semibold uppercase tracking-wide text-gray-500">
-                                            Points Earned
-                                        </th>
+                        {transactions.data.length === 0 ? (
+                            <div className="px-6 py-16 text-center">
+                                <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-[#FEF2F2] text-[#DC2626]">
+                                    <span
+                                        className="material-symbols-outlined text-[24px]"
+                                        aria-hidden="true"
+                                    >
+                                        receipt_long
+                                    </span>
+                                </div>
 
-                                        <th className="px-6 py-4 text-xs font-semibold uppercase tracking-wide text-gray-500">
-                                            Date
-                                        </th>
-                                    </tr>
-                                </thead>
+                                <p className="mt-4 font-semibold text-[#111827]">
+                                    {hasActiveFilters
+                                        ? 'No transactions match your filters'
+                                        : 'No transactions found'}
+                                </p>
 
-                                <tbody className="divide-y divide-gray-100">
-                                    {transactions.data.length > 0 ? (
-                                        transactions.data.map((transaction) => (
-                                            <tr
-                                                key={transaction.id}
-                                                className="transition-colors hover:bg-gray-50/70"
-                                            >
-                                                <td className="px-6 py-4">
-                                                    <div className="flex items-center gap-3">
-                                                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-red-50 text-sm font-bold text-red-600">
-                                                            {transaction.customer.first_name
-                                                                .charAt(0)
-                                                                .toUpperCase()}
-                                                            {transaction.customer.last_name
-                                                                .charAt(0)
-                                                                .toUpperCase()}
-                                                        </div>
+                                <p className="mt-1 text-sm text-[#64748B]">
+                                    {hasActiveFilters
+                                        ? 'Try adjusting or resetting your filters.'
+                                        : 'Transaction activity will appear here.'}
+                                </p>
 
-                                                        <div className="min-w-0">
-                                                            <p className="truncate font-semibold text-gray-900">
-                                                                {
-                                                                    transaction
-                                                                        .customer
-                                                                        .first_name
-                                                                }{' '}
-                                                                {
-                                                                    transaction
-                                                                        .customer
-                                                                        .last_name
-                                                                }
+                                {hasActiveFilters && (
+                                    <button
+                                        type="button"
+                                        onClick={clearAll}
+                                        className="mt-5 inline-flex min-h-[44px] items-center justify-center rounded-xl bg-[#DC2626] px-5 text-sm font-semibold text-white shadow-sm transition hover:bg-[#B91C1C] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#DC2626] focus-visible:ring-offset-2"
+                                    >
+                                        Reset filters
+                                    </button>
+                                )}
+                            </div>
+                        ) : (
+                            <>
+                                {/* Desktop table */}
+                                <div className="hidden overflow-x-auto md:block">
+                                    <table className="w-full text-left text-sm">
+                                        <thead className="bg-[#F8FAFC] text-xs font-semibold text-[#111827]">
+                                            <tr>
+                                                <th className="px-6 py-3.5">
+                                                    Customer
+                                                </th>
+                                                <th className="px-6 py-3.5">
+                                                    Receipt
+                                                </th>
+                                                <th className="px-6 py-3.5 text-right">
+                                                    Amount
+                                                </th>
+                                                <th className="px-6 py-3.5">
+                                                    Points
+                                                </th>
+                                                <th className="px-6 py-3.5">
+                                                    Date
+                                                </th>
+                                            </tr>
+                                        </thead>
+
+                                        <tbody className="divide-y divide-[#E5E7EB] border-t border-[#E5E7EB]">
+                                            {transactions.data.map(
+                                                (transaction) => (
+                                                    <tr
+                                                        key={transaction.id}
+                                                        className="transition-colors hover:bg-[#F8FAFC]"
+                                                    >
+                                                        <td className="px-6 py-4">
+                                                            <div className="flex items-center gap-3">
+                                                                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#FEF2F2] text-sm font-bold text-[#DC2626]">
+                                                                    {initialsOf(
+                                                                        transaction.customer,
+                                                                    )}
+                                                                </div>
+
+                                                                <div className="min-w-0">
+                                                                    <p className="truncate font-semibold text-[#111827]">
+                                                                        {
+                                                                            transaction
+                                                                                .customer
+                                                                                .first_name
+                                                                        }{' '}
+                                                                        {
+                                                                            transaction
+                                                                                .customer
+                                                                                .last_name
+                                                                        }
+                                                                    </p>
+
+                                                                    <p className="mt-0.5 max-w-[220px] truncate text-xs text-[#64748B]">
+                                                                        {
+                                                                            transaction
+                                                                                .customer
+                                                                                .customer_code
+                                                                        }
+                                                                    </p>
+                                                                </div>
+                                                            </div>
+                                                        </td>
+
+                                                        <td className="px-6 py-4">
+                                                            {transaction.receipt_number ? (
+                                                                <span className="inline-flex rounded-md bg-[#F8FAFC] px-2.5 py-1 text-xs font-medium text-[#111827] ring-1 ring-[#E5E7EB]">
+                                                                    {
+                                                                        transaction.receipt_number
+                                                                    }
+                                                                </span>
+                                                            ) : (
+                                                                <span className="text-[#64748B]/50">
+                                                                    —
+                                                                </span>
+                                                            )}
+                                                        </td>
+
+                                                        <td className="px-6 py-4 text-right text-sm font-bold text-[#111827] tabular-nums">
+                                                            {formatCurrency(
+                                                                transaction.purchase_amount,
+                                                            )}
+                                                        </td>
+
+                                                        <td className="px-6 py-4">
+                                                            <span className="inline-flex rounded-full bg-[#FEF3C7] px-2.5 py-1 text-xs font-semibold text-[#92400E]">
+                                                                +
+                                                                {formatNumber(
+                                                                    transaction.points_earned,
+                                                                )}{' '}
+                                                                pt
+                                                                {transaction.points_earned !==
+                                                                1
+                                                                    ? 's'
+                                                                    : ''}
+                                                            </span>
+                                                        </td>
+
+                                                        <td className="px-6 py-4">
+                                                            <p className="text-sm font-medium text-[#111827]">
+                                                                {formatDay(
+                                                                    transaction.created_at,
+                                                                )}
                                                             </p>
-
-                                                            <p className="mt-0.5 max-w-[220px] truncate text-xs text-gray-500">
-                                                                {
-                                                                    transaction
-                                                                        .customer
-                                                                        .customer_code
-                                                                }
+                                                            <p className="mt-0.5 text-xs text-[#64748B]">
+                                                                {formatTime(
+                                                                    transaction.created_at,
+                                                                )}
                                                             </p>
-                                                        </div>
+                                                        </td>
+                                                    </tr>
+                                                ),
+                                            )}
+                                        </tbody>
+                                    </table>
+                                </div>
+
+                                {/* Mobile cards */}
+                                <ul className="divide-y divide-[#E5E7EB] border-t border-[#E5E7EB] md:hidden">
+                                    {transactions.data.map((transaction) => (
+                                        <li key={transaction.id} className="p-4">
+                                            <div className="flex items-start justify-between gap-3">
+                                                <div className="flex min-w-0 items-center gap-3">
+                                                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#FEF2F2] text-sm font-bold text-[#DC2626]">
+                                                        {initialsOf(
+                                                            transaction.customer,
+                                                        )}
                                                     </div>
-                                                </td>
 
-                                                <td className="px-6 py-4">
-                                                    {transaction.receipt_number ? (
-                                                        <span className="inline-flex rounded-md bg-gray-50 px-2.5 py-1 font-medium text-gray-700 ring-1 ring-gray-200">
+                                                    <div className="min-w-0">
+                                                        <p className="truncate text-sm font-semibold text-[#111827]">
                                                             {
-                                                                transaction.receipt_number
+                                                                transaction
+                                                                    .customer
+                                                                    .first_name
+                                                            }{' '}
+                                                            {
+                                                                transaction
+                                                                    .customer
+                                                                    .last_name
                                                             }
-                                                        </span>
-                                                    ) : (
-                                                        <span className="text-sm text-gray-300">
-                                                            —
-                                                        </span>
-                                                    )}
-                                                </td>
+                                                        </p>
+                                                        <p className="truncate text-xs text-[#64748B]">
+                                                            {
+                                                                transaction
+                                                                    .customer
+                                                                    .customer_code
+                                                            }
+                                                        </p>
+                                                    </div>
+                                                </div>
 
-                                                <td className="px-6 py-4 text-sm font-semibold text-gray-900">
+                                                <p className="shrink-0 text-sm font-bold text-[#111827] tabular-nums">
                                                     {formatCurrency(
                                                         transaction.purchase_amount,
                                                     )}
-                                                </td>
+                                                </p>
+                                            </div>
 
-                                                <td className="px-6 py-4">
-                                                    <span className="inline-flex rounded-full bg-yellow-50 px-2.5 py-1 text-xs font-semibold text-yellow-700 ring-1 ring-yellow-100">
-                                                        +
-                                                        {formatNumber(
-                                                            transaction.points_earned,
-                                                        )}{' '}
-                                                        pt
-                                                        {transaction.points_earned !==
-                                                        1
-                                                            ? 's'
-                                                            : ''}
+                                            <div className="mt-3 flex flex-wrap items-center gap-2">
+                                                <span className="inline-flex rounded-full bg-[#FEF3C7] px-2.5 py-1 text-xs font-semibold text-[#92400E]">
+                                                    +
+                                                    {formatNumber(
+                                                        transaction.points_earned,
+                                                    )}{' '}
+                                                    pt
+                                                    {transaction.points_earned !==
+                                                    1
+                                                        ? 's'
+                                                        : ''}
+                                                </span>
+
+                                                {transaction.receipt_number && (
+                                                    <span className="inline-flex rounded-md bg-[#F8FAFC] px-2 py-1 text-xs font-medium text-[#111827] ring-1 ring-[#E5E7EB]">
+                                                        {
+                                                            transaction.receipt_number
+                                                        }
                                                     </span>
-                                                </td>
+                                                )}
 
-                                                <td className="px-6 py-4 text-sm text-gray-600">
-                                                    {formatDate(
+                                                <span className="ml-auto text-xs text-[#64748B]">
+                                                    {formatDay(
                                                         transaction.created_at,
                                                     )}
-                                                </td>
-                                            </tr>
-                                        ))
-                                    ) : (
-                                        <tr>
-                                            <td
-                                                colSpan={5}
-                                                className="px-6 py-16 text-center"
-                                            >
-                                                <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-gray-100 text-gray-400">
-                                                    <svg
-                                                        className="h-6 w-6"
-                                                        viewBox="0 0 24 24"
-                                                        fill="none"
-                                                        stroke="currentColor"
-                                                        strokeWidth="1.7"
-                                                        aria-hidden="true"
-                                                    >
-                                                        <path
-                                                            strokeLinecap="round"
-                                                            strokeLinejoin="round"
-                                                            d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2 2h12"
-                                                        />
-                                                        <circle
-                                                            cx="10"
-                                                            cy="19"
-                                                            r="1"
-                                                        />
-                                                        <circle
-                                                            cx="17"
-                                                            cy="19"
-                                                            r="1"
-                                                        />
-                                                    </svg>
-                                                </div>
-
-                                                <p className="mt-4 font-semibold text-gray-800">
-                                                    {hasActiveFilters
-                                                        ? 'No transactions match your filters'
-                                                        : 'No transactions found'}
-                                                </p>
-
-                                                <p className="mt-1 text-sm text-gray-500">
-                                                    {hasActiveFilters
-                                                        ? 'Try adjusting or clearing your filters.'
-                                                        : 'Transaction activity will appear here.'}
-                                                </p>
-                                            </td>
-                                        </tr>
-                                    )}
-                                </tbody>
-                            </table>
-                        </div>
+                                                    {formatTime(
+                                                        transaction.created_at,
+                                                    )
+                                                        ? `, ${formatTime(transaction.created_at)}`
+                                                        : ''}
+                                                </span>
+                                            </div>
+                                        </li>
+                                    ))}
+                                </ul>
+                            </>
+                        )}
 
                         {/* Pagination */}
                         {transactions.last_page > 1 && (
-                            <div className="flex flex-col gap-3 border-t border-gray-100 px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
-                                <p className="text-sm text-gray-500">
-                                    Showing{' '}
-                                    <span className="font-medium text-gray-700">
-                                        {transactions.from}
-                                    </span>{' '}
-                                    to{' '}
-                                    <span className="font-medium text-gray-700">
-                                        {transactions.to}
+                            <div className="flex flex-col gap-3 border-t border-[#E5E7EB] bg-[#F8FAFC] px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
+                                <p className="text-sm text-[#64748B]">
+                                    Page{' '}
+                                    <span className="font-semibold text-[#111827]">
+                                        {transactions.current_page}
                                     </span>{' '}
                                     of{' '}
-                                    <span className="font-medium text-gray-700">
-                                        {transactions.total}
-                                    </span>{' '}
-                                    transactions
+                                    <span className="font-semibold text-[#111827]">
+                                        {transactions.last_page}
+                                    </span>
                                 </p>
 
                                 <div className="flex flex-wrap items-center gap-1">
@@ -437,7 +637,7 @@ export default function Index({ transactions, filters }: Props) {
                                             return (
                                                 <span
                                                     key={index}
-                                                    className="rounded-md px-3 py-1.5 text-sm text-gray-300"
+                                                    className="rounded-lg px-3 py-1.5 text-sm text-[#64748B]/50"
                                                 >
                                                     <span
                                                         dangerouslySetInnerHTML={{
@@ -453,10 +653,10 @@ export default function Index({ transactions, filters }: Props) {
                                                 key={index}
                                                 href={link.url}
                                                 preserveScroll
-                                                className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
+                                                className={`rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
                                                     link.active
-                                                        ? 'bg-red-600 text-white'
-                                                        : 'text-gray-700 hover:bg-gray-100'
+                                                        ? 'bg-[#DC2626] text-white shadow-sm'
+                                                        : 'text-[#111827] hover:bg-white hover:text-[#B91C1C] hover:ring-1 hover:ring-[#E5E7EB]'
                                                 }`}
                                             >
                                                 <span
@@ -470,7 +670,7 @@ export default function Index({ transactions, filters }: Props) {
                                 </div>
                             </div>
                         )}
-                    </div>
+                    </section>
                 </div>
             </div>
         </CashierLayout>

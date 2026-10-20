@@ -25,9 +25,18 @@ interface Stats {
     todayRewardsRedeemed: number;
 }
 
+interface TopCustomer {
+    id: number;
+    first_name: string;
+    last_name: string;
+    customer_code: string;
+    points_balance: number;
+}
+
 interface Props {
     stats: Stats;
     recentTransactions: RecentTransaction[];
+    topCustomers?: TopCustomer[];
 }
 
 const formatCurrency = (value: string | number) =>
@@ -51,12 +60,16 @@ const formatDate = (value: string | null) => {
     });
 };
 
-export default function Dashboard({ stats, recentTransactions }: Props) {
+export default function Dashboard({
+    stats,
+    recentTransactions,
+    topCustomers = [],
+}: Props) {
     return (
         <CashierLayout>
             <Head title="Cashier Dashboard" />
 
-            <div className="min-h-screen bg-gray-50 p-4 sm:p-6 lg:p-8">
+            <div className="min-h-screen bg-[#F8FAFC] p-4 sm:p-6 lg:p-8">
                 <div className="mx-auto max-w-7xl">
                     {/* Dashboard Header */}
                     <AdminPageHeader
@@ -64,11 +77,11 @@ export default function Dashboard({ stats, recentTransactions }: Props) {
                         title="Cashier Dashboard"
                         description="Monitor today's activity and access the cashier tools."
                         action={
-                            <div className="rounded-xl border border-gray-200 bg-white px-4 py-3 shadow-sm">
-                                <p className="text-[11px] font-medium uppercase tracking-wider text-gray-400">
+                            <div className="rounded-xl border border-[#E5E7EB] bg-white px-4 py-3 shadow-sm">
+                                <p className="text-[11px] font-medium uppercase tracking-wider text-[#64748B]">
                                     Today
                                 </p>
-                                <p className="mt-1 text-sm font-semibold text-gray-800">
+                                <p className="mt-1 text-sm font-semibold text-[#111827]">
                                     {new Date().toLocaleDateString('en-PH', {
                                         month: 'long',
                                         day: 'numeric',
@@ -82,21 +95,19 @@ export default function Dashboard({ stats, recentTransactions }: Props) {
                     {/* KPI Cards */}
                     <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                         {/* Today's Transactions */}
-                        <div className="relative overflow-hidden rounded-2xl border border-gray-100 bg-white p-6 shadow-sm">
-                            <div className="absolute left-0 top-0 h-full w-1 bg-red-600" />
-
+                        <div className="rounded-[20px] border border-[#E5E7EB] border-t-2 border-t-[#DC2626] bg-white p-6 shadow-sm">
                             <div className="flex items-start justify-between">
                                 <div>
-                                    <p className="text-sm font-medium text-gray-500">
+                                    <p className="text-sm font-medium text-[#64748B]">
                                         Today&apos;s Transactions
                                     </p>
 
-                                    <p className="mt-3 text-3xl font-bold tracking-tight text-gray-900">
+                                    <p className="mt-3 text-3xl font-bold tracking-tight text-[#111827]">
                                         {formatNumber(stats.todayTransactions)}
                                     </p>
                                 </div>
 
-                                <div className="rounded-xl bg-red-50 p-3 text-red-600">
+                                <div className="rounded-xl bg-[#FEF2F2] p-3 text-[#DC2626]">
                                     <svg
                                         className="h-5 w-5"
                                         viewBox="0 0 24 24"
@@ -114,29 +125,27 @@ export default function Dashboard({ stats, recentTransactions }: Props) {
                                 </div>
                             </div>
 
-                            <div className="mt-5 border-t border-gray-100 pt-4">
-                                <span className="text-xs text-gray-500">
+                            <div className="mt-5 border-t border-[#E5E7EB] pt-4">
+                                <span className="text-xs text-[#64748B]">
                                     Purchases processed by you today
                                 </span>
                             </div>
                         </div>
 
                         {/* Today's Sales */}
-                        <div className="relative overflow-hidden rounded-2xl border border-red-100 bg-white p-6 shadow-sm">
-                            <div className="absolute left-0 top-0 h-full w-1 bg-red-600" />
-
+                        <div className="rounded-[20px] border border-[#E5E7EB] border-t-2 border-t-[#DC2626] bg-white p-6 shadow-sm">
                             <div className="flex items-start justify-between">
                                 <div>
-                                    <p className="text-sm font-medium text-gray-500">
+                                    <p className="text-sm font-medium text-[#64748B]">
                                         Today&apos;s Sales
                                     </p>
 
-                                    <p className="mt-3 text-3xl font-bold tracking-tight text-gray-900">
+                                    <p className="mt-3 text-3xl font-bold tracking-tight text-[#111827]">
                                         {formatCurrency(stats.todaySales)}
                                     </p>
                                 </div>
 
-                                <div className="rounded-xl bg-red-600 p-3 text-white">
+                                <div className="rounded-xl bg-[#FEF2F2] p-3 text-[#DC2626]">
                                     <svg
                                         className="h-5 w-5"
                                         viewBox="0 0 24 24"
@@ -165,27 +174,27 @@ export default function Dashboard({ stats, recentTransactions }: Props) {
                                 </div>
                             </div>
 
-                            <div className="mt-5 border-t border-gray-100 pt-4">
-                                <span className="text-xs text-gray-500">
+                            <div className="mt-5 border-t border-[#E5E7EB] pt-4">
+                                <span className="text-xs text-[#64748B]">
                                     Total amount paid today
                                 </span>
                             </div>
                         </div>
 
                         {/* Points Earned Today */}
-                        <div className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm">
+                        <div className="rounded-[20px] border border-[#E5E7EB] border-t-2 border-t-[#DC2626] bg-white p-6 shadow-sm">
                             <div className="flex items-start justify-between">
                                 <div>
-                                    <p className="text-sm font-medium text-gray-500">
+                                    <p className="text-sm font-medium text-[#64748B]">
                                         Points Earned Today
                                     </p>
 
-                                    <p className="mt-3 text-3xl font-bold tracking-tight text-gray-900">
+                                    <p className="mt-3 text-3xl font-bold tracking-tight text-[#111827]">
                                         {formatNumber(stats.todayPointsEarned)}
                                     </p>
                                 </div>
 
-                                <div className="rounded-xl bg-yellow-50 p-3 text-yellow-600">
+                                <div className="rounded-xl bg-[#FEF2F2] p-3 text-[#DC2626]">
                                     <svg
                                         className="h-5 w-5"
                                         viewBox="0 0 24 24"
@@ -203,29 +212,29 @@ export default function Dashboard({ stats, recentTransactions }: Props) {
                                 </div>
                             </div>
 
-                            <div className="mt-5 border-t border-gray-100 pt-4">
-                                <span className="text-xs text-gray-500">
+                            <div className="mt-5 border-t border-[#E5E7EB] pt-4">
+                                <span className="text-xs text-[#64748B]">
                                     Issued from today&apos;s purchases
                                 </span>
                             </div>
                         </div>
 
                         {/* Rewards Redeemed */}
-                        <div className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm">
+                        <div className="rounded-[20px] border border-[#E5E7EB] border-t-2 border-t-[#DC2626] bg-white p-6 shadow-sm">
                             <div className="flex items-start justify-between">
                                 <div>
-                                    <p className="text-sm font-medium text-gray-500">
+                                    <p className="text-sm font-medium text-[#64748B]">
                                         Rewards Redeemed
                                     </p>
 
-                                    <p className="mt-3 text-3xl font-bold tracking-tight text-gray-900">
+                                    <p className="mt-3 text-3xl font-bold tracking-tight text-[#111827]">
                                         {formatNumber(
                                             stats.todayRewardsRedeemed,
                                         )}
                                     </p>
                                 </div>
 
-                                <div className="rounded-xl bg-yellow-50 p-3 text-yellow-600">
+                                <div className="rounded-xl bg-[#FEF2F2] p-3 text-[#DC2626]">
                                     <svg
                                         className="h-5 w-5"
                                         viewBox="0 0 24 24"
@@ -243,8 +252,8 @@ export default function Dashboard({ stats, recentTransactions }: Props) {
                                 </div>
                             </div>
 
-                            <div className="mt-5 border-t border-gray-100 pt-4">
-                                <span className="text-xs text-gray-500">
+                            <div className="mt-5 border-t border-[#E5E7EB] pt-4">
+                                <span className="text-xs text-[#64748B]">
                                     Completed redemptions today
                                 </span>
                             </div>
@@ -255,9 +264,9 @@ export default function Dashboard({ stats, recentTransactions }: Props) {
                     <div className="mt-6 grid gap-4 sm:grid-cols-2">
                         <Link
                             href={route('cashier.qr-scanner')}
-                            className="group flex items-center gap-4 rounded-2xl border border-gray-100 bg-white p-6 shadow-sm transition-[border-color,box-shadow] hover:border-red-100 hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2"
+                            className="group flex items-center gap-4 rounded-[20px] border border-[#E5E7EB] bg-white p-6 shadow-sm transition-[border-color,box-shadow] hover:border-[#DC2626] hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-[#DC2626] focus-visible:ring-offset-2"
                         >
-                            <div className="rounded-xl bg-red-50 p-3 text-red-600">
+                            <div className="rounded-xl bg-[#FEF2F2] p-3 text-[#DC2626]">
                                 <svg
                                     className="h-5 w-5"
                                     viewBox="0 0 24 24"
@@ -275,11 +284,11 @@ export default function Dashboard({ stats, recentTransactions }: Props) {
                             </div>
 
                             <div className="min-w-0">
-                                <p className="text-sm font-semibold text-gray-900">
+                                <p className="text-sm font-semibold text-[#111827]">
                                     Scan Customer QR
                                 </p>
 
-                                <p className="mt-1 text-xs text-gray-500">
+                                <p className="mt-1 text-xs text-[#64748B]">
                                     Scan a QR code or enter a customer code to
                                     start a transaction.
                                 </p>
@@ -288,9 +297,9 @@ export default function Dashboard({ stats, recentTransactions }: Props) {
 
                         <Link
                             href={route('cashier.transactions.index')}
-                            className="group flex items-center gap-4 rounded-2xl border border-gray-100 bg-white p-6 shadow-sm transition-[border-color,box-shadow] hover:border-red-100 hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2"
+                            className="group flex items-center gap-4 rounded-[20px] border border-[#E5E7EB] bg-white p-6 shadow-sm transition-[border-color,box-shadow] hover:border-[#DC2626] hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-[#DC2626] focus-visible:ring-offset-2"
                         >
-                            <div className="rounded-xl bg-red-50 p-3 text-red-600">
+                            <div className="rounded-xl bg-[#FEF2F2] p-3 text-[#DC2626]">
                                 <svg
                                     className="h-5 w-5"
                                     viewBox="0 0 24 24"
@@ -308,11 +317,11 @@ export default function Dashboard({ stats, recentTransactions }: Props) {
                             </div>
 
                             <div className="min-w-0">
-                                <p className="text-sm font-semibold text-gray-900">
+                                <p className="text-sm font-semibold text-[#111827]">
                                     View Transactions
                                 </p>
 
-                                <p className="mt-1 text-xs text-gray-500">
+                                <p className="mt-1 text-xs text-[#64748B]">
                                     Browse and search your recent transaction
                                     history.
                                 </p>
@@ -320,25 +329,26 @@ export default function Dashboard({ stats, recentTransactions }: Props) {
                         </Link>
                     </div>
 
+                    <div className="mt-6 grid gap-4 lg:grid-cols-3">
                     {/* Recent Transactions */}
-                    <div className="mt-6 overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm">
-                        <div className="flex items-start justify-between gap-4 border-b border-gray-100 px-6 py-5">
+                    <div className="overflow-hidden rounded-[20px] border border-[#E5E7EB] bg-[#FEF2F2] shadow-sm lg:col-span-2">
+                        <div className="flex items-start justify-between gap-4 bg-[#B91C1C] px-6 py-5">
                             <div>
-                                <h2 className="text-lg font-bold tracking-tight text-gray-900">
+                                <h2 className="text-lg font-bold tracking-tight text-white">
                                     Recent Transactions
                                 </h2>
 
-                                <p className="mt-1 text-sm text-gray-500">
+                                <p className="mt-1 text-sm text-[#FECACA]">
                                     Latest purchases processed by you.
                                 </p>
                             </div>
 
-                            <div className="hidden shrink-0 rounded-full bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-700 sm:block">
+                            <div className="hidden shrink-0 rounded-full bg-white px-3 py-1.5 text-xs font-semibold text-[#B91C1C] sm:block">
                                 {recentTransactions.length} latest
                             </div>
                         </div>
 
-                        <div className="divide-y divide-gray-100">
+                        <div className="divide-y divide-[#FEE2E2]">
                             {recentTransactions.length > 0 ? (
                                 recentTransactions.map((transaction) => {
                                     const initials = transaction.customer
@@ -348,20 +358,20 @@ export default function Dashboard({ stats, recentTransactions }: Props) {
                                     return (
                                         <div
                                             key={transaction.id}
-                                            className="flex items-center gap-4 px-6 py-4 transition-colors hover:bg-gray-50"
+                                            className="flex items-center gap-4 px-6 py-4 transition-colors hover:bg-white"
                                         >
-                                            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-red-50 text-sm font-bold text-red-600">
+                                            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white text-sm font-bold text-[#DC2626]">
                                                 {initials}
                                             </div>
 
                                             <div className="min-w-0 flex-1">
-                                                <p className="truncate text-sm font-semibold text-gray-900">
+                                                <p className="truncate text-sm font-semibold text-[#111827]">
                                                     {transaction.customer
                                                         ? `${transaction.customer.first_name} ${transaction.customer.last_name}`
                                                         : 'Walk-in customer'}
                                                 </p>
 
-                                                <p className="mt-0.5 truncate text-xs text-gray-500">
+                                                <p className="mt-0.5 truncate text-xs text-[#64748B]">
                                                     {transaction.customer
                                                         ?.customer_code ?? '—'}
                                                     {' · '}
@@ -372,13 +382,13 @@ export default function Dashboard({ stats, recentTransactions }: Props) {
                                             </div>
 
                                             <div className="shrink-0 text-right">
-                                                <p className="text-sm font-bold text-gray-900">
+                                                <p className="text-sm font-bold text-[#111827]">
                                                     {formatCurrency(
                                                         transaction.purchase_amount,
                                                     )}
                                                 </p>
 
-                                                <span className="mt-1 inline-flex rounded-full bg-red-50 px-2 py-0.5 text-xs font-semibold text-red-700">
+                                                <span className="mt-1 inline-flex rounded-full bg-[#FEF3C7] px-2 py-0.5 text-xs font-semibold text-[#92400E]">
                                                     +
                                                     {
                                                         transaction.points_earned
@@ -391,7 +401,7 @@ export default function Dashboard({ stats, recentTransactions }: Props) {
                                 })
                             ) : (
                                 <div className="px-6 py-14 text-center">
-                                    <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-gray-100 text-gray-400">
+                                    <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-white text-[#64748B]">
                                         <svg
                                             className="h-6 w-6"
                                             viewBox="0 0 24 24"
@@ -410,17 +420,80 @@ export default function Dashboard({ stats, recentTransactions }: Props) {
                                         </svg>
                                     </div>
 
-                                    <p className="mt-4 text-sm font-semibold text-gray-700">
+                                    <p className="mt-4 text-sm font-semibold text-[#111827]">
                                         No transactions yet.
                                     </p>
 
-                                    <p className="mt-1 text-xs text-gray-500">
+                                    <p className="mt-1 text-xs text-[#64748B]">
                                         Transactions you process will appear
                                         here.
                                     </p>
                                 </div>
                             )}
                         </div>
+                    </div>
+
+                    {/* Top 3 Loyal Customers */}
+                    <div className="overflow-hidden rounded-[20px] border border-[#E5E7EB] bg-[#FEF2F2] shadow-sm">
+                        <div className="bg-[#B91C1C] px-6 py-5">
+                            <h2 className="text-lg font-bold tracking-tight text-white">
+                                Top 3 Loyal Customers
+                            </h2>
+
+                            <p className="mt-1 text-sm text-[#FECACA]">
+                                Customers with the most loyalty points.
+                            </p>
+                        </div>
+
+                        <div className="divide-y divide-[#FEE2E2]">
+                            {topCustomers.length > 0 ? (
+                                topCustomers.slice(0, 3).map((customer, index) => (
+                                    <div
+                                        key={customer.id}
+                                        className="flex items-center gap-4 px-6 py-4 transition-colors hover:bg-white"
+                                    >
+                                        <div
+                                            className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-sm font-bold ${
+                                                index === 0
+                                                    ? 'bg-[#FEF3C7] text-[#92400E]'
+                                                    : 'bg-white text-[#111827] ring-1 ring-[#E5E7EB]'
+                                            }`}
+                                            aria-label={`Rank ${index + 1}`}
+                                        >
+                                            {index + 1}
+                                        </div>
+
+                                        <div className="min-w-0 flex-1">
+                                            <p className="truncate text-sm font-semibold text-[#111827]">
+                                                {customer.first_name}{' '}
+                                                {customer.last_name}
+                                            </p>
+
+                                            <p className="mt-0.5 truncate text-xs text-[#64748B]">
+                                                {customer.customer_code}
+                                            </p>
+                                        </div>
+
+                                        <span className="shrink-0 rounded-full bg-[#FEF3C7] px-2 py-0.5 text-xs font-semibold text-[#92400E]">
+                                            {formatNumber(customer.points_balance)}{' '}
+                                            pts
+                                        </span>
+                                    </div>
+                                ))
+                            ) : (
+                                <div className="px-6 py-14 text-center">
+                                    <p className="text-sm font-semibold text-[#111827]">
+                                        No loyal customers yet.
+                                    </p>
+
+                                    <p className="mt-1 text-xs text-[#64748B]">
+                                        Top customers will appear here once
+                                        points are earned.
+                                    </p>
+                                </div>
+                            )}
+                        </div>
+                    </div>
                     </div>
                 </div>
             </div>

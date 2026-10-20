@@ -59,10 +59,10 @@ function InfoRow({
 }) {
     return (
         <div className="flex flex-1 items-center justify-between gap-4 px-6 py-4">
-            <dt className="shrink-0 text-sm font-medium text-gray-500">
+            <dt className="shrink-0 text-sm font-medium text-[#64748B]">
                 {label}
             </dt>
-            <dd className="min-w-0 break-words text-right text-sm font-semibold text-gray-900">
+            <dd className="min-w-0 break-words text-right text-sm font-semibold text-[#111827]">
                 {children}
             </dd>
         </div>
@@ -95,7 +95,7 @@ export default function Show({ customer }: Props) {
         <CashierLayout>
             <Head title={fullName} />
 
-            <div className="min-h-screen bg-gray-50 p-4 sm:p-6 lg:p-8">
+            <div className="min-h-screen bg-[#F8FAFC] p-4 sm:p-6 lg:p-8">
                 <div className="mx-auto max-w-7xl">
                     {/* Header */}
                     <AdminPageHeader
@@ -105,7 +105,7 @@ export default function Show({ customer }: Props) {
                         action={
                             <Link
                                 href={route('cashier.customers.index')}
-                                className="inline-flex shrink-0 items-center justify-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm font-semibold text-gray-700 shadow-sm transition-colors hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-300 focus:ring-offset-2"
+                                className="inline-flex shrink-0 items-center justify-center gap-2 rounded-lg border border-[#E5E7EB] bg-white px-4 py-2.5 text-sm font-semibold text-[#111827] shadow-sm transition-colors hover:bg-[#F8FAFC] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#DC2626] focus-visible:ring-offset-2"
                             >
                                 <svg
                                     className="h-4 w-4"
@@ -125,24 +125,22 @@ export default function Show({ customer }: Props) {
                     />
 
                     {/* Points highlight — full width */}
-                    <div className="relative overflow-hidden rounded-2xl border border-red-100 bg-white p-6 shadow-sm">
-                        <div className="absolute left-0 top-0 h-full w-1 bg-red-600" />
-
-                        <p className="text-sm font-medium text-gray-500">
+                    <div className="rounded-[20px] border border-[#E5E7EB] border-t-2 border-t-[#DC2626] bg-white p-6 shadow-sm">
+                        <p className="text-sm font-medium text-[#64748B]">
                             Current Points
                         </p>
 
                         <div className="mt-3 flex items-baseline gap-2">
-                            <p className="text-3xl font-bold tracking-tight text-gray-900">
+                            <p className="text-3xl font-bold tracking-tight text-[#111827]">
                                 {formatNumber(customer.points)}
                             </p>
 
-                            <span className="text-sm font-medium text-gray-500">
+                            <span className="text-sm font-medium text-[#64748B]">
                                 points
                             </span>
                         </div>
 
-                        <p className="mt-2 text-xs text-gray-500">
+                        <p className="mt-2 text-xs text-[#64748B]">
                             Available for redeeming rewards
                         </p>
                     </div>
@@ -150,21 +148,21 @@ export default function Show({ customer }: Props) {
                     {/* Information + QR — side by side, equal height */}
                     <div className="mt-6 grid gap-6 md:grid-cols-2">
                         {/* Customer Information */}
-                        <div className="flex flex-col overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm">
-                            <div className="border-b border-gray-100 px-6 py-5">
-                                <h2 className="text-lg font-bold tracking-tight text-gray-900">
+                        <div className="flex flex-col overflow-hidden rounded-[20px] border border-[#E5E7EB] bg-white shadow-sm">
+                            <div className="bg-[#B91C1C] px-6 py-5">
+                                <h2 className="text-lg font-bold tracking-tight text-white">
                                     Customer Information
                                 </h2>
 
-                                <p className="mt-1 text-sm text-gray-500">
+                                <p className="mt-1 text-sm text-[#FECACA]">
                                     Contact details on file.
                                 </p>
                             </div>
 
-                            <dl className="flex flex-1 flex-col divide-y divide-gray-100">
+                            <dl className="flex flex-1 flex-col divide-y divide-[#E5E7EB]">
                                 <InfoRow label="Customer Code">
                                     <span className="inline-flex items-center gap-1.5">
-                                        <span className="inline-flex rounded-md bg-gray-50 px-2.5 py-1 font-medium text-gray-700 ring-1 ring-gray-200">
+                                        <span className="inline-flex rounded-md bg-[#F8FAFC] px-2.5 py-1 font-medium text-[#111827] ring-1 ring-[#E5E7EB]">
                                             {customer.customer_code}
                                         </span>
 
@@ -177,7 +175,7 @@ export default function Show({ customer }: Props) {
                                                     : 'Copy customer code'
                                             }
                                             title={copied ? 'Copied' : 'Copy customer code'}
-                                            className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-gray-200 bg-white text-gray-500 transition-colors hover:bg-gray-50 hover:text-gray-700 focus:outline-none focus:ring-1 focus:ring-red-400 focus:ring-offset-1"
+                                            className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-[#E5E7EB] bg-white text-[#DC2626] transition-colors hover:bg-[#FEF2F2] hover:text-[#B91C1C] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#DC2626] focus-visible:ring-offset-1"
                                         >
                                             {copied ? (
                                                 <svg
@@ -250,13 +248,13 @@ export default function Show({ customer }: Props) {
                         </div>
 
                         {/* Customer QR Code */}
-                        <div className="flex flex-col overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm">
-                            <div className="border-b border-gray-100 px-6 py-5">
-                                <h2 className="text-lg font-bold tracking-tight text-gray-900">
+                        <div className="flex flex-col overflow-hidden rounded-[20px] border border-[#E5E7EB] bg-[#FEF2F2] shadow-sm">
+                            <div className="bg-[#B91C1C] px-6 py-5">
+                                <h2 className="text-lg font-bold tracking-tight text-white">
                                     Customer QR Code
                                 </h2>
 
-                                <p className="mt-1 text-sm text-gray-500">
+                                <p className="mt-1 text-sm text-[#FECACA]">
                                     Scan during a transaction.
                                 </p>
                             </div>
@@ -265,7 +263,7 @@ export default function Show({ customer }: Props) {
                             <div className="flex flex-1 items-center justify-center px-6 py-8">
                                 {hasQr ? (
                                     <div
-                                        className="inline-flex max-w-full rounded-xl border border-gray-200 bg-white p-4"
+                                        className="inline-flex max-w-full rounded-[20px] border border-[#DC2626] bg-white p-4 shadow-sm"
                                         role="img"
                                         aria-label={`QR code for ${fullName}`}
                                     >
@@ -280,7 +278,7 @@ export default function Show({ customer }: Props) {
                                     </div>
                                 ) : (
                                     <div className="py-6 text-center">
-                                        <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-gray-100 text-gray-400">
+                                        <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-white text-[#DC2626]">
                                             <svg
                                                 className="h-6 w-6"
                                                 viewBox="0 0 24 24"
@@ -314,11 +312,11 @@ export default function Show({ customer }: Props) {
                                             </svg>
                                         </div>
 
-                                        <p className="mt-3 text-sm font-semibold text-gray-700">
+                                        <p className="mt-3 text-sm font-semibold text-[#111827]">
                                             No active QR code
                                         </p>
 
-                                        <p className="mt-1 text-xs text-gray-500">
+                                        <p className="mt-1 text-xs text-[#64748B]">
                                             This customer does not have an
                                             active QR code.
                                         </p>
@@ -327,14 +325,14 @@ export default function Show({ customer }: Props) {
                             </div>
 
                             {hasQr && (
-                                <div className="border-t border-gray-100 px-6 py-5">
+                                <div className="border-t border-[#FECACA] px-6 py-5">
                                     <button
                                         type="button"
                                         onClick={() => setShowFullQr(true)}
-                                        className="inline-flex min-h-[44px] w-full items-center justify-center gap-2 rounded-lg border border-gray-300 bg-white px-4 text-sm font-semibold text-gray-700 shadow-sm transition-colors hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
+                                        className="inline-flex min-h-[44px] w-full items-center justify-center gap-2 rounded-lg border border-[#E5E7EB] bg-white px-4 text-sm font-semibold text-[#111827] shadow-sm transition-colors hover:bg-[#F8FAFC] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#DC2626] focus-visible:ring-offset-2"
                                     >
                                         <svg
-                                            className="h-4 w-4"
+                                            className="h-4 w-4 text-[#DC2626]"
                                             viewBox="0 0 24 24"
                                             fill="none"
                                             stroke="currentColor"
@@ -351,7 +349,7 @@ export default function Show({ customer }: Props) {
                                         View Full Size
                                     </button>
 
-                                    <p className="mt-3 text-center text-xs text-gray-500">
+                                    <p className="mt-3 text-center text-xs text-[#64748B]">
                                         Keep this QR code private. It
                                         identifies the customer&apos;s loyalty
                                         account.
@@ -374,16 +372,16 @@ export default function Show({ customer }: Props) {
                         <button
                             type="button"
                             onClick={() => setShowFullQr(false)}
-                            className="inline-flex min-h-[44px] w-full items-center justify-center rounded-lg bg-red-600 px-5 text-sm font-semibold text-white transition-colors hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 sm:w-auto"
+                            className="inline-flex min-h-[44px] w-full items-center justify-center rounded-lg bg-[#DC2626] px-5 text-sm font-semibold text-white transition-colors hover:bg-[#B91C1C] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#DC2626] focus-visible:ring-offset-2 sm:w-auto"
                         >
                             Done
                         </button>
                     }
                 >
-                    <div className="flex flex-col items-center px-6 py-6">
+                    <div className="flex flex-col items-center bg-[#FEF2F2] px-6 py-6">
                         {/* Fixed medium size, centered with empty space on both sides */}
                         <div
-                            className="inline-flex max-w-full rounded-2xl border border-gray-200 bg-white p-5"
+                            className="inline-flex max-w-full rounded-[20px] border border-[#DC2626] bg-white p-5 shadow-sm"
                             role="img"
                             aria-label={`Full-size QR code for ${fullName}`}
                         >
@@ -398,11 +396,11 @@ export default function Show({ customer }: Props) {
                             />
                         </div>
 
-                        <h3 className="mt-5 text-center text-lg font-bold text-gray-900">
+                        <h3 className="mt-5 text-center text-lg font-bold text-[#111827]">
                             {fullName}
                         </h3>
 
-                        <p className="mt-1 font-mono text-sm font-medium text-gray-500">
+                        <p className="mt-1 font-mono text-sm font-medium text-[#64748B]">
                             {customer.customer_code}
                         </p>
                     </div>
