@@ -2,6 +2,7 @@ import { Head, usePage } from '@inertiajs/react';
 import AdminLayout from '@/Layouts/AdminLayout';
 import AdminPageHeader from '@/Components/AdminPageHeader';
 import FlashMessage from '@/Components/FlashMessage';
+import StatCard from '@/Components/StatCard';
 
 import {
     Bar,
@@ -71,19 +72,6 @@ interface MonthlyCustomer {
     customer_count: number;
 }
 
-interface FlashProps {
-    auth: {
-        user: {
-            name: string;
-            [key: string]: unknown;
-        };
-    };
-    flash: {
-        success?: string | null;
-        error?: string | null;
-    };
-}
-
 interface Props {
     stats: Stats;
     recentTransactions: Transaction[];
@@ -92,25 +80,25 @@ interface Props {
     monthlyCustomers: MonthlyCustomer[];
 }
 
-const monthNames = [
-    'Jan',
-    'Feb',
-    'Mar',
-    'Apr',
-    'May',
-    'Jun',
-    'Jul',
-    'Aug',
-    'Sep',
-    'Oct',
-    'Nov',
-    'Dec',
-];
+/* ───────── Constants & helpers ───────── */
+
+const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
 const chartMonths = monthNames.map((name, index) => ({
     month: name,
     monthNumber: index + 1,
 }));
+
+const CHART = {
+    brand: '#A31F2B',      // --brand-600
+    brandTint: '#FBF1F1',  // --brand-50
+    accent: '#F5C542',     // --accent-400
+    accentTint: '#FFF4CC', // --accent-100
+    accentText: '#92400E', // --warning-700
+    ink: '#1C1917',        // --ink
+    inkSubtle: '#78716C',  // --ink-subtle
+    line: '#E7E5E4',       // --line
+};
 
 const formatCurrency = (value: string | number) => {
     return `₱${Number(value).toLocaleString('en-PH', {
@@ -133,6 +121,71 @@ const formatDate = (date: string) => {
     });
 };
 
+/* ───────── Icons ───────── */
+
+const iconProps = {
+    className: 'h-5 w-5',
+    viewBox: '0 0 24 24',
+    fill: 'none',
+    stroke: 'currentColor',
+    strokeWidth: 1.8,
+    strokeLinecap: 'round' as const,
+    strokeLinejoin: 'round' as const,
+    'aria-hidden': true,
+};
+
+const Icons = {
+    users: (
+        <svg {...iconProps}>
+            <path d="M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2" />
+            <circle cx="9" cy="7" r="4" />
+            <path d="M22 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75" />
+        </svg>
+    ),
+    cart: (
+        <svg {...iconProps}>
+            <path d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2 2h12M10 19a1 1 0 11-2 0m9 0a1 1 0 11-2 0" />
+        </svg>
+    ),
+    gift: (
+        <svg {...iconProps}>
+            <path d="M20 12v7a2 2 0 01-2 2H6a2 2 0 01-2-2v-7M2 7h20v5H2zM12 7v14M12 7H8.5a2.5 2.5 0 115-1c0 1.5-1.5 1-1.5 1zM12 7h3.5a2.5 2.5 0 10-5-1c0 1.5 1 1 1.5 1z" />
+        </svg>
+    ),
+    cashier: (
+        <svg {...iconProps}>
+            <rect x="3" y="4" width="18" height="16" rx="2" />
+            <path d="M3 9h18M7 14h4" />
+        </svg>
+    ),
+    plus: (
+        <svg {...iconProps}>
+            <path d="M12 5v14M5 12h14" />
+        </svg>
+    ),
+    minus: (
+        <svg {...iconProps}>
+            <path d="M5 12h14" />
+        </svg>
+    ),
+};
+
+/* ───────── Reusable pieces ───────── */
+
+function EmptyState({ icon, title, text }: { icon: keyof typeof Icons; title: string; text: string }) {
+    return (
+        <div className="px-6 py-14 text-center">
+            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-surface-muted text-ink-subtle">
+                {Icons[icon]}
+            </div>
+            <p className="mt-4 text-small font-semibold text-ink">{title}</p>
+            <p className="mt-1 text-caption text-ink-muted">{text}</p>
+        </div>
+    );
+}
+
+/* ───────── Page ───────── */
+
 export default function Dashboard({
     stats,
     recentTransactions,
@@ -146,7 +199,6 @@ export default function Dashboard({
         const transaction = monthlyTransactions.find(
             (data) => Number(data.month) === item.monthNumber,
         );
-
         return {
             month: item.month,
             amount: Number(transaction?.total_amount ?? 0),
@@ -158,7 +210,6 @@ export default function Dashboard({
         const customer = monthlyCustomers.find(
             (data) => Number(data.month) === item.monthNumber,
         );
-
         return {
             month: item.month,
             customers: Number(customer?.customer_count ?? 0),
@@ -166,380 +217,135 @@ export default function Dashboard({
     });
 
     const loyaltyData = [
-        {
-            name: 'Points Earned',
-            value: Number(stats.totalPointsEarned),
-        },
-        {
-            name: 'Points Redeemed',
-            value: Number(stats.totalPointsRedeemed),
-        },
+        { name: 'Points Earned', value: Number(stats.totalPointsEarned) },
+        { name: 'Points Redeemed', value: Number(stats.totalPointsRedeemed) },
     ];
 
-    const loyaltyColors = ['#dc2626', '#facc15'];
+    const loyaltyColors = [CHART.brand, CHART.accent];
 
     return (
         <AdminLayout>
             <Head title="Admin Dashboard" />
 
-            <div className="min-h-screen bg-gray-50 p-4 sm:p-6 lg:p-8">
-                <div className="mx-auto max-w-7xl">
+            <div className="p-4 sm:p-6 lg:p-8">
+                <div className="mx-auto max-w-content space-y-6">
+                    
                     {/* Dashboard Header */}
                     <AdminPageHeader
                         eyebrow="Overview"
                         title="Admin Dashboard"
                         description="Monitor customer activity, purchases, and loyalty performance from one place."
                         action={
-                            <div className="flex flex-wrap items-center gap-3">
-                                <form
-                                    method="POST"
-                                    action={route('admin.backups.store')}
-                                    onSubmit={(event) => {
-                                        const token = document
-                                            .querySelector<HTMLMetaElement>(
-                                                'meta[name="csrf-token"]',
-                                            )
-                                            ?.content;
-
-                                        if (!token) {
-                                            event.preventDefault();
-                                            window.alert(
-                                                'Unable to verify your session. Please refresh the page and try again.',
-                                            );
-                                            return;
-                                        }
-
-                                        const existingToken =
-                                            event.currentTarget.querySelector<HTMLInputElement>(
-                                                'input[name="_token"]',
-                                            );
-
-                                        if (existingToken) {
-                                            existingToken.value = token;
-                                        } else {
-                                            const input = document.createElement('input');
-                                            input.type = 'hidden';
-                                            input.name = '_token';
-                                            input.value = token;
-                                            event.currentTarget.appendChild(input);
-                                        }
-                                    }}
-                                >
-                                    <button
-                                        type="submit"
-                                        className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-red-600 px-4 py-3 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-red-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2"
-                                    >
-                                        <span
-                                            className="material-symbols-outlined text-[20px]"
-                                            aria-hidden="true"
-                                        >
-                                            download
-                                        </span>
-                                        <span>Database Backup</span>
-                                    </button>
-                                </form>
-
-                                <div className="rounded-xl border border-gray-200 bg-white px-4 py-3 shadow-sm">
-                                    <p className="text-[11px] font-medium uppercase tracking-wider text-gray-400">
-                                        Today
-                                    </p>
-                                    <p className="mt-1 text-sm font-semibold text-gray-800">
-                                        {new Date().toLocaleDateString('en-PH', {
-                                            month: 'long',
-                                            day: 'numeric',
-                                            year: 'numeric',
-                                        })}
-                                    </p>
-                                </div>
+                            <div className="rounded-control border border-line bg-surface px-4 py-3 shadow-card">
+                                <p className="text-caption font-medium uppercase tracking-wider text-ink-subtle">
+                                    Today
+                                </p>
+                                <p className="mt-1 text-small font-semibold text-ink">
+                                    {new Date().toLocaleDateString('en-PH', {
+                                        month: 'long',
+                                        day: 'numeric',
+                                        year: 'numeric',
+                                    })}
+                                </p>
                             </div>
                         }
-
                     />
 
-                    <FlashMessage
-                        success={flash.success}
-                        error={flash.error}
-                    />
+                    <FlashMessage success={flash.success} error={flash.error} />
 
                     {/* KPI Cards */}
                     <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                        {/* Total Customers */}
-                        <div className="relative overflow-hidden rounded-2xl border border-gray-100 bg-white p-6 shadow-sm">
-                            <div className="absolute left-0 top-0 h-full w-1 bg-red-600" />
-
-                            <div className="flex items-start justify-between">
-                                <div>
-                                    <p className="text-sm font-medium text-gray-500">
-                                        Total Customers
-                                    </p>
-
-                                    <p className="mt-3 text-3xl font-bold tracking-tight text-gray-900">
-                                        {formatNumber(stats.totalCustomers)}
-                                    </p>
-                                </div>
-
-                                <div className="rounded-xl bg-red-50 p-3 text-red-600">
-                                    <svg
-                                        className="h-5 w-5"
-                                        viewBox="0 0 24 24"
-                                        fill="none"
-                                        stroke="currentColor"
-                                        strokeWidth="1.8"
-                                        aria-hidden="true"
-                                    >
-                                        <path
-                                            strokeLinecap="round"
-                                            strokeLinejoin="round"
-                                            d="M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2"
-                                        />
-
-                                        <circle
-                                            cx="9"
-                                            cy="7"
-                                            r="4"
-                                        />
-
-                                        <path
-                                            strokeLinecap="round"
-                                            strokeLinejoin="round"
-                                            d="M22 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"
-                                        />
-                                    </svg>
-                                </div>
-                            </div>
-
-                            <div className="mt-5 flex items-center gap-2 border-t border-gray-100 pt-4">
-                                <span className="font-semibold text-green-600">
-                                    {formatNumber(stats.activeCustomers)}
-                                </span>
-
-                                <span className="text-xs text-gray-500">
+                        <StatCard
+                            label="Total Customers"
+                            value={formatNumber(stats.totalCustomers)}
+                            icon={Icons.users}
+                            footer={
+                                <>
+                                    <span className="font-semibold text-success-600">
+                                        {formatNumber(stats.activeCustomers)}
+                                    </span>{' '}
                                     active customers
-                                </span>
-                            </div>
-                        </div>
-
-                        {/* Total Purchases */}
-                        <div className="relative overflow-hidden rounded-2xl border border-red-100 bg-white p-6 shadow-sm">
-                            <div className="absolute left-0 top-0 h-full w-1 bg-red-600" />
-
-                            <div className="flex items-start justify-between">
-                                <div>
-                                    <p className="text-sm font-medium text-gray-500">
-                                        Total Purchases
-                                    </p>
-
-                                    <p className="mt-3 text-3xl font-bold tracking-tight text-gray-900">
-                                        {formatCurrency(stats.totalPurchaseAmount)}
-                                    </p>
-                                </div>
-
-                                <div className="rounded-xl bg-red-600 p-3 text-white">
-                                    <svg
-                                        className="h-5 w-5"
-                                        viewBox="0 0 24 24"
-                                        fill="none"
-                                        stroke="currentColor"
-                                        strokeWidth="1.8"
-                                        aria-hidden="true"
-                                    >
-                                        <path
-                                            strokeLinecap="round"
-                                            strokeLinejoin="round"
-                                            d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2 2h12M10 19a1 1 0 11-2 0m9 0a1 1 0 11-2 0"
-                                        />
-                                    </svg>
-                                </div>
-                            </div>
-
-                            <div className="mt-5 border-t border-gray-100 pt-4">
-                                <span className="text-xs text-gray-500">
-                                    Across all recorded transactions
-                                </span>
-                            </div>
-                        </div>
-
-                        {/* Reward Redemptions */}
-                        <div className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm">
-                            <div className="flex items-start justify-between">
-                                <div>
-                                    <p className="text-sm font-medium text-gray-500">
-                                        Reward Redemptions
-                                    </p>
-                                    <p className="mt-3 text-3xl font-bold tracking-tight text-gray-900">
-                                        {formatNumber(stats.totalRedemptions)}
-                                    </p>
-                                </div>
-                                <div className="rounded-xl bg-yellow-50 p-3 text-yellow-600">
-                                    <svg
-                                        className="h-5 w-5"
-                                        viewBox="0 0 24 24"
-                                        fill="none"
-                                        stroke="currentColor"
-                                        strokeWidth="1.8"
-                                        aria-hidden="true"
-                                    >
-                                        <path
-                                            strokeLinecap="round"
-                                            strokeLinejoin="round"
-                                            d="M20 12v7a2 2 0 01-2 2H6a2 2 0 01-2-2v-7M2 7h20v5H2zM12 7v14M12 7H8.5a2.5 2.5 0 115-1c0 1.5-1.5 1-1.5 1zM12 7h3.5a2.5 2.5 0 10-5-1c0 1.5 1 1 1.5 1z"
-                                        />
-                                    </svg>
-                                </div>
-                            </div>
-                            <div className="mt-5 flex items-center gap-2 border-t border-gray-100 pt-4">
-                                <span className="font-semibold text-gray-700">
-                                    {formatNumber(stats.activeRewards)}
-                                </span>
-                                <span className="text-xs text-gray-500">
+                                </>
+                            }
+                        />
+                        <StatCard
+                            label="Total Purchases"
+                            value={formatCurrency(stats.totalPurchaseAmount)}
+                            icon={Icons.cart}
+                            footer="Across all recorded transactions"
+                        />
+                        <StatCard
+                            label="Reward Redemptions"
+                            value={formatNumber(stats.totalRedemptions)}
+                            icon={Icons.gift}
+                            tone="accent"
+                            footer={
+                                <>
+                                    <span className="font-semibold text-ink">
+                                        {formatNumber(stats.activeRewards)}
+                                    </span>{' '}
                                     active rewards
-                                </span>
-                            </div>
-                        </div>
-
-                        {/* Cashier Accounts */}
-                        <div className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm">
-                            <div className="flex items-start justify-between">
-                                <div>
-                                    <p className="text-sm font-medium text-gray-500">
-                                        Cashier Accounts
-                                    </p>
-                                    <p className="mt-3 text-3xl font-bold tracking-tight text-gray-900">
-                                        {formatNumber(stats.totalCashiers)}
-                                    </p>
-                                </div>
-                                <div className="rounded-xl bg-yellow-50 p-3 text-yellow-600">
-                                    <svg
-                                        className="h-5 w-5"
-                                        viewBox="0 0 24 24"
-                                        fill="none"
-                                        stroke="currentColor"
-                                        strokeWidth="1.8"
-                                        aria-hidden="true"
-                                    >
-                                        <path
-                                            strokeLinecap="round"
-                                            strokeLinejoin="round"
-                                            d="M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2"
-                                        />
-                                        <circle
-                                            cx="9"
-                                            cy="7"
-                                            r="4"
-                                        />
-                                        <path
-                                            strokeLinecap="round"
-                                            strokeLinejoin="round"
-                                            d="M22 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"
-                                        />
-                                    </svg>
-                                </div>
-                            </div>
-                            <div className="mt-5 border-t border-gray-100 pt-4">
-                                <span className="text-xs text-gray-500">
-                                    Cashier accounts registered in the system
-                                </span>
-                            </div>
-                        </div>
+                                </>
+                            }
+                        />
+                        <StatCard
+                            label="Cashier Accounts"
+                            value={formatNumber(stats.totalCashiers)}
+                            icon={Icons.cashier}
+                            tone="accent"
+                            footer="Cashier accounts registered in the system"
+                        />
                     </div>
 
                     {/* Analytics */}
-                    <div className="mt-6 grid gap-6 lg:grid-cols-2">
+                    <div className="grid gap-6 lg:grid-cols-2">
                         {/* Purchase Activity */}
-                        <div className="overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm">
-                            <div className="border-b border-gray-100 px-6 py-5">
-                                <div className="flex items-start justify-between gap-4">
-                                    <div>
-                                        <h2 className="text-lg font-bold tracking-tight text-gray-900">
-                                            Purchase Activity
-                                        </h2>
-
-                                        <p className="mt-1 text-sm text-gray-500">
-                                            Monthly purchase amount recorded for {new Date().getFullYear()}.
-                                        </p>
-                                    </div>
-
-                                    <div className="hidden shrink-0 items-center gap-2 rounded-full bg-red-50 px-3 py-1.5 text-xs font-medium text-red-700 sm:flex">
-                                        <span className="h-2 w-2 rounded-full bg-red-600" />
-                                        Purchases
-                                    </div>
+                        <div className="panel">
+                            <div className="panel-header flex items-start justify-between gap-4">
+                                <div>
+                                    <h2 className="panel-title">Purchase Activity</h2>
+                                    <p className="panel-desc">
+                                        Monthly purchase amount recorded for {new Date().getFullYear()}.
+                                    </p>
+                                </div>
+                                <div className="badge-brand hidden shrink-0 items-center gap-2 px-3 py-1.5 sm:inline-flex">
+                                    <span className="h-2 w-2 rounded-full bg-brand" aria-hidden="true" />
+                                    Purchases
                                 </div>
                             </div>
 
                             <div className="px-4 pb-5 pt-6 sm:px-6">
-                                <div className="h-72">
+                                <div className="h-72" role="img" aria-label="Bar chart of monthly purchase amount">
                                     <ResponsiveContainer width="100%" height="100%">
-                                        <BarChart
-                                            data={transactionChartData}
-                                            margin={{
-                                                top: 8,
-                                                right: 8,
-                                                left: 8,
-                                                bottom: 4,
-                                            }}
-                                        >
-                                            <CartesianGrid
-                                                strokeDasharray="3 3"
-                                                vertical={false}
-                                                stroke="#f1f5f9"
-                                            />
-
+                                        <BarChart data={transactionChartData} margin={{ top: 8, right: 8, left: 8, bottom: 4 }}>
+                                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={CHART.line} />
                                             <XAxis
                                                 dataKey="month"
                                                 tickLine={false}
                                                 axisLine={false}
-                                                tick={{
-                                                    fontSize: 12,
-                                                    fill: '#6b7280',
-                                                }}
+                                                tick={{ fontSize: 12, fill: CHART.inkSubtle }}
                                                 dy={8}
                                             />
-
                                             <YAxis
                                                 tickLine={false}
                                                 axisLine={false}
-                                                tick={{
-                                                    fontSize: 12,
-                                                    fill: '#6b7280',
-                                                }}
-                                                tickFormatter={(value) =>
-                                                    `₱${Number(value).toLocaleString('en-PH')}`
-                                                }
+                                                tick={{ fontSize: 12, fill: CHART.inkSubtle }}
+                                                tickFormatter={(value) => `₱${Number(value).toLocaleString('en-PH')}`}
                                                 width={58}
                                             />
-
                                             <Tooltip
-                                                cursor={{
-                                                    fill: '#fef2f2',
-                                                }}
+                                                cursor={{ fill: CHART.brandTint }}
                                                 contentStyle={{
                                                     borderRadius: '12px',
-                                                    border: '1px solid #e5e7eb',
-                                                    boxShadow:
-                                                        '0 8px 24px rgba(0, 0, 0, 0.08)',
+                                                    border: `1px solid ${CHART.line}`,
+                                                    boxShadow: '0 4px 12px rgba(28, 25, 23, 0.08)',
                                                     padding: '10px 12px',
                                                 }}
-                                                labelStyle={{
-                                                    color: '#111827',
-                                                    fontWeight: 600,
-                                                    marginBottom: '4px',
-                                                }}
-                                                itemStyle={{
-                                                    color: '#dc2626',
-                                                    fontSize: '13px',
-                                                }}
-                                                formatter={(value) => [
-                                                    formatCurrency(Number(value)),
-                                                    'Purchase Amount',
-                                                ]}
+                                                labelStyle={{ color: CHART.ink, fontWeight: 600, marginBottom: '4px' }}
+                                                itemStyle={{ color: CHART.brand, fontSize: '13px' }}
+                                                formatter={(value) => [formatCurrency(Number(value)), 'Purchase Amount']}
                                             />
-
-                                            <Bar
-                                                dataKey="amount"
-                                                fill="#dc2626"
-                                                radius={[6, 6, 0, 0]}
-                                                maxBarSize={36}
-                                            />
+                                            <Bar dataKey="amount" fill={CHART.brand} radius={[6, 6, 0, 0]} maxBarSize={36} />
                                         </BarChart>
                                     </ResponsiveContainer>
                                 </div>
@@ -547,98 +353,52 @@ export default function Dashboard({
                         </div>
 
                         {/* Customer Growth */}
-                        <div className="overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm">
-                            <div className="border-b border-gray-100 px-6 py-5">
-                                <div className="flex items-start justify-between gap-4">
-                                    <div>
-                                        <h2 className="text-lg font-bold tracking-tight text-gray-900">
-                                            Customer Growth
-                                        </h2>
-
-                                        <p className="mt-1 text-sm text-gray-500">
-                                            New loyalty customers registered each month.
-                                        </p>
-                                    </div>
-
-                                    <div className="hidden shrink-0 items-center gap-2 rounded-full bg-yellow-50 px-3 py-1.5 text-xs font-medium text-yellow-700 sm:flex">
-                                        <span className="h-2 w-2 rounded-full bg-yellow-500" />
-                                        Customers
-                                    </div>
+                        <div className="panel">
+                            <div className="panel-header flex items-start justify-between gap-4">
+                                <div>
+                                    <h2 className="panel-title">Customer Growth</h2>
+                                    <p className="panel-desc">
+                                        New loyalty customers registered each month.
+                                    </p>
+                                </div>
+                                <div className="badge-accent hidden shrink-0 items-center gap-2 px-3 py-1.5 sm:inline-flex">
+                                    <span className="h-2 w-2 rounded-full bg-accent" aria-hidden="true" />
+                                    Customers
                                 </div>
                             </div>
 
                             <div className="px-4 pb-5 pt-6 sm:px-6">
-                                <div className="h-72">
+                                <div className="h-72" role="img" aria-label="Bar chart of new customers registered">
                                     <ResponsiveContainer width="100%" height="100%">
-                                        <BarChart
-                                            data={customerChartData}
-                                            margin={{
-                                                top: 8,
-                                                right: 8,
-                                                left: 8,
-                                                bottom: 4,
-                                            }}
-                                        >
-                                            <CartesianGrid
-                                                strokeDasharray="3 3"
-                                                vertical={false}
-                                                stroke="#f1f5f9"
-                                            />
-
+                                        <BarChart data={customerChartData} margin={{ top: 8, right: 8, left: 8, bottom: 4 }}>
+                                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={CHART.line} />
                                             <XAxis
                                                 dataKey="month"
                                                 tickLine={false}
                                                 axisLine={false}
-                                                tick={{
-                                                    fontSize: 12,
-                                                    fill: '#6b7280',
-                                                }}
+                                                tick={{ fontSize: 12, fill: CHART.inkSubtle }}
                                                 dy={8}
                                             />
-
                                             <YAxis
                                                 allowDecimals={false}
                                                 tickLine={false}
                                                 axisLine={false}
-                                                tick={{
-                                                    fontSize: 12,
-                                                    fill: '#6b7280',
-                                                }}
+                                                tick={{ fontSize: 12, fill: CHART.inkSubtle }}
                                                 width={32}
                                             />
-
                                             <Tooltip
-                                                cursor={{
-                                                    fill: '#fefce8',
-                                                }}
+                                                cursor={{ fill: CHART.accentTint }}
                                                 contentStyle={{
                                                     borderRadius: '12px',
-                                                    border: '1px solid #e5e7eb',
-                                                    boxShadow:
-                                                        '0 8px 24px rgba(0, 0, 0, 0.08)',
+                                                    border: `1px solid ${CHART.line}`,
+                                                    boxShadow: '0 4px 12px rgba(28, 25, 23, 0.08)',
                                                     padding: '10px 12px',
                                                 }}
-                                                labelStyle={{
-                                                    color: '#111827',
-                                                    fontWeight: 600,
-                                                    marginBottom: '4px',
-                                                }}
-                                                itemStyle={{
-                                                    color: '#ca8a04',
-                                                    fontSize: '13px',
-                                                }}
-                                                formatter={(value) => [
-                                                    formatNumber(Number(value)),
-                                                    'New Customers',
-                                                ]}
+                                                labelStyle={{ color: CHART.ink, fontWeight: 600, marginBottom: '4px' }}
+                                                itemStyle={{ color: CHART.accentText, fontSize: '13px' }}
+                                                formatter={(value) => [formatNumber(Number(value)), 'New Customers']}
                                             />
-
-                                            <Bar
-                                                dataKey="customers"
-                                                fill="#facc15"
-                                                radius={[6, 6, 0, 0]}
-                                                maxBarSize={36}
-                                            />
+                                            <Bar dataKey="customers" fill={CHART.accent} radius={[6, 6, 0, 0]} maxBarSize={36} />
                                         </BarChart>
                                     </ResponsiveContainer>
                                 </div>
@@ -647,135 +407,83 @@ export default function Dashboard({
                     </div>
 
                     {/* Loyalty Overview */}
-                    <div className="mt-6 grid gap-6 lg:grid-cols-3">
+                    <div className="grid gap-6 lg:grid-cols-3">
                         {/* Loyalty Points Summary */}
-                        <div className="overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm lg:col-span-2">
-                            <div className="border-b border-gray-100 px-6 py-5">
-                                <div>
-                                    <h2 className="text-lg font-bold tracking-tight text-gray-900">
-                                        Loyalty Points
-                                    </h2>
-
-                                    <p className="mt-1 text-sm text-gray-500">
-                                        Overview of points earned from purchases and used for
-                                        rewards.
-                                    </p>
-                                </div>
+                        <div className="panel lg:col-span-2">
+                            <div className="panel-header">
+                                <h2 className="panel-title">Loyalty Points</h2>
+                                <p className="panel-desc">
+                                    Overview of points earned from purchases and used for rewards.
+                                </p>
                             </div>
 
                             <div className="p-6">
                                 <div className="grid gap-4 sm:grid-cols-2">
                                     {/* Points Earned */}
-                                    <div className="rounded-xl border border-red-100 bg-red-50 p-5">
+                                    <div className="rounded-control border border-brand-100 bg-brand-50 p-5">
                                         <div className="flex items-center justify-between gap-4">
                                             <div>
-                                                <p className="text-sm font-semibold text-red-700">
+                                                <p className="text-small font-semibold text-brand-700">
                                                     Points Earned
                                                 </p>
-
-                                                <p className="mt-2 text-3xl font-bold tracking-tight text-gray-900">
+                                                <p className="mt-2 text-metric font-bold tracking-tight text-ink">
                                                     {formatNumber(stats.totalPointsEarned)}
                                                 </p>
                                             </div>
-
-                                            <div className="rounded-lg bg-white p-2.5 text-red-600 shadow-sm ring-1 ring-red-100">
-                                                <svg
-                                                    className="h-5 w-5"
-                                                    viewBox="0 0 24 24"
-                                                    fill="none"
-                                                    stroke="currentColor"
-                                                    strokeWidth="1.8"
-                                                    aria-hidden="true"
-                                                >
-                                                    <path
-                                                        strokeLinecap="round"
-                                                        strokeLinejoin="round"
-                                                        d="M12 3v18m9-9H3"
-                                                    />
-                                                </svg>
+                                            <div className="rounded-control bg-surface p-2.5 text-brand-600 shadow-sm ring-1 ring-brand-100">
+                                                {Icons.plus}
                                             </div>
                                         </div>
-
-                                        <p className="mt-4 text-xs text-red-600">
+                                        <p className="mt-4 text-caption text-brand-700">
                                             Generated from customer purchases
                                         </p>
                                     </div>
 
                                     {/* Points Redeemed */}
-                                    <div className="rounded-xl border border-yellow-100 bg-yellow-50 p-5">
+                                    <div className="rounded-control border border-warning-600/20 bg-accent-100 p-5">
                                         <div className="flex items-center justify-between gap-4">
                                             <div>
-                                                <p className="text-sm font-semibold text-yellow-700">
+                                                <p className="text-small font-semibold text-warning-700">
                                                     Points Redeemed
                                                 </p>
-
-                                                <p className="mt-2 text-3xl font-bold tracking-tight text-gray-900">
+                                                <p className="mt-2 text-metric font-bold tracking-tight text-ink">
                                                     {formatNumber(stats.totalPointsRedeemed)}
                                                 </p>
                                             </div>
-
-                                            <div className="rounded-lg bg-white p-2.5 text-yellow-600 shadow-sm ring-1 ring-yellow-100">
-                                                <svg
-                                                    className="h-5 w-5"
-                                                    viewBox="0 0 24 24"
-                                                    fill="none"
-                                                    stroke="currentColor"
-                                                    strokeWidth="1.8"
-                                                    aria-hidden="true"
-                                                >
-                                                    <path
-                                                        strokeLinecap="round"
-                                                        strokeLinejoin="round"
-                                                        d="M12 3v18m9-9H3"
-                                                    />
-                                                </svg>
+                                            <div className="rounded-control bg-surface p-2.5 text-warning-600 shadow-sm ring-1 ring-warning-600/20">
+                                                {Icons.minus}
                                             </div>
                                         </div>
-
-                                        <p className="mt-4 text-xs text-yellow-700">
+                                        <p className="mt-4 text-caption text-warning-700">
                                             Used for completed reward redemptions
                                         </p>
                                     </div>
                                 </div>
 
                                 {/* Points Utilization */}
-                                <div className="mt-6 rounded-xl border border-gray-100 bg-gray-50 p-5">
+                                <div className="mt-6 rounded-control border border-line bg-surface-muted p-5">
                                     <div className="flex items-center justify-between gap-4">
                                         <div>
-                                            <p className="text-sm font-semibold text-gray-900">
+                                            <p className="text-small font-semibold text-ink">
                                                 Points Utilization
                                             </p>
-
-                                            <p className="mt-1 text-xs text-gray-500">
+                                            <p className="mt-1 text-caption text-ink-muted">
                                                 Percentage of earned points that have been used.
                                             </p>
                                         </div>
-
-                                        <span className="shrink-0 text-lg font-bold text-gray-900">
+                                        <span className="shrink-0 text-lead font-bold text-ink">
                                             {stats.totalPointsEarned > 0
-                                                ? Math.round(
-                                                    (stats.totalPointsRedeemed /
-                                                        stats.totalPointsEarned) *
-                                                        100,
-                                                )
-                                                : 0}
-                                            %
+                                                ? Math.round((stats.totalPointsRedeemed / stats.totalPointsEarned) * 100)
+                                                : 0}%
                                         </span>
                                     </div>
 
                                     <div
-                                        className="mt-4 h-2.5 overflow-hidden rounded-full bg-gray-200"
+                                        className="mt-4 h-2.5 overflow-hidden rounded-full bg-line"
                                         role="progressbar"
                                         aria-valuenow={
                                             stats.totalPointsEarned > 0
-                                                ? Math.min(
-                                                    100,
-                                                    Math.round(
-                                                        (stats.totalPointsRedeemed /
-                                                            stats.totalPointsEarned) *
-                                                            100,
-                                                    ),
-                                                )
+                                                ? Math.min(100, Math.round((stats.totalPointsRedeemed / stats.totalPointsEarned) * 100))
                                                 : 0
                                         }
                                         aria-valuemin={0}
@@ -783,43 +491,28 @@ export default function Dashboard({
                                         aria-label="Points utilization"
                                     >
                                         <div
-                                            className="h-full rounded-full bg-red-600 transition-all"
+                                            className="h-full rounded-full bg-brand transition-all duration-slow ease-standard"
                                             style={{
-                                                width: `${
-                                                    stats.totalPointsEarned > 0
-                                                        ? Math.min(
-                                                            100,
-                                                            (stats.totalPointsRedeemed /
-                                                                stats.totalPointsEarned) *
-                                                                100,
-                                                        )
-                                                        : 0
-                                                }%`,
+                                                width: `${stats.totalPointsEarned > 0
+                                                    ? Math.min(100, (stats.totalPointsRedeemed / stats.totalPointsEarned) * 100)
+                                                    : 0}%`,
                                             }}
                                         />
                                     </div>
 
-                                    <div className="mt-3 flex items-center justify-between text-xs">
-                                        <span className="text-gray-500">
-                                            {formatNumber(stats.totalPointsRedeemed)} redeemed
-                                        </span>
-
-                                        <span className="text-gray-500">
-                                            {formatNumber(stats.totalPointsEarned)} earned
-                                        </span>
+                                    <div className="mt-3 flex items-center justify-between text-caption text-ink-muted">
+                                        <span>{formatNumber(stats.totalPointsRedeemed)} redeemed</span>
+                                        <span>{formatNumber(stats.totalPointsEarned)} earned</span>
                                     </div>
                                 </div>
                             </div>
                         </div>
 
                         {/* Points Activity */}
-                        <div className="overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm">
-                            <div className="border-b border-gray-100 px-6 py-5">
-                                <h2 className="text-lg font-bold tracking-tight text-gray-900">
-                                    Points Activity
-                                </h2>
-
-                                <p className="mt-1 text-sm text-gray-500">
+                        <div className="panel">
+                            <div className="panel-header">
+                                <h2 className="panel-title">Points Activity</h2>
+                                <p className="panel-desc">
                                     Earned versus redeemed across the system.
                                 </p>
                             </div>
@@ -840,28 +533,18 @@ export default function Dashboard({
                                                 stroke="none"
                                             >
                                                 {loyaltyData.map((_, index) => (
-                                                    <Cell
-                                                        key={`cell-${index}`}
-                                                        fill={loyaltyColors[index]}
-                                                    />
+                                                    <Cell key={`cell-${index}`} fill={loyaltyColors[index]} />
                                                 ))}
                                             </Pie>
-
                                             <Tooltip
                                                 contentStyle={{
                                                     borderRadius: '12px',
-                                                    border: '1px solid #e5e7eb',
-                                                    boxShadow:
-                                                        '0 8px 24px rgba(0, 0, 0, 0.08)',
+                                                    border: `1px solid ${CHART.line}`,
+                                                    boxShadow: '0 4px 12px rgba(28, 25, 23, 0.08)',
                                                     padding: '10px 12px',
                                                 }}
-                                                labelStyle={{
-                                                    color: '#111827',
-                                                    fontWeight: 600,
-                                                }}
-                                                formatter={(value) =>
-                                                    formatNumber(Number(value))
-                                                }
+                                                labelStyle={{ color: CHART.ink, fontWeight: 600 }}
+                                                formatter={(value) => formatNumber(Number(value))}
                                             />
                                         </PieChart>
                                     </ResponsiveContainer>
@@ -869,24 +552,18 @@ export default function Dashboard({
 
                                 <div className="mt-4 space-y-3">
                                     {loyaltyData.map((item, index) => (
-                                        <div
-                                            key={item.name}
-                                            className="flex items-center justify-between rounded-lg border border-gray-100 px-3 py-2.5"
-                                        >
+                                        <div key={item.name} className="flex items-center justify-between rounded-control border border-line px-3 py-2.5">
                                             <div className="flex min-w-0 items-center gap-3">
                                                 <span
                                                     className="h-2.5 w-2.5 shrink-0 rounded-full"
-                                                    style={{
-                                                        backgroundColor: loyaltyColors[index],
-                                                    }}
+                                                    style={{ backgroundColor: loyaltyColors[index] }}
+                                                    aria-hidden="true"
                                                 />
-
-                                                <span className="truncate text-sm text-gray-600">
+                                                <span className="truncate text-small text-ink-muted">
                                                     {item.name}
                                                 </span>
                                             </div>
-
-                                            <span className="ml-3 shrink-0 text-sm font-semibold text-gray-900">
+                                            <span className="ml-3 shrink-0 text-small font-semibold text-ink">
                                                 {formatNumber(item.value)}
                                             </span>
                                         </div>
@@ -897,189 +574,87 @@ export default function Dashboard({
                     </div>
 
                     {/* Recent Activity */}
-                    <div className="mt-6 grid gap-6 lg:grid-cols-2">
+                    <div className="grid gap-6 lg:grid-cols-2">
                         {/* Recent Transactions */}
-                        <div className="overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm">
-                            <div className="flex items-start justify-between gap-4 border-b border-gray-100 px-6 py-5">
+                        <div className="panel">
+                            <div className="panel-header flex items-start justify-between gap-4">
                                 <div>
-                                    <h2 className="text-lg font-bold tracking-tight text-gray-900">
-                                        Recent Transactions
-                                    </h2>
-
-                                    <p className="mt-1 text-sm text-gray-500">
-                                        Latest recorded customer purchases.
-                                    </p>
+                                    <h2 className="panel-title">Recent Transactions</h2>
+                                    <p className="panel-desc">Latest recorded customer purchases.</p>
                                 </div>
-
-                                <div className="hidden shrink-0 rounded-full bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-700 sm:block">
+                                <div className="badge-brand hidden sm:inline-flex">
                                     {recentTransactions.length} latest
                                 </div>
                             </div>
 
-                            <div className="divide-y divide-gray-100">
+                            <div className="divide-y divide-line">
                                 {recentTransactions.length > 0 ? (
                                     recentTransactions.map((transaction) => (
-                                        <div
-                                            key={transaction.id}
-                                            className="flex items-center gap-4 px-6 py-4 transition-colors hover:bg-gray-50"
-                                        >
-                                            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-red-50 text-sm font-bold text-red-600">
-                                                {transaction.customer.first_name
-                                                    .charAt(0)
-                                                    .toUpperCase()}
-                                                {transaction.customer.last_name
-                                                    .charAt(0)
-                                                    .toUpperCase()}
+                                        <div key={transaction.id} className="flex items-center gap-4 px-6 py-4 transition-colors duration-base hover:bg-brand-50/40">
+                                            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand-50 text-small font-bold text-brand-600">
+                                                {transaction.customer.first_name.charAt(0).toUpperCase()}
+                                                {transaction.customer.last_name.charAt(0).toUpperCase()}
                                             </div>
-
                                             <div className="min-w-0 flex-1">
-                                                <p className="truncate text-sm font-semibold text-gray-900">
-                                                    {transaction.customer.first_name}{' '}
-                                                    {transaction.customer.last_name}
+                                                <p className="truncate text-small font-semibold text-ink">
+                                                    {transaction.customer.first_name} {transaction.customer.last_name}
                                                 </p>
-
-                                                <p className="mt-0.5 truncate text-xs text-gray-500">
-                                                    {transaction.customer.customer_code}
-                                                    {' · '}
-                                                    {formatDate(transaction.created_at)}
+                                                <p className="mt-0.5 truncate text-caption text-ink-muted">
+                                                    {transaction.customer.customer_code} · {formatDate(transaction.created_at)}
                                                 </p>
                                             </div>
-
                                             <div className="shrink-0 text-right">
-                                                <p className="text-sm font-bold text-gray-900">
-                                                    {formatCurrency(
-                                                        transaction.purchase_amount,
-                                                    )}
+                                                <p className="text-small font-bold text-ink">
+                                                    {formatCurrency(transaction.purchase_amount)}
                                                 </p>
-
-                                                <span className="mt-1 inline-flex rounded-full bg-red-50 px-2 py-0.5 text-xs font-semibold text-red-700">
+                                                <span className="badge-brand mt-1 font-semibold">
                                                     +{transaction.points_earned} pts
                                                 </span>
                                             </div>
                                         </div>
                                     ))
                                 ) : (
-                                    <div className="px-6 py-14 text-center">
-                                        <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-gray-100 text-gray-400">
-                                            <svg
-                                                className="h-6 w-6"
-                                                viewBox="0 0 24 24"
-                                                fill="none"
-                                                stroke="currentColor"
-                                                strokeWidth="1.7"
-                                                aria-hidden="true"
-                                            >
-                                                <path
-                                                    strokeLinecap="round"
-                                                    strokeLinejoin="round"
-                                                    d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2 2h12"
-                                                />
-                                                <circle cx="10" cy="19" r="1" />
-                                                <circle cx="17" cy="19" r="1" />
-                                            </svg>
-                                        </div>
-
-                                        <p className="mt-4 text-sm font-semibold text-gray-700">
-                                            No transactions yet.
-                                        </p>
-
-                                        <p className="mt-1 text-xs text-gray-500">
-                                            Transaction activity will appear here.
-                                        </p>
-                                    </div>
+                                    <EmptyState icon="cart" title="No transactions yet." text="Transaction activity will appear here." />
                                 )}
                             </div>
                         </div>
 
                         {/* Recent Redemptions */}
-                        <div className="overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm">
-                            <div className="flex items-start justify-between gap-4 border-b border-gray-100 px-6 py-5">
+                        <div className="panel">
+                            <div className="panel-header flex items-start justify-between gap-4">
                                 <div>
-                                    <h2 className="text-lg font-bold tracking-tight text-gray-900">
-                                        Recent Redemptions
-                                    </h2>
-
-                                    <p className="mt-1 text-sm text-gray-500">
-                                        Latest completed reward redemptions.
-                                    </p>
+                                    <h2 className="panel-title">Recent Redemptions</h2>
+                                    <p className="panel-desc">Latest completed reward redemptions.</p>
                                 </div>
-
-                                <div className="hidden shrink-0 rounded-full bg-yellow-50 px-3 py-1.5 text-xs font-semibold text-yellow-700 sm:block">
+                                <div className="badge-accent hidden sm:inline-flex">
                                     {recentRedemptions.length} latest
                                 </div>
                             </div>
 
-                            <div className="divide-y divide-gray-100">
+                            <div className="divide-y divide-line">
                                 {recentRedemptions.length > 0 ? (
                                     recentRedemptions.map((redemption) => (
-                                        <div
-                                            key={redemption.id}
-                                            className="flex items-center gap-4 px-6 py-4 transition-colors hover:bg-gray-50"
-                                        >
-                                            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-yellow-50 text-yellow-600">
-                                                <svg
-                                                    className="h-5 w-5"
-                                                    viewBox="0 0 24 24"
-                                                    fill="none"
-                                                    stroke="currentColor"
-                                                    strokeWidth="1.8"
-                                                    aria-hidden="true"
-                                                >
-                                                    <path
-                                                        strokeLinecap="round"
-                                                        strokeLinejoin="round"
-                                                        d="M20 12v7a2 2 0 01-2 2H6a2 2 0 01-2-2v-7M2 7h20v5H2zM12 7v14M12 7H8.5a2.5 2.5 0 115-1c0 1.5-1.5 1-1.5 1zM12 7h3.5a2.5 2.5 0 10-5-1c0 1.5 1 1 1.5 1z"
-                                                    />
-                                                </svg>
+                                        <div key={redemption.id} className="flex items-center gap-4 px-6 py-4 transition-colors duration-base hover:bg-accent-100/30">
+                                            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-accent-100 text-warning-700">
+                                                {Icons.gift}
                                             </div>
-
                                             <div className="min-w-0 flex-1">
-                                                <p className="truncate text-sm font-semibold text-gray-900">
-                                                    {redemption.customer.first_name}{' '}
-                                                    {redemption.customer.last_name}
+                                                <p className="truncate text-small font-semibold text-ink">
+                                                    {redemption.customer.first_name} {redemption.customer.last_name}
                                                 </p>
-
-                                                <p className="mt-0.5 truncate text-xs text-gray-500">
-                                                    {redemption.reward.reward_name}
-                                                    {' · '}
-                                                    {formatDate(redemption.redeemed_at)}
+                                                <p className="mt-0.5 truncate text-caption text-ink-muted">
+                                                    {redemption.reward.reward_name} · {formatDate(redemption.redeemed_at)}
                                                 </p>
                                             </div>
-
                                             <div className="shrink-0 text-right">
-                                                <span className="inline-flex rounded-full bg-yellow-50 px-2.5 py-1 text-xs font-semibold text-yellow-700">
+                                                <span className="badge-accent font-semibold">
                                                     −{redemption.points_used} pts
                                                 </span>
                                             </div>
                                         </div>
                                     ))
                                 ) : (
-                                    <div className="px-6 py-14 text-center">
-                                        <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-gray-100 text-gray-400">
-                                            <svg
-                                                className="h-6 w-6"
-                                                viewBox="0 0 24 24"
-                                                fill="none"
-                                                stroke="currentColor"
-                                                strokeWidth="1.7"
-                                                aria-hidden="true"
-                                            >
-                                                <path
-                                                    strokeLinecap="round"
-                                                    strokeLinejoin="round"
-                                                    d="M20 12v7a2 2 0 01-2 2H6a2 2 0 01-2-2v-7M2 7h20v5H2zM12 7v14M12 7H8.5a2.5 2.5 0 115-1c0 1.5-1.5 1-1.5 1z"
-                                                />
-                                            </svg>
-                                        </div>
-
-                                        <p className="mt-4 text-sm font-semibold text-gray-700">
-                                            No redemptions yet.
-                                        </p>
-
-                                        <p className="mt-1 text-xs text-gray-500">
-                                            Reward activity will appear here.
-                                        </p>
-                                    </div>
+                                    <EmptyState icon="gift" title="No redemptions yet." text="Reward activity will appear here." />
                                 )}
                             </div>
                         </div>
