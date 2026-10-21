@@ -1,4 +1,4 @@
-import { Head, usePage } from '@inertiajs/react';
+import { Head, Link, usePage } from '@inertiajs/react';
 import AdminLayout from '@/Layouts/AdminLayout';
 import AdminPageHeader from '@/Components/AdminPageHeader';
 import FlashMessage from '@/Components/FlashMessage';
@@ -90,14 +90,14 @@ const chartMonths = monthNames.map((name, index) => ({
 }));
 
 const CHART = {
-    brand: '#A31F2B',      // --brand-600
-    brandTint: '#FBF1F1',  // --brand-50
-    accent: '#F5C542',     // --accent-400
-    accentTint: '#FFF4CC', // --accent-100
-    accentText: '#92400E', // --warning-700
-    ink: '#1C1917',        // --ink
-    inkSubtle: '#78716C',  // --ink-subtle
-    line: '#E7E5E4',       // --line
+    brand: '#A31F2B',
+    brandTint: '#FBF1F1',
+    accent: '#F5C542',
+    accentTint: '#FFF4CC',
+    accentText: '#92400E',
+    ink: '#1C1917',
+    inkSubtle: '#78716C',
+    line: '#E7E5E4',
 };
 
 const formatCurrency = (value: string | number) => {
@@ -156,6 +156,12 @@ const Icons = {
         <svg {...iconProps}>
             <rect x="3" y="4" width="18" height="16" rx="2" />
             <path d="M3 9h18M7 14h4" />
+        </svg>
+    ),
+    chart: (
+        <svg {...iconProps}>
+            <path d="M3 17l6-6 4 4 8-8" />
+            <path d="M14 7h7v7" />
         </svg>
     ),
     plus: (
@@ -252,6 +258,61 @@ export default function Dashboard({
                     />
 
                     <FlashMessage success={flash.success} error={flash.error} />
+
+                    {/* ───────── Quick Actions ───────── */}
+                    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                        <Link 
+                            href={route('admin.customers.index')} 
+                            className="group panel flex items-center gap-4 p-5 transition-all duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] hover:-translate-y-1 hover:border-brand-200 hover:shadow-raised"
+                        >
+                            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-control bg-brand-50 text-brand-600 transition-transform duration-300 group-hover:scale-110">
+                                <span className="material-symbols-outlined text-[24px]">group</span>
+                            </div>
+                            <div>
+                                <h3 className="text-small font-semibold text-ink group-hover:text-brand-700">Manage Customers</h3>
+                                <p className="mt-0.5 text-caption text-ink-muted">View loyalty accounts</p>
+                            </div>
+                        </Link>
+
+                        <Link 
+                            href={route('admin.cashiers.index')} 
+                            className="group panel flex items-center gap-4 p-5 transition-all duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] hover:-translate-y-1 hover:border-brand-200 hover:shadow-raised"
+                        >
+                            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-control bg-brand-50 text-brand-600 transition-transform duration-300 group-hover:scale-110">
+                                <span className="material-symbols-outlined text-[24px]">badge</span>
+                            </div>
+                            <div>
+                                <h3 className="text-small font-semibold text-ink group-hover:text-brand-700">Manage Cashiers</h3>
+                                <p className="mt-0.5 text-caption text-ink-muted">Staff accounts & access</p>
+                            </div>
+                        </Link>
+
+                        <Link 
+                            href={route('admin.rewards.index')} 
+                            className="group panel flex items-center gap-4 p-5 transition-all duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] hover:-translate-y-1 hover:border-brand-200 hover:shadow-raised"
+                        >
+                            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-control bg-accent-100 text-warning-700 transition-transform duration-300 group-hover:scale-110">
+                                <span className="material-symbols-outlined text-[24px]">local_offer</span>
+                            </div>
+                            <div>
+                                <h3 className="text-small font-semibold text-ink group-hover:text-brand-700">Manage Rewards</h3>
+                                <p className="mt-0.5 text-caption text-ink-muted">Create & edit offers</p>
+                            </div>
+                        </Link>
+
+                        <Link 
+                            href={route('admin.reports.index')} 
+                            className="group panel flex items-center gap-4 p-5 transition-all duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] hover:-translate-y-1 hover:border-brand-200 hover:shadow-raised"
+                        >
+                            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-control bg-success-50 text-success-700 transition-transform duration-300 group-hover:scale-110">
+                                <span className="material-symbols-outlined text-[24px]">monitoring</span>
+                            </div>
+                            <div>
+                                <h3 className="text-small font-semibold text-ink group-hover:text-brand-700">View Reports</h3>
+                                <p className="mt-0.5 text-caption text-ink-muted">Sales & loyalty analytics</p>
+                            </div>
+                        </Link>
+                    </div>
 
                     {/* KPI Cards */}
                     <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">

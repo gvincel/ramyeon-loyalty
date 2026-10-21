@@ -1,43 +1,40 @@
 import { router } from '@inertiajs/react';
-
 import { FormEventHandler } from 'react';
 
 interface LogoutButtonProps {
     collapsed?: boolean;
 }
 
-export default function LogoutButton({
-    collapsed = false,
-}: LogoutButtonProps) {
+export default function LogoutButton({ collapsed = false }: LogoutButtonProps) {
     const submit: FormEventHandler = (e) => {
         e.preventDefault();
         router.post(route('logout'));
     };
 
     return (
-        <form onSubmit={submit}>
+        <form onSubmit={submit} className="w-full">
             <button
                 type="submit"
-                className={`inline-flex items-center justify-center rounded-md bg-gray-900 py-2 text-sm font-medium text-white transition-all hover:bg-gray-700 ${
-                    collapsed
-                        ? 'w-full px-4 md:w-10 md:px-0'
-                        : 'px-4'
+                className={`group flex w-full items-center rounded-control border border-white/20 bg-white/5 px-4 py-2.5 text-body font-medium text-brand-100 shadow-sm transition-all duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] hover:border-white/30 hover:bg-white/10 hover:text-white active:scale-[0.98] ${
+                    collapsed ? 'justify-center' : ''
                 }`}
                 aria-label={collapsed ? 'Log out' : undefined}
                 title={collapsed ? 'Log out' : undefined}
             >
                 <span
-                    className="material-symbols-outlined text-[18px]"
+                    className="flex h-6 w-6 shrink-0 items-center justify-center transition-transform duration-300 group-hover:-translate-x-0.5"
                     aria-hidden="true"
                 >
-                    logout
+                    <span className="material-symbols-outlined text-[22px]">
+                        logout
+                    </span>
                 </span>
 
                 <span
-                    className={`whitespace-nowrap overflow-hidden transition-all duration-300 ${
+                    className={`whitespace-nowrap transition-all duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] ${
                         collapsed
-                            ? 'ml-2 w-auto opacity-100 md:ml-0 md:w-0 md:opacity-0'
-                            : 'ml-2 w-auto opacity-100'
+                            ? 'ml-0 w-0 overflow-hidden opacity-0'
+                            : 'ml-4 w-auto opacity-100'
                     }`}
                 >
                     Log out
