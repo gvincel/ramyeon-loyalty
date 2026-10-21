@@ -109,26 +109,22 @@ export default function Dashboard({ customer }: DashboardProps) {
         <CustomerLayout>
             <Head title="My Loyalty Dashboard" />
 
-            <div className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
-                {/* Welcome */}
+            <div className="mx-auto w-full max-w-content px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
                 <CustomerPageHeader
                     eyebrow="Ramyeon Corner Loyalty"
                     title={`Welcome, ${customer.first_name}`}
                     description="Keep track of your loyalty points and use them when you're ready to redeem a reward."
                 />
 
-                {/* Dashboard Overview */}
                 <div className="mt-7 grid items-stretch gap-5 lg:grid-cols-[1.15fr_0.85fr]">
                     {/* Loyalty Account */}
-                    <section className="flex h-full flex-col overflow-hidden rounded-card border border-line bg-surface shadow-card">
-                        {/* Loyalty Balance */}
+                    <section className="panel flex h-full flex-col">
                         <div className="p-6 sm:p-7">
                             <div className="flex items-start justify-between gap-4">
                                 <div>
                                     <p className="text-caption font-semibold uppercase tracking-wider text-brand-700">
                                         Loyalty Account
                                     </p>
-
                                     <div className="mt-3 flex items-baseline gap-2">
                                         <span className="text-metric font-bold tracking-tight text-ink sm:text-[2.5rem]">
                                             {customer.points.toLocaleString()}
@@ -137,15 +133,13 @@ export default function Dashboard({ customer }: DashboardProps) {
                                             points
                                         </span>
                                     </div>
-
                                     <p className="mt-1 text-small text-ink-muted">
                                         ₱{customer.points.toLocaleString()}{' '}
                                         equivalent value
                                     </p>
                                 </div>
-
-                                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-control bg-brand-50 ring-1 ring-brand-100">
-                                    <span className="material-symbols-outlined text-[22px] text-brand-700" aria-hidden="true">
+                                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-control bg-brand-50 ring-1 ring-brand-100">
+                                    <span className="material-symbols-outlined text-[24px] text-brand-700" aria-hidden="true">
                                         stars
                                     </span>
                                 </div>
@@ -213,7 +207,7 @@ export default function Dashboard({ customer }: DashboardProps) {
                     </section>
 
                     {/* Customer QR Code */}
-                    <section className="flex flex-col rounded-card border border-line bg-surface p-6 shadow-card sm:p-7">
+                    <section className="panel flex flex-col p-6 sm:p-7">
                         <div className="flex items-start justify-between gap-4">
                             <div>
                                 <p className="text-caption font-semibold uppercase tracking-wider text-brand-700">
@@ -227,8 +221,8 @@ export default function Dashboard({ customer }: DashboardProps) {
                                 </p>
                             </div>
 
-                            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-control bg-brand-50 ring-1 ring-brand-100">
-                                <span className="material-symbols-outlined text-[22px] text-brand-700" aria-hidden="true">
+                            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-control bg-brand-50 ring-1 ring-brand-100">
+                                <span className="material-symbols-outlined text-[24px] text-brand-700" aria-hidden="true">
                                     qr_code_2
                                 </span>
                             </div>
