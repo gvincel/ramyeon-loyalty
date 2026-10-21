@@ -1,5 +1,5 @@
 import { Head, Link } from '@inertiajs/react';
-
+import { useState } from 'react';
 import AdminLayout from '@/Layouts/AdminLayout';
 import AdminPageHeader from '@/Components/AdminPageHeader';
 
@@ -46,21 +46,25 @@ interface AuditLogsProps {
     filters: AuditLogFilters;
 }
 
-const inputClassName =
-    'mt-1.5 block w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm text-gray-900 shadow-sm outline-none transition focus:border-red-600 focus:ring-2 focus:ring-red-100';
+const initials = (name: string | null) => {
+    if (!name) return null;
+    return name
+        .split(' ')
+        .filter(Boolean)
+        .map((part) => part[0])
+        .slice(0, 2)
+        .join('')
+        .toUpperCase();
+};
 
-export default function AuditLogs({
-    logs,
-    actions,
-    filters,
-}: AuditLogsProps) {
+export default function AuditLogs({ logs, actions, filters }: AuditLogsProps) {
+    const [showAdvanced, setShowAdvanced] = useState(
+        Boolean(filters.action || filters.role || filters.date_from || filters.date_to),
+    );
+
     const formatDate = (value: string) => {
         const date = new Date(value);
-
-        if (Number.isNaN(date.getTime())) {
-            return 'Date unavailable';
-        }
-
+        if (Number.isNaN(date.getTime())) return 'Date unavailable';
         return date.toLocaleString('en-PH', {
             year: 'numeric',
             month: 'short',
@@ -71,11 +75,9 @@ export default function AuditLogs({
     };
 
     const formatLabel = (value: string) =>
-        value.replace(/_/g, ' ').replace(/\b\w/g, (character) =>
-            character.toUpperCase(),
-        );
+        value.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
 
-        const formatActionLabel = (action: string) => {
+    const formatActionLabel = (action: string) => {
         const labels: Record<string, string> = {
             'customer.activated': 'Customer Activated',
             'customer.deactivated': 'Customer Deactivated',
@@ -95,7 +97,6 @@ export default function AuditLogs({
             'report.export_requested': 'Report Export Requested',
             'backup.created': 'Database Backup Created',
         };
-
         return labels[action] ?? formatLabel(action.replace(/[._]/g, ' '));
     };
 
@@ -116,31 +117,26 @@ export default function AuditLogs({
             'reward.updated': 'Updated',
             'reward.activated': 'Activated',
             'reward.deactivated': 'Deactivated',
-            'report.export_requested': 'Export Requested',
-            'backup.created': 'Backup Created',
+            'report.export_requested': 'Export',
+            'backup.created': 'Backup',
         };
-
         return labels[action] ?? formatActionLabel(action);
     };
 
     const getActionBadgeClassName = (action: string) => {
-        if (/(deactivated|deleted|cancelled)/.test(action)) {
-            return 'border-red-100 bg-red-50 text-red-700';
-        }
+        if (/(deactivated|deleted|cancelled)/.test(action)) return 'badge-danger';
+        if (/(activated|created|redeemed)/.test(action)) return 'badge-success';
+        if (action.includes('updated')) return 'badge-brand';
+        if (action.startsWith('report.')) return 'badge-accent';
+        return 'badge-neutral';
+    };
 
-        if (/(activated|created|redeemed)/.test(action)) {
-            return 'border-green-100 bg-green-50 text-green-700';
-        }
-
-        if (action.includes('updated')) {
-            return 'border-blue-100 bg-blue-50 text-blue-700';
-        }
-
-        if (action.startsWith('report.')) {
-            return 'border-indigo-100 bg-indigo-50 text-indigo-700';
-        }
-
-        return 'border-gray-200 bg-gray-50 text-gray-700';
+    const getActionAccentClass = (action: string) => {
+        if (/(deactivated|deleted|cancelled)/.test(action)) return 'border-l-danger-600';
+        if (/(activated|created|redeemed)/.test(action)) return 'border-l-success-600';
+        if (action.includes('updated')) return 'border-l-brand';
+        if (action.startsWith('report.')) return 'border-l-accent-500';
+        return 'border-l-line-strong';
     };
 
     const decodePaginationLabel = (label: string) =>
@@ -151,54 +147,55 @@ export default function AuditLogs({
             .replace(/&lt;/g, '<')
             .replace(/&gt;/g, '>');
 
-    const hasFilters = Boolean(
-        filters.search ||
-            filters.action ||
-            filters.role ||
-            filters.date_from ||
-            filters.date_to,
-    );
+    /* Build URLs for removing individual filters via chips */
+    const buildUrl = (omit?: keyof AuditLogFilters) => {
+        const params: Record<string, string> = {};
+        if (filters.search && omit !== 'search') params.search = filters.search;
+        if (filters.action && omit !== 'action') params.action = filters.action;
+        if (filters.role && omit !== 'role') params.role = filters.role;
+        if (filters.date_from && omit !== 'date_from') params.date_from = filters.date_from;
+        if (filters.date_to && omit !== 'date_to') params.date_to = filters.date_to;
+        return route('admin.audit-logs.index', params);
+    };
+
+    const activeChips: { key: keyof AuditLogFilters; label: string }[] = [];
+    if (filters.search) activeChips.push({ key: 'search', label: `Search: "${filters.search}"` });
+    if (filters.action) activeChips.push({ key: 'action', label: formatActionLabel(filters.action) });
+    if (filters.role) activeChips.push({ key: 'role', label: formatLabel(filters.role) });
+    if (filters.date_from) activeChips.push({ key: 'date_from', label: `From ${filters.date_from}` });
+    if (filters.date_to) activeChips.push({ key: 'date_to', label: `To ${filters.date_to}` });
+
+    const activeCount = activeChips.length;
+    const hasFilters = activeCount > 0;
 
     return (
         <AdminLayout>
             <Head title="Audit Logs" />
 
-            <div className="min-h-screen bg-gray-50 p-4 sm:p-6 lg:p-8">
-                <div className="mx-auto max-w-7xl">
+            <div className="p-4 sm:p-6 lg:p-8">
+                <div className="mx-auto max-w-content">
                     <AdminPageHeader
                         eyebrow="Security & Accountability"
                         title="Audit Logs"
                         description="Review recorded staff actions and important system changes. Entries are displayed newest first."
                     />
 
-                    <section
-                        className="mt-6 overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm"
-                        aria-labelledby="audit-log-heading"
-                    >
-                        <div className="flex flex-col gap-3 border-b border-gray-100 px-5 py-5 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+                    <section className="mt-6 panel" aria-labelledby="audit-log-heading">
+                        <div className="panel-header flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                             <div>
-                                <h2
-                                    id="audit-log-heading"
-                                    className="text-lg font-bold tracking-tight text-gray-900"
-                                >
+                                <h2 id="audit-log-heading" className="panel-title">
                                     Activity History
                                 </h2>
-
-                                <p className="mt-1 text-sm text-gray-500">
-                                    Search actions by staff member, event, or
-                                    record identifier.
+                                <p className="panel-desc">
+                                    Search actions by staff member, event, or record identifier.
                                 </p>
                             </div>
 
-                            <div className="inline-flex w-fit items-center gap-2 rounded-full border border-red-100 bg-red-50 px-3 py-1.5">
-                                <span
-                                    className="material-symbols-outlined text-[18px] text-red-700"
-                                    aria-hidden="true"
-                                >
+                            <div className="badge-brand inline-flex w-fit items-center gap-2 px-3 py-1.5">
+                                <span className="material-symbols-outlined text-[18px]" aria-hidden="true">
                                     history
                                 </span>
-
-                                <span className="text-sm font-semibold text-red-800">
+                                <span className="text-caption font-semibold">
                                     {logs.total.toLocaleString('en-PH')}{' '}
                                     {logs.total === 1 ? 'entry' : 'entries'}
                                 </span>
@@ -206,229 +203,278 @@ export default function AuditLogs({
                         </div>
 
                         <form
+                            key={JSON.stringify(filters)}
                             method="get"
                             action={route('admin.audit-logs.index')}
-                            className="space-y-4 border-b border-gray-100 bg-gray-50/70 px-5 py-5 sm:px-6"
+                            className="border-b border-line bg-surface-muted px-5 py-4 sm:px-6"
                             aria-label="Filter audit logs"
                         >
-                            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
-                                <div className="lg:col-span-2">
-                                    <label
-                                        htmlFor="audit-search"
-                                        className="block text-sm font-medium text-gray-700"
-                                    >
-                                        Search
+                            {/* Row 1: Search + Filters toggle + Apply */}
+                            <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+                                <div className="relative flex-1">
+                                    <label htmlFor="audit-search" className="sr-only">
+                                        Search audit logs
                                     </label>
-
+                                    <span className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-ink-subtle">
+                                        <svg
+                                            className="h-4 w-4"
+                                            viewBox="0 0 24 24"
+                                            fill="none"
+                                            stroke="currentColor"
+                                            strokeWidth="2"
+                                            strokeLinecap="round"
+                                            strokeLinejoin="round"
+                                            aria-hidden="true"
+                                        >
+                                            <circle cx="11" cy="11" r="7" />
+                                            <path d="M21 21l-4.3-4.3" />
+                                        </svg>
+                                    </span>
                                     <input
                                         id="audit-search"
                                         type="search"
                                         name="search"
                                         maxLength={100}
                                         defaultValue={filters.search}
-                                        placeholder="Staff, action, or record ID"
-                                        className={inputClassName}
+                                        placeholder="Search staff, action, or record ID"
+                                        className="field-input pl-9"
                                     />
                                 </div>
 
-                                <div>
-                                    <label
-                                        htmlFor="audit-action"
-                                        className="block text-sm font-medium text-gray-700"
-                                    >
-                                        Action
-                                    </label>
-
-                                    <select
-                                        id="audit-action"
-                                        name="action"
-                                        defaultValue={filters.action}
-                                        className={inputClassName}
-                                    >
-                                        <option value="">All actions</option>
-
-                                        {actions.map((action) => (
-                                            <option key={action} value={action}>
-                                                {formatActionLabel(action)}
-                                            </option>
-                                        ))}
-                                    </select>
-                                </div>
-
-                                <div>
-                                    <label
-                                        htmlFor="audit-role"
-                                        className="block text-sm font-medium text-gray-700"
-                                    >
-                                        Staff role
-                                    </label>
-
-                                    <select
-                                        id="audit-role"
-                                        name="role"
-                                        defaultValue={filters.role}
-                                        className={inputClassName}
-                                    >
-                                        <option value="">All roles</option>
-                                        <option value="admin">Admin</option>
-                                        <option value="cashier">Cashier</option>
-                                    </select>
-                                </div>
-
-                                <div>
-                                    <label
-                                        htmlFor="audit-date-from"
-                                        className="block text-sm font-medium text-gray-700"
-                                    >
-                                        From date
-                                    </label>
-
-                                    <input
-                                        id="audit-date-from"
-                                        type="date"
-                                        name="date_from"
-                                        defaultValue={filters.date_from}
-                                        className={inputClassName}
-                                    />
-                                </div>
-
-                                <div>
-                                    <label
-                                        htmlFor="audit-date-to"
-                                        className="block text-sm font-medium text-gray-700"
-                                    >
-                                        To date
-                                    </label>
-
-                                    <input
-                                        id="audit-date-to"
-                                        type="date"
-                                        name="date_to"
-                                        min={filters.date_from || undefined}
-                                        defaultValue={filters.date_to}
-                                        className={inputClassName}
-                                    />
-                                </div>
-                            </div>
-
-                            <div className="flex flex-wrap items-center gap-3">
                                 <button
-                                    type="submit"
-                                    className="inline-flex min-h-10 items-center justify-center gap-2 rounded-lg bg-red-700 px-4 py-2 text-sm font-semibold text-white transition hover:bg-red-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2"
+                                    type="button"
+                                    onClick={() => setShowAdvanced((v) => !v)}
+                                    className={`btn-secondary sm:shrink-0 ${showAdvanced ? 'bg-surface-muted' : ''}`}
+                                    aria-expanded={showAdvanced}
+                                    aria-controls="audit-advanced-filters"
                                 >
-                                    <span
-                                        className="material-symbols-outlined text-[18px]"
-                                        aria-hidden="true"
-                                    >
-                                        filter_list
+                                    <span className="material-symbols-outlined text-[18px]" aria-hidden="true">
+                                        tune
                                     </span>
-                                    Apply filters
+                                    <span>Filters</span>
+                                    {activeCount > 0 && (
+                                        <span className="badge-brand ml-0.5 px-1.5 py-0 text-[10px]">
+                                            {activeCount}
+                                        </span>
+                                    )}
                                 </button>
 
-                                <Link
-                                    href={route('admin.audit-logs.index')}
-                                    className="inline-flex min-h-10 items-center justify-center rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2"
-                                >
-                                    Clear filters
-                                </Link>
+                                <button type="submit" className="btn-primary sm:shrink-0">
+                                    <span className="material-symbols-outlined text-[18px]" aria-hidden="true">
+                                        search
+                                    </span>
+                                    Apply
+                                </button>
                             </div>
+
+                            {/* Row 2: Advanced filters (progressive disclosure) */}
+                            {showAdvanced && (
+                                <div
+                                    id="audit-advanced-filters"
+                                    className="mt-4 grid gap-3 border-t border-line pt-4 sm:grid-cols-2 lg:grid-cols-4"
+                                >
+                                    <div>
+                                        <label htmlFor="audit-action" className="field-label">
+                                            Action
+                                        </label>
+                                        <select
+                                            id="audit-action"
+                                            name="action"
+                                            defaultValue={filters.action}
+                                            className="field-input"
+                                        >
+                                            <option value="">All actions</option>
+                                            {actions.map((action) => (
+                                                <option key={action} value={action}>
+                                                    {formatActionLabel(action)}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </div>
+
+                                    <div>
+                                        <label htmlFor="audit-role" className="field-label">
+                                            Staff role
+                                        </label>
+                                        <select
+                                            id="audit-role"
+                                            name="role"
+                                            defaultValue={filters.role}
+                                            className="field-input"
+                                        >
+                                            <option value="">All roles</option>
+                                            <option value="admin">Admin</option>
+                                            <option value="cashier">Cashier</option>
+                                        </select>
+                                    </div>
+
+                                    <div>
+                                        <label htmlFor="audit-date-from" className="field-label">
+                                            From date
+                                        </label>
+                                        <input
+                                            id="audit-date-from"
+                                            type="date"
+                                            name="date_from"
+                                            defaultValue={filters.date_from}
+                                            className="field-input"
+                                        />
+                                    </div>
+
+                                    <div>
+                                        <label htmlFor="audit-date-to" className="field-label">
+                                            To date
+                                        </label>
+                                        <input
+                                            id="audit-date-to"
+                                            type="date"
+                                            name="date_to"
+                                            min={filters.date_from || undefined}
+                                            defaultValue={filters.date_to}
+                                            className="field-input"
+                                        />
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Row 3: Active filter chips */}
+                            {hasFilters && (
+                                <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-line pt-4">
+                                    <span className="text-caption font-medium text-ink-muted">
+                                        Active filters:
+                                    </span>
+                                    {activeChips.map((chip) => (
+                                        <Link
+                                            key={chip.key}
+                                            href={buildUrl(chip.key)}
+                                            className="group inline-flex items-center gap-1 rounded-full border border-brand-200 bg-brand-50 px-2.5 py-0.5 text-caption font-medium text-brand-700 transition-colors hover:bg-brand-100 hover:border-brand-300"
+                                            aria-label={`Remove filter: ${chip.label}`}
+                                        >
+                                            <span className="max-w-[200px] truncate">{chip.label}</span>
+                                            <span className="material-symbols-outlined text-[14px] transition-transform group-hover:scale-110" aria-hidden="true">
+                                                close
+                                            </span>
+                                        </Link>
+                                    ))}
+                                    <Link
+                                        href={route('admin.audit-logs.index')}
+                                        className="ml-auto text-caption font-medium text-brand-700 hover:underline"
+                                    >
+                                        Clear all
+                                    </Link>
+                                </div>
+                            )}
                         </form>
 
                         {logs.data.length > 0 ? (
-                            <div className="divide-y divide-gray-100">
-                                {logs.data.map((log) => (
-                                    <article
-                                        key={log.id}
-                                        className="px-5 py-5 transition-colors hover:bg-gray-50/70 sm:px-6 sm:py-6"
-                                    >
-                                        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-                                            <div className="min-w-0">
-                                                <div className="flex flex-wrap items-center gap-2">
-                                                    <h3 className="break-words text-sm font-semibold text-gray-900">
-                                                        {log.description}
-                                                    </h3>
+                            <div className="divide-y divide-line">
+                                {logs.data.map((log) => {
+                                    const actorInitials = initials(log.actor_name);
+                                    return (
+                                        <article
+                                            key={log.id}
+                                            className={`border-l-2 px-5 py-5 transition-colors duration-base hover:bg-canvas/60 sm:px-6 sm:py-6 ${getActionAccentClass(log.action)}`}
+                                        >
+                                            <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                                                <div className="min-w-0 flex-1">
+                                                    <div className="flex items-start gap-3">
+                                                        <div
+                                                            className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-[11px] font-bold ring-1 ${
+                                                                actorInitials
+                                                                    ? 'bg-brand-50 text-brand-700 ring-brand-100'
+                                                                    : 'bg-surface-muted text-ink-subtle ring-line'
+                                                            }`}
+                                                            aria-hidden="true"
+                                                        >
+                                                            {actorInitials ?? (
+                                                                <span className="material-symbols-outlined text-[16px]">
+                                                                    person
+                                                                </span>
+                                                            )}
+                                                        </div>
 
-                                                    <span
-                                                        className={`inline-flex max-w-full break-words rounded-md border px-2.5 py-1 text-xs font-semibold ${getActionBadgeClassName(log.action)}`}
-                                                    >
-                                                        {formatActionBadgeLabel(log.action)}
-                                                    </span>
+                                                        <div className="min-w-0 flex-1">
+                                                            <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                                                                <span
+                                                                    className={`shrink-0 ${getActionBadgeClassName(log.action)}`}
+                                                                >
+                                                                    {formatActionBadgeLabel(log.action)}
+                                                                </span>
+                                                                <h3 className="break-words text-small font-semibold text-ink">
+                                                                    {log.description}
+                                                                </h3>
+                                                            </div>
+
+                                                            <div className="mt-1 flex flex-wrap items-center gap-x-2.5 gap-y-1">
+                                                                <span className="text-small font-medium text-ink">
+                                                                    {log.actor_name ?? 'Unknown staff account'}
+                                                                </span>
+                                                                {log.actor_role && (
+                                                                    <>
+                                                                        <span className="text-ink-subtle" aria-hidden="true">
+                                                                            ·
+                                                                        </span>
+                                                                        <span className="text-caption text-ink-muted">
+                                                                            {formatLabel(log.actor_role)}
+                                                                        </span>
+                                                                    </>
+                                                                )}
+                                                                {log.actor_id !== null && (
+                                                                    <>
+                                                                        <span className="text-ink-subtle" aria-hidden="true">
+                                                                            ·
+                                                                        </span>
+                                                                        <span className="text-caption tabular-nums text-ink-subtle">
+                                                                            #{log.actor_id}
+                                                                        </span>
+                                                                    </>
+                                                                )}
+                                                            </div>
+
+                                                            {(log.subject_type || log.subject_id !== null) && (
+                                                                <p className="mt-2 flex flex-wrap items-center gap-1.5 text-caption text-ink-muted">
+                                                                    <span>Affected:</span>
+                                                                    <span className="chip">
+                                                                        {log.subject_type ?? 'Record'}
+                                                                        {log.subject_id !== null && ` #${log.subject_id}`}
+                                                                    </span>
+                                                                </p>
+                                                            )}
+                                                        </div>
+                                                    </div>
                                                 </div>
 
-                                                <div className="mt-2 flex flex-wrap items-center gap-2">
-                                                    <span className="text-sm font-medium text-gray-800">
-                                                        {log.actor_name ?? 'Unknown staff account'}
-                                                    </span>
-
-                                                    {log.actor_role && (
-                                                        <span className="inline-flex rounded-full border border-gray-200 bg-gray-50 px-2.5 py-1 text-xs font-semibold text-gray-700">
-                                                            {formatLabel(log.actor_role)}
-                                                        </span>
-                                                    )}
-
-                                                    {log.actor_id !== null && (
-                                                        <span className="text-xs text-gray-500">
-                                                            Staff ID #{log.actor_id}
-                                                        </span>
-                                                    )}
-                                                </div>
-
-                                                {(log.subject_type ||
-                                                    log.subject_id !== null) && (
-                                                    <p className="mt-1 text-sm text-gray-500">
-                                                        Affected record:{' '}
-                                                        <span className="inline-flex rounded-md border border-gray-200 bg-gray-50 px-2 py-0.5 text-xs font-semibold text-gray-700">
-                                                            {log.subject_type ??
-                                                                'Record'}
-                                                            {log.subject_id !==
-                                                                null &&
-                                                                ` #${log.subject_id}`}
-                                                        </span>
-                                                    </p>
-                                                )}
+                                                <time
+                                                    dateTime={log.created_at}
+                                                    className="shrink-0 pl-12 text-caption text-ink-subtle sm:pl-0 sm:text-right"
+                                                >
+                                                    {formatDate(log.created_at)}
+                                                </time>
                                             </div>
 
-                                            <time
-                                                dateTime={log.created_at}
-                                                className="shrink-0 text-xs text-gray-500 sm:text-right"
-                                            >
-                                                {formatDate(log.created_at)}
-                                            </time>
-                                        </div>
-
-                                        {log.metadata &&
-                                            Object.keys(log.metadata).length >
-                                                0 && (
-                                                <dl className="mt-4 grid grid-cols-1 gap-3 rounded-xl border border-gray-100 bg-gray-50/70 p-4 sm:grid-cols-2 lg:grid-cols-3">
-                                                    {Object.entries(
-                                                        log.metadata,
-                                                    ).map(([key, value]) => (
-                                                        <div
-                                                            key={key}
-                                                            className="min-w-0"
-                                                        >
-                                                            <dt className="text-xs font-medium text-gray-500">
-                                                                {formatLabel(
-                                                                    key,
-                                                                )}
+                                            {log.metadata && Object.keys(log.metadata).length > 0 && (
+                                                <dl className="mt-4 ml-12 flex flex-wrap gap-x-6 gap-y-2 rounded-control border border-line bg-surface-muted px-4 py-3 text-caption">
+                                                    {Object.entries(log.metadata).map(([key, value]) => (
+                                                        <div key={key} className="flex min-w-0 items-center gap-1.5">
+                                                            <dt className="shrink-0 text-ink-subtle">
+                                                                {formatLabel(key)}:
                                                             </dt>
-
-                                                            <dd className="mt-1 break-words text-sm text-gray-800">
+                                                            <dd className="min-w-0 break-words font-medium text-ink">
                                                                 {(key === 'previous_status' || key === 'new_status') &&
                                                                 typeof value === 'string' ? (
                                                                     <span
-                                                                        className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${
+                                                                        className={
                                                                             value.toLowerCase() === 'active'
-                                                                                ? 'bg-green-50 text-green-700'
+                                                                                ? 'badge-success'
                                                                                 : value.toLowerCase() === 'inactive'
-                                                                                ? 'bg-red-50 text-red-700'
-                                                                                : 'bg-gray-100 text-gray-700'
-                                                                        }`}
+                                                                                ? 'badge-danger'
+                                                                                : 'badge-neutral'
+                                                                        }
                                                                     >
                                                                         {formatLabel(value)}
                                                                     </span>
                                                                 ) : value === null ? (
-                                                                    'Not available'
+                                                                    <span className="text-ink-subtle">Not available</span>
                                                                 ) : (
                                                                     String(value)
                                                                 )}
@@ -437,38 +483,28 @@ export default function AuditLogs({
                                                     ))}
                                                 </dl>
                                             )}
-                                    </article>
-                                ))}
+                                        </article>
+                                    );
+                                })}
                             </div>
                         ) : (
                             <div className="px-6 py-14 text-center sm:py-16">
-                                <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-red-50">
-                                    <span
-                                        className="material-symbols-outlined text-[28px] text-red-700"
-                                        aria-hidden="true"
-                                    >
+                                <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-control bg-brand-50 text-brand-600">
+                                    <span className="material-symbols-outlined text-[28px]" aria-hidden="true">
                                         manage_search
                                     </span>
                                 </div>
-
-                                <h3 className="mt-4 text-base font-semibold text-gray-900">
+                                <h3 className="mt-4 text-heading font-semibold text-ink">
                                     No audit entries found
                                 </h3>
-
-                                <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-gray-500">
+                                <p className="mx-auto mt-2 max-w-md text-small leading-6 text-ink-muted">
                                     {hasFilters
                                         ? 'No recorded actions match these filters. Try changing your search or clearing the filters.'
                                         : 'Audit entries will appear here after staff actions are recorded.'}
                                 </p>
-
                                 {hasFilters && (
-                                    <Link
-                                        href={route(
-                                            'admin.audit-logs.index',
-                                        )}
-                                        className="mt-4 inline-flex min-h-10 items-center justify-center rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-50"
-                                    >
-                                        Clear filters
+                                    <Link href={route('admin.audit-logs.index')} className="btn-secondary mt-4">
+                                        Clear all filters
                                     </Link>
                                 )}
                             </div>
@@ -476,30 +512,24 @@ export default function AuditLogs({
 
                         {logs.last_page > 1 && (
                             <nav
-                                className="flex flex-wrap items-center justify-center gap-1 border-t border-gray-100 px-5 py-4 sm:justify-end sm:px-6"
+                                className="flex flex-wrap items-center justify-center gap-1 border-t border-line px-5 py-4 sm:justify-end sm:px-6"
                                 aria-label="Audit log pagination"
                             >
                                 {logs.links.map((link, index) => {
-                                    const label = decodePaginationLabel(
-                                        link.label,
-                                    );
+                                    const label = decodePaginationLabel(link.label);
 
                                     const className = [
-                                        'flex min-h-10 min-w-10 items-center justify-center rounded-lg px-3 text-sm font-medium transition',
+                                        'flex min-h-10 min-w-10 items-center justify-center rounded-control px-3 text-small font-medium transition-colors',
                                         link.active
-                                            ? 'bg-red-700 text-white'
+                                            ? 'bg-brand text-white'
                                             : link.url
-                                              ? 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
-                                              : 'cursor-not-allowed text-gray-300',
+                                              ? 'text-ink-muted hover:bg-canvas hover:text-ink'
+                                              : 'cursor-not-allowed text-ink-subtle',
                                     ].join(' ');
 
                                     if (!link.url) {
                                         return (
-                                            <span
-                                                key={`${link.label}-${index}`}
-                                                className={className}
-                                                aria-disabled="true"
-                                            >
+                                            <span key={`${link.label}-${index}`} className={className} aria-disabled="true">
                                                 {label}
                                             </span>
                                         );
@@ -511,11 +541,7 @@ export default function AuditLogs({
                                             href={link.url}
                                             preserveScroll
                                             className={className}
-                                            aria-current={
-                                                link.active
-                                                    ? 'page'
-                                                    : undefined
-                                            }
+                                            aria-current={link.active ? 'page' : undefined}
                                         >
                                             {label}
                                         </Link>
@@ -525,18 +551,12 @@ export default function AuditLogs({
                         )}
 
                         {logs.total > 0 && (
-                            <div className="border-t border-gray-100 px-5 py-3 sm:px-6">
-                                <p className="text-xs text-gray-500">
+                            <div className="border-t border-line px-5 py-3 sm:px-6">
+                                <p className="text-caption text-ink-muted">
                                     Showing{' '}
-                                    <span className="font-medium text-gray-700">
-                                        {logs.from ?? 0}
-                                    </span>{' '}
-                                    to{' '}
-                                    <span className="font-medium text-gray-700">
-                                        {logs.to ?? 0}
-                                    </span>{' '}
-                                    of{' '}
-                                    <span className="font-medium text-gray-700">
+                                    <span className="font-medium text-ink">{logs.from ?? 0}</span> to{' '}
+                                    <span className="font-medium text-ink">{logs.to ?? 0}</span> of{' '}
+                                    <span className="font-medium text-ink">
                                         {logs.total.toLocaleString('en-PH')}
                                     </span>{' '}
                                     audit entries

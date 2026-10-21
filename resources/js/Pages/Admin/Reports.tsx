@@ -2,6 +2,7 @@ import { Head, Link, router } from '@inertiajs/react';
 import { useState } from 'react';
 import AdminLayout from '@/Layouts/AdminLayout';
 import AdminPageHeader from '@/Components/AdminPageHeader';
+import StatCard from '@/Components/StatCard';
 import {
     CartesianGrid,
     Line,
@@ -81,6 +82,125 @@ interface ReportsProps {
     };
 }
 
+/* ------------------------------------------------------------------ */
+/* Shared style tokens                                                 */
+/* ------------------------------------------------------------------ */
+
+const CHART = {
+    brand: '#A31F2B',
+    accent: '#F5C542',
+    inkSubtle: '#78716C',
+    line: '#E7E5E4',
+};
+
+const axisTick = { fontSize: 12, fill: CHART.inkSubtle };
+
+const tooltipStyle = {
+    borderRadius: '12px',
+    border: `1px solid ${CHART.line}`,
+    boxShadow: '0 4px 12px rgba(28, 25, 23, 0.08)',
+    padding: '10px 12px',
+};
+
+const peso = (value: string | number) =>
+    `₱${Number(value).toLocaleString('en-PH', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+    })}`;
+
+const n = (value: string | number) =>
+    Number(value).toLocaleString('en-PH');
+
+const formatRangeDate = (value: string) => {
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return value;
+    return date.toLocaleDateString('en-PH', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+    });
+};
+
+/* ------------------------------------------------------------------ */
+/* Icons                                                               */
+/* ------------------------------------------------------------------ */
+
+const statIcon = {
+    className: 'h-5 w-5',
+    viewBox: '0 0 24 24',
+    fill: 'none',
+    stroke: 'currentColor',
+    strokeWidth: 1.7,
+    strokeLinecap: 'round' as const,
+    strokeLinejoin: 'round' as const,
+    'aria-hidden': true,
+};
+
+const SalesIcon = () => (
+    <svg {...statIcon}>
+        <path d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2 2h12M10 19a1 1 0 11-2 0m9 0a1 1 0 11-2 0" />
+    </svg>
+);
+
+const ReceiptIcon = () => (
+    <svg {...statIcon}>
+        <path d="M6 3h12a1 1 0 0 1 1 1v17l-3-2-2 2-2-2-2 2-2-2-3 2V4a1 1 0 0 1 1-1Z" />
+        <path d="M9 8h6M9 12h6" />
+    </svg>
+);
+
+const TrendIcon = () => (
+    <svg {...statIcon}>
+        <path d="M3 17l6-6 4 4 8-8" />
+        <path d="M14 7h7v7" />
+    </svg>
+);
+
+const StarIcon = () => (
+    <svg {...statIcon}>
+        <path d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9L12 3z" />
+    </svg>
+);
+
+const TagIcon = () => (
+    <svg {...statIcon}>
+        <path d="M20 12l-8 8-8-8V4h8z" />
+        <circle cx="8.5" cy="8.5" r="1.5" />
+    </svg>
+);
+
+const GiftIcon = () => (
+    <svg {...statIcon}>
+        <path d="M20 12v7a2 2 0 01-2 2H6a2 2 0 01-2-2v-7M2 7h20v5H2zM12 7v14" />
+        <path d="M12 7H8.5a2.5 2.5 0 115-1c0 1.5-1.5 1-1.5 1z" />
+        <path d="M12 7h3.5a2.5 2.5 0 10-5-1c0 1.5 1 1 1.5 1z" />
+    </svg>
+);
+
+/* ------------------------------------------------------------------ */
+/* Reusable pieces                                                     */
+/* ------------------------------------------------------------------ */
+
+function EmptyChart({ text }: { text: string }) {
+    return (
+        <div className="flex h-full items-center justify-center rounded-control border border-dashed border-line bg-canvas">
+            <p className="text-small text-ink-muted">{text}</p>
+        </div>
+    );
+}
+
+function TableEmpty({ text }: { text: string }) {
+    return (
+        <div className="px-6 py-12 text-center">
+            <p className="text-small text-ink-muted">{text}</p>
+        </div>
+    );
+}
+
+/* ------------------------------------------------------------------ */
+/* Page                                                                */
+/* ------------------------------------------------------------------ */
+
 export default function Reports({
     filters,
     totalSales,
@@ -96,41 +216,33 @@ export default function Reports({
     pointsActivity,
     detailedTransactions,
 }: ReportsProps) {
-    const [period, setPeriod] = useState<ReportFilters['period']>(
-        filters.period,
-    );
-
+    const [period, setPeriod] = useState<ReportFilters['period']>(filters.period);
     const [startDate, setStartDate] = useState(filters.start_date);
     const [endDate, setEndDate] = useState(filters.end_date);
+
+    const periods: { value: ReportFilters['period']; label: string }[] = [
+        { value: 'today', label: 'Today' },
+        { value: 'week', label: 'This week' },
+        { value: 'month', label: 'This month' },
+        { value: 'year', label: 'This year' },
+        { value: 'custom', label: 'Custom' },
+    ];
 
     const applyPeriod = () => {
         router.get(
             route('admin.reports.index'),
             {
                 period,
-                ...(period === 'custom'
-                    ? {
-                        start_date: startDate,
-                        end_date: endDate,
-                    }
-                    : {}),
+                ...(period === 'custom' ? { start_date: startDate, end_date: endDate } : {}),
             },
-            {
-                preserveState: true,
-                preserveScroll: true,
-            },
+            { preserveState: true, preserveScroll: true },
         );
     };
 
     const exportReport = () => {
         const params = new URLSearchParams({
             period,
-            ...(period === 'custom'
-                ? {
-                    start_date: startDate,
-                    end_date: endDate,
-                }
-                : {}),
+            ...(period === 'custom' ? { start_date: startDate, end_date: endDate } : {}),
         });
 
         window.location.href = `${route('admin.reports.export')}?${params.toString()}`;
@@ -140,478 +252,529 @@ export default function Reports({
         <AdminLayout>
             <Head title="Reports" />
 
-            <div className="min-h-screen bg-gray-50 p-4 sm:p-6 lg:p-8">
-                <div className="mx-auto max-w-7xl">
+            <div className="p-4 sm:p-6 lg:p-8">
+                <div className="mx-auto max-w-content">
                     <AdminPageHeader
                         eyebrow="Analytics"
                         title="Reports"
                         description="Review sales, transactions, loyalty activity, and reward performance."
                     />
 
-                    <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                        <div className="relative overflow-hidden rounded-2xl border border-red-100 bg-white p-6 shadow-sm">
-                            <div className="absolute left-0 top-0 h-full w-1 bg-red-600" />
+                    {/* KPI cards — row 1 */}
+                    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                        <StatCard
+                            label="Total Sales"
+                            value={peso(totalSales)}
+                            icon={<SalesIcon />}
+                            footer="Revenue generated in this period"
+                        />
+                        <StatCard
+                            label="Total Transactions"
+                            value={n(totalTransactions)}
+                            icon={<ReceiptIcon />}
+                            footer="Receipts generated in this period"
+                        />
+                        <StatCard
+                            label="Average Transaction"
+                            value={peso(averageTransaction)}
+                            icon={<TrendIcon />}
+                            tone="accent"
+                            footer="Average spend per receipt"
+                        />
+                        <StatCard
+                            label="Points Earned"
+                            value={n(pointsEarned)}
+                            icon={<StarIcon />}
+                            footer="From customer purchases"
+                        />
+                    </div>
 
-                            <p className="text-sm font-medium text-gray-500">
-                                Total Sales
-                            </p>
-
-                            <p className="mt-3 text-3xl font-bold tracking-tight text-gray-900">
-                                ₱{Number(totalSales).toLocaleString('en-PH', {
-                                    minimumFractionDigits: 2,
-                                    maximumFractionDigits: 2,
-                                })}
-                            </p>
-                        </div>
-
-                        <div className="relative overflow-hidden rounded-2xl border border-gray-100 bg-white p-6 shadow-sm">
-                            <div className="absolute left-0 top-0 h-full w-1 bg-red-600" />
-
-                            <p className="text-sm font-medium text-gray-500">
-                                Total Transactions
-                            </p>
-
-                            <p className="mt-3 text-3xl font-bold tracking-tight text-gray-900">
-                                {Number(totalTransactions).toLocaleString('en-PH')}
-                            </p>
-                        </div>
-
-                        <div className="relative overflow-hidden rounded-2xl border border-gray-100 bg-white p-6 shadow-sm">
-                            <div className="absolute left-0 top-0 h-full w-1 bg-yellow-500" />
-
-                            <p className="text-sm font-medium text-gray-500">
-                                Average Transaction
-                            </p>
-
-                            <p className="mt-3 text-3xl font-bold tracking-tight text-gray-900">
-                                ₱{Number(averageTransaction).toLocaleString('en-PH', {
-                                    minimumFractionDigits: 2,
-                                    maximumFractionDigits: 2,
-                                })}
-                            </p>
-                        </div>
-
-                        <div className="relative overflow-hidden rounded-2xl border border-gray-100 bg-white p-6 shadow-sm">
-                            <div className="absolute left-0 top-0 h-full w-1 bg-red-600" />
-
-                            <p className="text-sm font-medium text-gray-500">
-                                Points Earned
-                            </p>
-
-                            <p className="mt-3 text-3xl font-bold tracking-tight text-gray-900">
-                                {Number(pointsEarned).toLocaleString('en-PH')}
-                            </p>
-
-                            <p className="mt-1 text-xs text-gray-500">
-                                From customer purchases
-                            </p>
-                        </div>
-
-                        <div className="relative overflow-hidden rounded-2xl border border-gray-100 bg-white p-6 shadow-sm">
-                            <div className="absolute left-0 top-0 h-full w-1 bg-yellow-500" />
-
-                            <p className="text-sm font-medium text-gray-500">
-                                Points Used for Purchases
-                            </p>
-
-                            <p className="mt-3 text-3xl font-bold tracking-tight text-gray-900">
-                                {Number(pointsUsedForPurchases).toLocaleString('en-PH')}
-                            </p>
-
-                            <p className="mt-1 text-xs text-gray-500">
-                                Used toward purchase payment
-                            </p>
-                        </div>
-
-                        <div className="relative overflow-hidden rounded-2xl border border-gray-100 bg-white p-6 shadow-sm">
-                            <div className="absolute left-0 top-0 h-full w-1 bg-yellow-500" />
-
-                            <p className="text-sm font-medium text-gray-500">
-                                Reward Redemptions
-                            </p>
-
-                            <p className="mt-3 text-3xl font-bold tracking-tight text-gray-900">
-                                {Number(rewardRedemptions).toLocaleString('en-PH')}
-                            </p>
-
-                            <p className="mt-1 text-xs text-gray-500">
-                                Completed redemptions
-                            </p>
-                        </div>
-
-                        <div className="relative overflow-hidden rounded-2xl border border-gray-100 bg-white p-6 shadow-sm sm:col-span-2">
-                            <div className="absolute left-0 top-0 h-full w-1 bg-red-600" />
-
-                            <p className="text-sm font-medium text-gray-500">
-                                Points Spent on Rewards
-                            </p>
-
-                            <p className="mt-3 text-3xl font-bold tracking-tight text-gray-900">
-                                {Number(pointsSpentOnRewards).toLocaleString('en-PH')}
-                            </p>
-
-                            <p className="mt-1 text-xs text-gray-500">
-                                Points used for completed reward redemptions
-                            </p>
+                    {/* KPI cards — row 2 */}
+                    <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                        <StatCard
+                            label="Points Used for Purchases"
+                            value={n(pointsUsedForPurchases)}
+                            icon={<TagIcon />}
+                            tone="accent"
+                            footer="Used toward purchase payment"
+                        />
+                        <StatCard
+                            label="Reward Redemptions"
+                            value={n(rewardRedemptions)}
+                            icon={<GiftIcon />}
+                            tone="accent"
+                            footer="Completed redemptions"
+                        />
+                        <div className="sm:col-span-2 lg:col-span-1">
+                            <StatCard
+                                label="Points Spent on Rewards"
+                                value={n(pointsSpentOnRewards)}
+                                icon={<GiftIcon />}
+                                footer="Points used for completed reward redemptions"
+                            />
                         </div>
                     </div>
 
-                    <div className="mt-6 overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm">
-                        <div className="flex flex-col gap-4 border-b border-gray-100 px-6 py-5 sm:flex-row sm:items-center sm:justify-between">
+                    {/* Report period — unified with the app's filter bar pattern */}
+                    <section className="mt-6 panel" aria-labelledby="report-period-heading">
+                        <div className="panel-header">
+                            <h2 id="report-period-heading" className="panel-title">
+                                Report period
+                            </h2>
+                            <p className="panel-desc">
+                                Choose the date range that every report below should cover.
+                            </p>
+                        </div>
+
+                        <div className="border-b border-line bg-surface-muted px-5 py-4 sm:px-6">
+                            {/* Filter row: period pills + Apply */}
+                            <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+                                <div
+                                    role="group"
+                                    aria-label="Report period"
+                                    className="flex flex-wrap gap-2"
+                                >
+                                    {periods.map((p) => {
+                                        const isActive = period === p.value;
+                                        return (
+                                            <button
+                                                key={p.value}
+                                                type="button"
+                                                aria-pressed={isActive}
+                                                onClick={() => setPeriod(p.value)}
+                                                className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-small font-medium transition-colors duration-base ease-standard ${
+                                                    isActive
+                                                        ? 'border-brand-200 bg-brand-50 text-brand-700 shadow-sm'
+                                                        : 'border-line-strong bg-surface text-ink-muted hover:bg-canvas hover:text-ink'
+                                                }`}
+                                            >
+                                                {isActive && (
+                                                    <span
+                                                        className="h-1.5 w-1.5 rounded-full bg-brand"
+                                                        aria-hidden="true"
+                                                    />
+                                                )}
+                                                {p.label}
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+
+                                <button
+                                    type="button"
+                                    onClick={applyPeriod}
+                                    className="btn-primary sm:ml-auto sm:shrink-0"
+                                >
+                                    <span
+                                        className="material-symbols-outlined text-[18px]"
+                                        aria-hidden="true"
+                                    >
+                                        refresh
+                                    </span>
+                                    Apply
+                                </button>
+                            </div>
+
+                            {/* Custom date inputs — progressive disclosure */}
+                            {period === 'custom' && (
+                                <div className="mt-4 grid gap-3 border-t border-line pt-4 sm:grid-cols-2">
+                                    <div>
+                                        <label htmlFor="start-date" className="field-label">
+                                            Start date
+                                        </label>
+                                        <input
+                                            id="start-date"
+                                            type="date"
+                                            required
+                                            max={endDate || undefined}
+                                            value={startDate}
+                                            onChange={(event) => setStartDate(event.target.value)}
+                                            className="field-input"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label htmlFor="end-date" className="field-label">
+                                            End date
+                                        </label>
+                                        <input
+                                            id="end-date"
+                                            type="date"
+                                            required
+                                            min={startDate || undefined}
+                                            value={endDate}
+                                            onChange={(event) => setEndDate(event.target.value)}
+                                            className="field-input"
+                                        />
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Currently showing — brand-tinted range chip */}
+                            <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-line pt-4">
+                                <span className="text-caption font-medium text-ink-muted">
+                                    Currently showing:
+                                </span>
+                                <span className="badge-brand">
+                                    <span
+                                        className="material-symbols-outlined text-[14px]"
+                                        aria-hidden="true"
+                                    >
+                                        calendar_today
+                                    </span>
+                                    {formatRangeDate(filters.start_date)} – {formatRangeDate(filters.end_date)}
+                                </span>
+                            </div>
+                        </div>
+                    </section>
+
+                    {/* Sales and transaction trends */}
+                    <section className="mt-6 panel">
+                        <div className="panel-header flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                             <div>
-                                <h2 className="text-lg font-bold tracking-tight text-gray-900">
-                                    Sales and Transaction Trends
-                                </h2>
-                                <p className="mt-1 text-sm text-gray-500">
+                                <h2 className="panel-title">Sales and transaction trends</h2>
+                                <p className="panel-desc">
                                     Transactions recorded during the selected report period.
-                                    {detailedTransactions.total > 0 &&
-                                        ` Showing ${detailedTransactions.total.toLocaleString('en-PH')} transaction${detailedTransactions.total === 1 ? '' : 's'}.`}
                                 </p>
                             </div>
 
                             <button
                                 type="button"
                                 onClick={exportReport}
-                                className="inline-flex min-h-10 items-center justify-center rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-semibold text-gray-700 shadow-sm transition hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
+                                className="btn-secondary shrink-0"
                             >
+                                <span
+                                    className="material-symbols-outlined text-[18px]"
+                                    aria-hidden="true"
+                                >
+                                    download
+                                </span>
                                 Export CSV
                             </button>
                         </div>
 
                         <div className="p-6">
-                            <div className="h-72">
+                            <div
+                                className="h-72"
+                                role="img"
+                                aria-label="Line chart of sales and transaction trends"
+                            >
                                 {salesTrend.length > 0 ? (
                                     <ResponsiveContainer width="100%" height="100%">
                                         <LineChart
                                             data={salesTrend}
-                                            margin={{
-                                                top: 8,
-                                                right: 8,
-                                                left: 8,
-                                                bottom: 8,
-                                            }}
+                                            margin={{ top: 8, right: 8, left: 8, bottom: 8 }}
                                         >
                                             <CartesianGrid
                                                 strokeDasharray="3 3"
                                                 vertical={false}
+                                                stroke={CHART.line}
                                             />
-
                                             <XAxis
                                                 dataKey="date"
-                                                tick={{ fontSize: 12 }}
+                                                tick={axisTick}
                                                 tickLine={false}
                                                 axisLine={false}
                                             />
-
                                             <YAxis
                                                 yAxisId="sales"
-                                                tick={{ fontSize: 12 }}
+                                                tick={axisTick}
                                                 tickLine={false}
                                                 axisLine={false}
+                                                width={64}
+                                                tickFormatter={(value) =>
+                                                    `₱${Number(value).toLocaleString('en-PH')}`
+                                                }
                                             />
-
                                             <YAxis
                                                 yAxisId="transactions"
                                                 orientation="right"
-                                                tick={{ fontSize: 12 }}
+                                                tick={axisTick}
                                                 tickLine={false}
                                                 axisLine={false}
                                                 allowDecimals={false}
+                                                width={36}
                                             />
-
-                                            <Tooltip />
-
+                                            <Tooltip
+                                                contentStyle={tooltipStyle}
+                                                labelStyle={{
+                                                    color: CHART.inkSubtle,
+                                                    fontWeight: 600,
+                                                }}
+                                            />
                                             <Line
                                                 yAxisId="sales"
                                                 type="monotone"
                                                 dataKey="total_sales"
                                                 name="Sales"
-                                                stroke="#dc2626"
+                                                stroke={CHART.brand}
                                                 strokeWidth={2.5}
                                                 dot={false}
                                             />
-
                                             <Line
                                                 yAxisId="transactions"
                                                 type="monotone"
                                                 dataKey="transaction_count"
                                                 name="Transactions"
-                                                stroke="#facc15"
+                                                stroke={CHART.accent}
                                                 strokeWidth={2.5}
                                                 dot={false}
                                             />
                                         </LineChart>
                                     </ResponsiveContainer>
                                 ) : (
-                                    <div className="flex h-full items-center justify-center rounded-xl bg-gray-50">
-                                        <p className="text-sm text-gray-500">
-                                            No sales or transaction data for this period.
-                                        </p>
-                                    </div>
+                                    <EmptyChart text="No sales or transaction data for this period." />
                                 )}
                             </div>
                         </div>
-                    </div>
+                    </section>
 
-                    <div className="mt-6 overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm">
-                        <div className="border-b border-gray-100 px-6 py-5">
-                            <h2 className="text-lg font-bold tracking-tight text-gray-900">
-                                Purchase Points Activity
-                            </h2>
-
-                            <p className="mt-1 text-sm text-gray-500">
+                    {/* Purchase points activity */}
+                    <section className="mt-6 panel">
+                        <div className="panel-header">
+                            <h2 className="panel-title">Purchase points activity</h2>
+                            <p className="panel-desc">
                                 Daily points earned and points used toward purchase payments.
                             </p>
                         </div>
 
                         <div className="p-6">
-                            <div className="h-72">
+                            <div
+                                className="h-72"
+                                role="img"
+                                aria-label="Line chart of purchase points activity"
+                            >
                                 {pointsActivity.length > 0 ? (
                                     <ResponsiveContainer width="100%" height="100%">
                                         <LineChart
                                             data={pointsActivity}
-                                            margin={{
-                                                top: 8,
-                                                right: 8,
-                                                left: 8,
-                                                bottom: 8,
-                                            }}
+                                            margin={{ top: 8, right: 8, left: 8, bottom: 8 }}
                                         >
                                             <CartesianGrid
                                                 strokeDasharray="3 3"
                                                 vertical={false}
+                                                stroke={CHART.line}
                                             />
-
                                             <XAxis
                                                 dataKey="date"
-                                                tick={{ fontSize: 12 }}
+                                                tick={axisTick}
                                                 tickLine={false}
                                                 axisLine={false}
                                             />
-
                                             <YAxis
-                                                tick={{ fontSize: 12 }}
+                                                tick={axisTick}
                                                 tickLine={false}
                                                 axisLine={false}
                                                 allowDecimals={false}
+                                                width={36}
                                             />
-
-                                            <Tooltip />
-
+                                            <Tooltip
+                                                contentStyle={tooltipStyle}
+                                                labelStyle={{
+                                                    color: CHART.inkSubtle,
+                                                    fontWeight: 600,
+                                                }}
+                                            />
                                             <Line
                                                 type="monotone"
                                                 dataKey="points_earned"
-                                                name="Points Earned"
-                                                stroke="#dc2626"
+                                                name="Points earned"
+                                                stroke={CHART.brand}
                                                 strokeWidth={2.5}
                                                 dot={false}
                                             />
-
                                             <Line
                                                 type="monotone"
                                                 dataKey="points_used"
-                                                name="Points Used for Purchases"
-                                                stroke="#facc15"
+                                                name="Points used for purchases"
+                                                stroke={CHART.accent}
                                                 strokeWidth={2.5}
                                                 dot={false}
                                             />
                                         </LineChart>
                                     </ResponsiveContainer>
                                 ) : (
-                                    <div className="flex h-full items-center justify-center rounded-xl bg-gray-50">
-                                        <p className="text-sm text-gray-500">
-                                            No purchase points activity for this period.
-                                        </p>
-                                    </div>
+                                    <EmptyChart text="No purchase points activity for this period." />
                                 )}
                             </div>
                         </div>
-                    </div>
+                    </section>
 
-                    <div className="mt-6 overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm">
-                        <div className="border-b border-gray-100 px-6 py-5">
-                            <h2 className="text-lg font-bold tracking-tight text-gray-900">
-                                Top Customers by Current Points
-                            </h2>
-
-                            <p className="mt-1 text-sm text-gray-500">
+                    {/* Top customers */}
+                    <section className="mt-6 panel">
+                        <div className="panel-header">
+                            <h2 className="panel-title">Top customers by current points</h2>
+                            <p className="panel-desc">
                                 Customers with the highest current loyalty point balances.
                             </p>
                         </div>
 
                         <div className="overflow-x-auto">
                             {pointsLeaderboard.length > 0 ? (
-                                <table className="min-w-full">
-                                    <thead>
-                                        <tr className="border-b border-gray-100 bg-gray-50">
-                                            <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
+                                <table className="w-full text-left text-small">
+                                    <thead className="border-b border-line bg-surface-muted">
+                                        <tr>
+                                            <th scope="col" className="table-th">
                                                 Rank
                                             </th>
-                                            <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
+                                            <th scope="col" className="table-th">
                                                 Customer
                                             </th>
-                                            <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
-                                                Customer Code
+                                            <th scope="col" className="table-th">
+                                                Customer code
                                             </th>
-                                            <th className="px-6 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-500">
-                                                Current Points
+                                            <th scope="col" className="table-th text-right">
+                                                Current points
                                             </th>
                                         </tr>
                                     </thead>
-
-                                    <tbody className="divide-y divide-gray-100">
+                                    <tbody className="divide-y divide-line">
                                         {pointsLeaderboard.map((customer, index) => (
-                                            <tr key={customer.id} className="hover:bg-gray-50">
-                                                <td className="px-6 py-4 text-sm font-semibold text-gray-900">
+                                            <tr
+                                                key={customer.id}
+                                                className="transition-colors duration-base hover:bg-canvas/60"
+                                            >
+                                                <td className="px-6 py-4 font-semibold tabular-nums text-ink">
                                                     {index + 1}
                                                 </td>
-
-                                                <td className="px-6 py-4 text-sm font-medium text-gray-900">
+                                                <td className="px-6 py-4 font-medium text-ink">
                                                     {customer.first_name} {customer.last_name}
                                                 </td>
-
-                                                <td className="px-6 py-4 text-sm text-gray-500">
-                                                    {customer.customer_code}
+                                                <td className="px-6 py-4">
+                                                    <span className="chip">
+                                                        {customer.customer_code}
+                                                    </span>
                                                 </td>
-
-                                                <td className="px-6 py-4 text-right text-sm font-semibold text-gray-900">
-                                                    {Number(customer.points).toLocaleString('en-PH')}
+                                                <td className="px-6 py-4 text-right font-semibold tabular-nums text-ink">
+                                                    {n(customer.points)}
                                                 </td>
                                             </tr>
                                         ))}
                                     </tbody>
                                 </table>
                             ) : (
-                                <div className="px-6 py-10 text-center">
-                                    <p className="text-sm text-gray-500">
-                                        No customers with loyalty points yet.
-                                    </p>
-                                </div>
+                                <TableEmpty text="No customers with loyalty points yet." />
                             )}
                         </div>
-                    </div>
+                    </section>
 
-                    <div className="mt-6 overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm">
-                        <div className="border-b border-gray-100 px-6 py-5">
-                            <h2 className="text-lg font-bold tracking-tight text-gray-900">
-                                Detailed Transactions
-                            </h2>
-
-                            <p className="mt-1 text-sm text-gray-500">
+                    {/* Detailed transactions */}
+                    <section className="mt-6 panel">
+                        <div className="panel-header">
+                            <h2 className="panel-title">Detailed transactions</h2>
+                            <p className="panel-desc">
                                 Transactions recorded during the selected report period.
-                                {detailedTransactions.total > 0 &&
-                                    ` Showing ${detailedTransactions.total.toLocaleString('en-PH')} transaction${detailedTransactions.total === 1 ? '' : 's'}.`}
+                                {detailedTransactions.total > 0 && (
+                                    <>
+                                        {' '}Showing{' '}
+                                        <span className="font-semibold text-ink">
+                                            {n(detailedTransactions.total)}
+                                        </span>{' '}
+                                        transaction
+                                        {detailedTransactions.total === 1 ? '' : 's'}.
+                                    </>
+                                )}
                             </p>
                         </div>
 
                         <div className="overflow-x-auto">
                             {detailedTransactions.data.length > 0 ? (
-                                <table className="min-w-full">
-                                    <thead>
-                                        <tr className="border-b border-gray-100 bg-gray-50">
-                                            <th className="whitespace-nowrap px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
+                                <table className="w-full min-w-[860px] text-left text-small">
+                                    <thead className="border-b border-line bg-surface-muted">
+                                        <tr>
+                                            <th scope="col" className="table-th whitespace-nowrap">
                                                 Date
                                             </th>
-                                            <th className="whitespace-nowrap px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
+                                            <th scope="col" className="table-th whitespace-nowrap">
                                                 Receipt
                                             </th>
-                                            <th className="whitespace-nowrap px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
+                                            <th scope="col" className="table-th whitespace-nowrap">
                                                 Customer
                                             </th>
-                                            <th className="whitespace-nowrap px-6 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-500">
+                                            <th
+                                                scope="col"
+                                                className="table-th text-right whitespace-nowrap"
+                                            >
                                                 Purchase
                                             </th>
-                                            <th className="whitespace-nowrap px-6 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-500">
-                                                Points Used
+                                            <th
+                                                scope="col"
+                                                className="table-th text-right whitespace-nowrap"
+                                            >
+                                                Points used
                                             </th>
-                                            <th className="whitespace-nowrap px-6 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-500">
+                                            <th
+                                                scope="col"
+                                                className="table-th text-right whitespace-nowrap"
+                                            >
                                                 Paid
                                             </th>
-                                            <th className="whitespace-nowrap px-6 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-500">
+                                            <th
+                                                scope="col"
+                                                className="table-th text-right whitespace-nowrap"
+                                            >
                                                 Earned
                                             </th>
                                         </tr>
                                     </thead>
-
-                                    <tbody className="divide-y divide-gray-100">
+                                    <tbody className="divide-y divide-line">
                                         {detailedTransactions.data.map((transaction) => (
-                                            <tr key={transaction.id} className="hover:bg-gray-50">
-                                                <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-700">
-                                                    {new Date(transaction.created_at).toLocaleDateString(
-                                                        'en-PH',
-                                                        {
-                                                            year: 'numeric',
-                                                            month: 'short',
-                                                            day: 'numeric',
-                                                        },
-                                                    )}
+                                            <tr
+                                                key={transaction.id}
+                                                className="transition-colors duration-base hover:bg-canvas/60"
+                                            >
+                                                <td className="whitespace-nowrap px-6 py-4 text-ink-muted">
+                                                    {new Date(
+                                                        transaction.created_at,
+                                                    ).toLocaleDateString('en-PH', {
+                                                        year: 'numeric',
+                                                        month: 'short',
+                                                        day: 'numeric',
+                                                    })}
                                                 </td>
-
-                                                <td className="whitespace-nowrap px-6 py-4 text-sm font-medium text-gray-900">
+                                                <td className="whitespace-nowrap px-6 py-4 font-medium text-ink">
                                                     {transaction.receipt_number}
                                                 </td>
-
-                                                <td className="px-6 py-4 text-sm">
+                                                <td className="px-6 py-4">
                                                     {transaction.customer ? (
                                                         <div>
-                                                            <p className="font-medium text-gray-900">
+                                                            <p className="font-medium text-ink">
                                                                 {transaction.customer.first_name}{' '}
                                                                 {transaction.customer.last_name}
                                                             </p>
-                                                            <p className="mt-0.5 text-xs text-gray-500">
+                                                            <p className="mt-0.5 text-caption text-ink-muted">
                                                                 {transaction.customer.customer_code}
                                                             </p>
                                                         </div>
                                                     ) : (
-                                                        <span className="text-gray-500">
-                                                            Walk-in Customer
+                                                        <span className="text-ink-muted">
+                                                            Walk-in customer
                                                         </span>
                                                     )}
                                                 </td>
-
-                                                <td className="whitespace-nowrap px-6 py-4 text-right text-sm text-gray-700">
-                                                    ₱{Number(transaction.purchase_amount).toLocaleString(
-                                                        'en-PH',
-                                                        {
-                                                            minimumFractionDigits: 2,
-                                                            maximumFractionDigits: 2,
-                                                        },
-                                                    )}
+                                                <td className="whitespace-nowrap px-6 py-4 text-right tabular-nums text-ink-muted">
+                                                    {peso(transaction.purchase_amount)}
                                                 </td>
-
-                                                <td className="whitespace-nowrap px-6 py-4 text-right text-sm text-gray-700">
-                                                    {Number(transaction.points_used).toLocaleString('en-PH')}
+                                                <td className="whitespace-nowrap px-6 py-4 text-right tabular-nums text-ink-muted">
+                                                    {n(transaction.points_used)}
                                                 </td>
-
-                                                <td className="whitespace-nowrap px-6 py-4 text-right text-sm font-semibold text-gray-900">
-                                                    ₱{Number(transaction.amount_paid).toLocaleString(
-                                                        'en-PH',
-                                                        {
-                                                            minimumFractionDigits: 2,
-                                                            maximumFractionDigits: 2,
-                                                        },
-                                                    )}
+                                                <td className="whitespace-nowrap px-6 py-4 text-right font-semibold tabular-nums text-ink">
+                                                    {peso(transaction.amount_paid)}
                                                 </td>
-
-                                                <td className="whitespace-nowrap px-6 py-4 text-right text-sm font-semibold text-gray-900">
-                                                    {Number(transaction.points_earned).toLocaleString('en-PH')}
+                                                <td className="whitespace-nowrap px-6 py-4 text-right font-semibold tabular-nums text-ink">
+                                                    {n(transaction.points_earned)}
                                                 </td>
                                             </tr>
                                         ))}
                                     </tbody>
                                 </table>
                             ) : (
-                                <div className="px-6 py-10 text-center">
-                                    <p className="text-sm text-gray-500">
-                                        No transactions for this period.
-                                    </p>
-                                </div>
+                                <TableEmpty text="No transactions for this period." />
                             )}
                         </div>
 
                         {detailedTransactions.last_page > 1 && (
                             <nav
-                                className="flex flex-wrap items-center justify-center gap-1 border-t border-gray-100 px-5 py-4 sm:justify-end sm:px-6"
+                                className="flex flex-wrap items-center justify-center gap-1 border-t border-line px-5 py-4 sm:justify-end sm:px-6"
                                 aria-label="Detailed transactions pagination"
                             >
                                 {detailedTransactions.links.map((link, index) => {
@@ -623,12 +786,12 @@ export default function Reports({
                                         .replace(/&gt;/g, '>');
 
                                     const className = [
-                                        'flex min-h-10 min-w-10 items-center justify-center rounded-lg px-3 text-sm font-medium transition',
+                                        'flex min-h-10 min-w-10 items-center justify-center rounded-control px-3 text-small font-medium transition-colors',
                                         link.active
-                                            ? 'bg-red-700 text-white'
+                                            ? 'bg-brand text-white'
                                             : link.url
-                                            ? 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
-                                            : 'cursor-not-allowed text-gray-300',
+                                              ? 'text-ink-muted hover:bg-canvas hover:text-ink'
+                                              : 'cursor-not-allowed text-ink-subtle',
                                     ].join(' ');
 
                                     if (!link.url) {
@@ -657,154 +820,57 @@ export default function Reports({
                                 })}
                             </nav>
                         )}
-                    </div>
+                    </section>
 
-                    <div className="mt-6 overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm">
-                        <div className="border-b border-gray-100 px-6 py-5">
-                            <h2 className="text-lg font-bold tracking-tight text-gray-900">
-                                Reward Breakdown
-                            </h2>
-
-                            <p className="mt-1 text-sm text-gray-500">
+                    {/* Reward breakdown */}
+                    <section className="mt-6 panel">
+                        <div className="panel-header">
+                            <h2 className="panel-title">Reward breakdown</h2>
+                            <p className="panel-desc">
                                 Completed reward redemptions for the selected period.
                             </p>
                         </div>
 
                         <div className="overflow-x-auto">
                             {rewardBreakdown.length > 0 ? (
-                                <table className="min-w-full">
-                                    <thead>
-                                        <tr className="border-b border-gray-100 bg-gray-50">
-                                            <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
+                                <table className="w-full text-left text-small">
+                                    <thead className="border-b border-line bg-surface-muted">
+                                        <tr>
+                                            <th scope="col" className="table-th">
                                                 Reward
                                             </th>
-                                            <th className="px-6 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-500">
+                                            <th scope="col" className="table-th text-right">
                                                 Redemptions
                                             </th>
-                                            <th className="px-6 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-500">
-                                                Points Used
+                                            <th scope="col" className="table-th text-right">
+                                                Points used
                                             </th>
                                         </tr>
                                     </thead>
-
-                                    <tbody className="divide-y divide-gray-100">
+                                    <tbody className="divide-y divide-line">
                                         {rewardBreakdown.map((item) => (
-                                            <tr key={item.reward_id} className="hover:bg-gray-50">
-                                                <td className="px-6 py-4 text-sm font-medium text-gray-900">
+                                            <tr
+                                                key={item.reward_id}
+                                                className="transition-colors duration-base hover:bg-canvas/60"
+                                            >
+                                                <td className="px-6 py-4 font-medium text-ink">
                                                     {item.reward.reward_name}
                                                 </td>
-
-                                                <td className="px-6 py-4 text-right text-sm text-gray-700">
-                                                    {Number(item.redemption_count).toLocaleString('en-PH')}
+                                                <td className="px-6 py-4 text-right tabular-nums text-ink-muted">
+                                                    {n(item.redemption_count)}
                                                 </td>
-
-                                                <td className="px-6 py-4 text-right text-sm font-semibold text-gray-900">
-                                                    {Number(item.points_used).toLocaleString('en-PH')}
+                                                <td className="px-6 py-4 text-right font-semibold tabular-nums text-ink">
+                                                    {n(item.points_used)}
                                                 </td>
                                             </tr>
                                         ))}
                                     </tbody>
                                 </table>
                             ) : (
-                                <div className="px-6 py-10 text-center">
-                                    <p className="text-sm text-gray-500">
-                                        No completed reward redemptions for this period.
-                                    </p>
-                                </div>
+                                <TableEmpty text="No completed reward redemptions for this period." />
                             )}
                         </div>
-                    </div>
-
-                    <div className="mt-6 rounded-2xl border border-gray-100 bg-white p-5 shadow-sm sm:p-6">
-                        <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-                            <div>
-                                <h2 className="text-base font-semibold text-gray-950">
-                                    Report Period
-                                </h2>
-
-                                <p className="mt-1 text-sm text-gray-500">
-                                    Choose the date range for the report.
-                                </p>
-                            </div>
-
-                            <div className="w-full sm:w-56">
-                                <label
-                                    htmlFor="report-period"
-                                    className="mb-2 block text-sm font-medium text-gray-700"
-                                >
-                                    Period
-                                </label>
-
-                                <select
-                                    id="report-period"
-                                    value={period}
-                                    onChange={(event) =>
-                                        setPeriod(
-                                            event.target
-                                                .value as ReportFilters['period'],
-                                        )
-                                    }
-                                    className="block w-full rounded-xl border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-900 shadow-sm focus:border-red-500 focus:ring-red-500"
-                                >
-                                    <option value="today">Today</option>
-                                    <option value="week">This Week</option>
-                                    <option value="month">This Month</option>
-                                    <option value="year">This Year</option>
-                                    <option value="custom">Custom Range</option>
-                                </select>
-
-                                <button
-                                    type="button"
-                                    onClick={applyPeriod}
-                                    className="mt-3 w-full rounded-xl bg-red-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
-                                >
-                                    Apply
-                                </button>
-                            </div>
-                        </div>
-
-                        {period === 'custom' && (
-                            <div className="mt-5 grid gap-4 border-t border-gray-100 pt-5 sm:grid-cols-2">
-                                <div>
-                                    <label
-                                        htmlFor="start-date"
-                                        className="mb-2 block text-sm font-medium text-gray-700"
-                                    >
-                                        Start Date
-                                    </label>
-
-                                    <input
-                                        id="start-date"
-                                        type="date"
-                                        required
-                                        max={endDate || undefined}
-                                        value={startDate}
-                                        onChange={(event) => setStartDate(event.target.value)}
-                                        className="block w-full rounded-xl border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-900 shadow-sm focus:border-red-500 focus:ring-red-500"
-                                    />
-                                </div>
-
-                                <div>
-                                    <label
-                                        htmlFor="end-date"
-                                        className="mb-2 block text-sm font-medium text-gray-700"
-                                    >
-                                        End Date
-                                    </label>
-
-                                    <input
-                                        id="end-date"
-                                        type="date"
-                                        required
-                                        min={startDate || undefined}
-                                        value={endDate}
-                                        onChange={(event) => setEndDate(event.target.value)}
-                                        className="block w-full rounded-xl border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-900 shadow-sm focus:border-red-500 focus:ring-red-500"
-                                    />
-                                </div>
-                            </div>
-                        )}
-                    </div>
+                    </section>
                 </div>
             </div>
         </AdminLayout>

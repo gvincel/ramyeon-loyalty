@@ -1,3 +1,235 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* ---------------------------------------------------------------
+   Design tokens (RGB channels so Tailwind opacity utilities work)
+   --------------------------------------------------------------- */
+:root {
+    /* Brand: deep red / burgundy */
+    --brand-50: 251 241 241;
+    --brand-100: 246 222 223;
+    --brand-200: 237 191 193;
+    --brand-300: 224 149 153;
+    --brand-400: 207 95 102;
+    --brand-500: 188 52 62;
+    --brand-600: 163 31 43;
+    --brand-700: 134 26 36;
+    --brand-800: 107 21 30;
+    --brand-900: 79 16 23;
+
+    /* Accent: yellow / gold */
+    --accent-100: 255 244 204;
+    --accent-400: 245 197 66;
+    --accent-500: 232 176 42;
+
+    /* Surfaces, text, borders */
+    --canvas: 246 244 241;
+    --surface: 255 255 255;
+    --surface-muted: 250 249 247;
+    --ink: 28 25 23;
+    --ink-muted: 87 83 78;
+    --ink-subtle: 120 113 108;
+    --line: 231 229 228;
+    --line-strong: 214 211 209;
+
+    /* Semantic status */
+    --success-50: 240 253 244;
+    --success-600: 22 128 61;
+    --success-700: 21 101 52;
+    --warning-50: 255 251 235;
+    --warning-600: 180 83 9;
+    --warning-700: 146 64 14;
+    --danger-50: 254 242 242;
+    --danger-600: 220 38 38;
+    --danger-700: 185 28 28;
+
+    --shadow: 28 25 23;
+}
+
+/* ---------------------------------------------------------------
+   Base
+   --------------------------------------------------------------- */
+@layer base {
+    html {
+        -webkit-text-size-adjust: 100%;
+        scroll-behavior: smooth;
+    }
+
+    body {
+        @apply bg-canvas font-sans text-body text-ink antialiased;
+        -webkit-tap-highlight-color: transparent;
+    }
+
+    /*
+     * Single source of truth for keyboard focus. Applies to buttons,
+     * links, inputs, and anything else a keyboard user can Tab to.
+     * Component-level focus styles should NOT re-declare a ring —
+     * they only add a secondary cue (e.g. border-color change).
+     */
+    :focus-visible {
+        outline: 2px solid rgb(var(--brand-600));
+        outline-offset: 2px;
+    }
+
+    ::selection {
+        background: rgb(var(--accent-400) / 0.4);
+    }
+}
+
+/* ---------------------------------------------------------------
+   Components: reusable patterns, so pages don't repeat long class strings
+   --------------------------------------------------------------- */
+@layer components {
+    /* Buttons */
+    .btn {
+        @apply inline-flex min-h-control items-center justify-center gap-2 rounded-control px-4 text-small font-semibold
+               transition-colors duration-base ease-standard
+               disabled:pointer-events-none disabled:opacity-50;
+    }
+    .btn-primary {
+        @apply btn bg-brand text-white hover:bg-brand-700 active:bg-brand-800;
+    }
+    .btn-secondary {
+        @apply btn border border-line-strong bg-surface text-ink hover:bg-surface-muted active:bg-canvas;
+    }
+    .btn-ghost {
+        @apply btn text-ink-muted hover:bg-canvas hover:text-ink;
+    }
+    .btn-danger {
+        @apply btn border border-danger-600 bg-surface text-danger-700 hover:bg-danger-50;
+    }
+
+    /* Form controls */
+    .field-label {
+        @apply mb-1.5 block text-small font-medium text-ink;
+    }
+    .field-input {
+        @apply block min-h-control w-full rounded-control border-line-strong bg-surface text-body text-ink
+               placeholder:text-ink-subtle
+               focus:border-brand;
+    }
+    .field-error {
+        @apply mt-1.5 text-small text-danger-700;
+    }
+
+    /* Surfaces */
+    .card {
+        @apply rounded-card border border-line bg-surface p-5 shadow-card;
+    }
+
+    /* Panels (cards with a header and no inner padding) */
+    .panel {
+        @apply overflow-hidden rounded-card border border-line bg-surface shadow-card;
+    }
+    .panel-header {
+        @apply border-b border-line px-6 py-5;
+    }
+    .panel-title {
+        @apply text-lead font-semibold tracking-tight text-ink;
+    }
+    .panel-desc {
+        @apply mt-1 text-small text-ink-muted;
+    }
+
+    /* Status badges — premium iOS-inspired pills */
+    .badge {
+        @apply inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-caption font-semibold uppercase tracking-wider shadow-sm;
+    }
+    .badge-lg {
+        @apply px-2.5 py-1;
+    }
+    .badge-success { @apply badge border-success-600/20 bg-success-50 text-success-700; }
+    .badge-warning { @apply badge border-warning-600/20 bg-warning-50 text-warning-700; }
+    .badge-danger  { @apply badge border-danger-600/20 bg-danger-50 text-danger-700; }
+    .badge-brand   { @apply badge border-brand-600/20 bg-brand-50 text-brand-700; }
+    .badge-accent  { @apply badge border-accent-500/30 bg-accent-100 text-warning-700; }
+    .badge-neutral { @apply badge border-line bg-surface-muted text-ink-muted; }
+
+    /* More button variants */
+    .btn-soft {
+        @apply btn border border-brand-200 bg-brand-50 text-brand-700 hover:bg-brand-100
+               disabled:border-line disabled:bg-surface-muted disabled:text-ink-subtle;
+    }
+    .btn-ghost-danger {
+        @apply btn text-danger-700 hover:bg-danger-50;
+    }
+    .btn-ghost-success {
+        @apply btn text-success-700 hover:bg-success-50;
+    }
+    .btn-danger-solid {
+        @apply btn bg-danger-600 text-white hover:bg-danger-700 active:bg-danger-700;
+    }
+
+    /*
+     * Compact buttons: 44px touch target on phones, denser on desktop.
+     * MUST come after every other .btn-* variant so px-3 / text-caption
+     * override their inherited px-4 / text-small from .btn.
+     */
+    .btn-sm {
+        @apply px-3 text-caption;
+    }
+    @media (min-width: 768px) {
+        .btn-sm {
+            min-height: 2.25rem;
+        }
+    }
+
+    /* Checkbox (visible size is 16px; label wrapper provides the touch target) */
+    .field-checkbox {
+        @apply h-4 w-4 rounded border-line-strong text-brand;
+    }
+
+    /* Tables */
+    .table-th {
+        @apply px-6 py-3.5 text-caption font-semibold uppercase tracking-wide text-ink-muted;
+    }
+
+    /* Small code/ID chip */
+    .chip {
+        @apply inline-flex rounded-md bg-surface-muted px-2.5 py-1 text-caption font-medium text-ink ring-1 ring-line;
+    }
+
+    /* Premium sidebar scrollbar */
+    .sidebar-scrollbar {
+        scrollbar-width: thin; /* Firefox */
+        scrollbar-color: rgba(255, 255, 255, 0.2) transparent; /* Firefox */
+    }
+
+    .sidebar-scrollbar::-webkit-scrollbar {
+        width: 6px;
+    }
+
+    .sidebar-scrollbar::-webkit-scrollbar-track {
+        background: transparent;
+    }
+
+    .sidebar-scrollbar::-webkit-scrollbar-thumb {
+        background-color: rgba(255, 255, 255, 0.15);
+        border-radius: 9999px;
+        border: 1px solid transparent;
+        background-clip: content-box;
+    }
+
+    .sidebar-scrollbar::-webkit-scrollbar-thumb:hover {
+        background-color: rgba(255, 255, 255, 0.3);
+    }
+    
+}
+
+/* ---------------------------------------------------------------
+   Reduced motion: keep every workflow usable without animation
+   --------------------------------------------------------------- */
+@media (prefers-reduced-motion: reduce) {
+    html {
+        scroll-behavior: auto;
+    }
+
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+}
