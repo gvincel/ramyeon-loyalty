@@ -21,9 +21,15 @@ export default function Login() {
 
     const handlePhoneChange = (value: string) => {
         const digitsOnly = value.replace(/\D/g, '').slice(0, 11);
-
         setData('phone_number', digitsOnly);
     };
+
+    const inputClass = (hasError: boolean) =>
+        `w-full rounded-xl border bg-white px-4 text-sm text-slate-900 shadow-sm outline-none transition duration-200 placeholder:text-slate-400 focus:ring-2 ${
+            hasError
+                ? 'border-red-400 focus:border-red-500 focus:ring-red-100'
+                : 'border-slate-200 hover:border-slate-300 focus:border-red-500 focus:ring-red-100'
+        }`;
 
     return (
         <GuestLayout fitScreen>
@@ -33,7 +39,7 @@ export default function Login() {
                 {/* Header */}
                 <div className="border-b border-slate-100 px-6 py-6 sm:px-8 sm:py-7">
                     <div className="mb-4 flex items-center gap-3">
-                        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-red-50 ring-1 ring-red-100">
+                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-red-50 ring-1 ring-red-100">
                             <span
                                 className="material-symbols-outlined text-[22px] text-red-700"
                                 aria-hidden="true"
@@ -42,7 +48,7 @@ export default function Login() {
                             </span>
                         </div>
 
-                        <div>
+                        <div className="min-w-0">
                             <p className="text-xs font-semibold uppercase tracking-[0.16em] text-red-700">
                                 Customer Portal
                             </p>
@@ -71,15 +77,12 @@ export default function Login() {
                     noValidate
                     className="px-6 py-6 sm:px-8 sm:py-7"
                 >
-                    <div
-                        className="space-y-4"
-                        style={{ gap: 'var(--gap)' }}
-                    >
+                    <div className="grid grid-cols-1 gap-4">
                         {/* Phone Number */}
                         <div>
                             <label
                                 htmlFor="phone_number"
-                                className="mb-2 block text-sm font-medium text-slate-700"
+                                className="mb-1.5 block text-sm font-medium text-slate-700"
                             >
                                 Mobile Number
                             </label>
@@ -90,32 +93,22 @@ export default function Login() {
                                 inputMode="numeric"
                                 autoComplete="tel"
                                 value={data.phone_number}
-                                onChange={(e) =>
-                                    handlePhoneChange(e.target.value)
-                                }
+                                onChange={(e) => handlePhoneChange(e.target.value)}
                                 placeholder="09XXXXXXXXX"
                                 maxLength={11}
                                 autoFocus
-                                className={`w-full rounded-xl border bg-white px-4 text-sm text-slate-900 shadow-sm outline-none transition duration-200 placeholder:text-slate-400 focus:ring-2 ${
-                                    errors.phone_number
-                                        ? 'border-red-400 focus:border-red-500 focus:ring-red-100'
-                                        : 'border-slate-200 hover:border-slate-300 focus:border-red-500 focus:ring-red-100'
-                                }`}
+                                className={inputClass(!!errors.phone_number)}
                                 style={{ height: 'var(--ctl)' }}
-                                aria-invalid={
-                                    errors.phone_number ? 'true' : 'false'
-                                }
+                                aria-invalid={errors.phone_number ? 'true' : 'false'}
                                 aria-describedby={
-                                    errors.phone_number
-                                        ? 'phone-number-error'
-                                        : undefined
+                                    errors.phone_number ? 'phone-number-error' : undefined
                                 }
                             />
 
                             {errors.phone_number && (
                                 <p
                                     id="phone-number-error"
-                                    className="mt-1.5 text-xs font-medium text-red-600"
+                                    className="mt-1 text-xs font-medium text-red-600"
                                 >
                                     {errors.phone_number}
                                 </p>
@@ -126,7 +119,7 @@ export default function Login() {
                         <div>
                             <label
                                 htmlFor="password"
-                                className="mb-2 block text-sm font-medium text-slate-700"
+                                className="mb-1.5 block text-sm font-medium text-slate-700"
                             >
                                 Password
                             </label>
@@ -137,45 +130,29 @@ export default function Login() {
                                     type={showPassword ? 'text' : 'password'}
                                     autoComplete="current-password"
                                     value={data.password}
-                                    onChange={(e) =>
-                                        setData('password', e.target.value)
-                                    }
+                                    onChange={(e) => setData('password', e.target.value)}
                                     placeholder="Enter your password"
-                                    className={`w-full rounded-xl border bg-white px-4 pr-12 text-sm text-slate-900 shadow-sm outline-none transition duration-200 placeholder:text-slate-400 focus:ring-2 ${
-                                        errors.password
-                                            ? 'border-red-400 focus:border-red-500 focus:ring-red-100'
-                                            : 'border-slate-200 hover:border-slate-300 focus:border-red-500 focus:ring-red-100'
-                                    }`}
+                                    className={`${inputClass(!!errors.password)} pr-12`}
                                     style={{ height: 'var(--ctl)' }}
-                                    aria-invalid={
-                                        errors.password ? 'true' : 'false'
-                                    }
+                                    aria-invalid={errors.password ? 'true' : 'false'}
                                     aria-describedby={
-                                        errors.password
-                                            ? 'password-error'
-                                            : undefined
+                                        errors.password ? 'password-error' : undefined
                                     }
                                 />
 
                                 <button
                                     type="button"
-                                    onClick={() =>
-                                        setShowPassword((current) => !current)
-                                    }
+                                    onClick={() => setShowPassword((current) => !current)}
                                     className="absolute inset-y-0 right-0 flex w-12 items-center justify-center rounded-r-xl text-slate-400 transition hover:text-slate-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-red-500"
                                     aria-label={
-                                        showPassword
-                                            ? 'Hide password'
-                                            : 'Show password'
+                                        showPassword ? 'Hide password' : 'Show password'
                                     }
                                 >
                                     <span
                                         className="material-symbols-outlined text-[20px]"
                                         aria-hidden="true"
                                     >
-                                        {showPassword
-                                            ? 'visibility_off'
-                                            : 'visibility'}
+                                        {showPassword ? 'visibility_off' : 'visibility'}
                                     </span>
                                 </button>
                             </div>
@@ -183,7 +160,7 @@ export default function Login() {
                             {errors.password && (
                                 <p
                                     id="password-error"
-                                    className="mt-1.5 text-xs font-medium text-red-600"
+                                    className="mt-1 text-xs font-medium text-red-600"
                                 >
                                     {errors.password}
                                 </p>
@@ -195,56 +172,54 @@ export default function Login() {
                             <input
                                 type="checkbox"
                                 checked={data.remember}
-                                onChange={(e) =>
-                                    setData('remember', e.target.checked)
-                                }
+                                onChange={(e) => setData('remember', e.target.checked)}
                                 className="h-4 w-4 rounded border-slate-300 text-red-700 accent-red-700 focus:ring-red-500"
                             />
-
                             <span className="text-sm text-slate-600">
                                 Keep me signed in
                             </span>
                         </label>
 
                         {/* Login Button */}
-                        <button
-                            type="submit"
-                            disabled={processing}
-                            className="mt-2 flex w-full items-center justify-center gap-2 rounded-xl bg-red-700 px-4 font-semibold text-white shadow-sm transition duration-200 hover:bg-red-800 hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:bg-red-700 disabled:hover:shadow-sm"
-                            style={{ height: 'var(--ctl)' }}
-                        >
-                            {processing ? (
-                                <>
-                                    <span
-                                        className="material-symbols-outlined animate-spin text-[19px]"
-                                        aria-hidden="true"
-                                    >
-                                        progress_activity
-                                    </span>
-                                    Signing in...
-                                </>
-                            ) : (
-                                <>
-                                    Sign in
-                                    <span
-                                        className="material-symbols-outlined text-[19px]"
-                                        aria-hidden="true"
-                                    >
-                                        arrow_forward
-                                    </span>
-                                </>
-                            )}
-                        </button>
+                        <div className="pt-2">
+                            <button
+                                type="submit"
+                                disabled={processing}
+                                className="flex h-[52px] min-h-[52px] w-full items-center justify-center gap-2 rounded-xl bg-red-700 px-5 text-[15px] font-semibold text-white shadow-sm transition-[background-color,box-shadow,transform] hover:bg-red-800 hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-red-700 focus-visible:ring-offset-2 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:bg-red-700 disabled:hover:shadow-sm"
+                            >
+                                {processing ? (
+                                    <>
+                                        <span
+                                            className="material-symbols-outlined animate-spin text-[20px]"
+                                            aria-hidden="true"
+                                        >
+                                            progress_activity
+                                        </span>
+                                        Signing in...
+                                    </>
+                                ) : (
+                                    <>
+                                        Sign in
+                                        <span
+                                            className="material-symbols-outlined text-[20px]"
+                                            aria-hidden="true"
+                                        >
+                                            arrow_forward
+                                        </span>
+                                    </>
+                                )}
+                            </button>
+                        </div>
                     </div>
                 </form>
 
-                {/* Footer Note */}
+                {/* Footer */}
                 <div className="border-t border-slate-100 bg-slate-50/70 px-6 py-4 text-center sm:px-8">
-                    <p className="text-sm text-slate-600">
+                    <p className="text-sm text-slate-500">
                         Don&apos;t have an account?{' '}
                         <Link
                             href={route('customer.register')}
-                            className="font-semibold text-red-700 underline-offset-4 transition hover:text-red-800 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2"
+                            className="font-semibold text-red-700 transition hover:text-red-800 focus:outline-none focus-visible:underline focus-visible:underline-offset-2"
                         >
                             Register here
                         </Link>
