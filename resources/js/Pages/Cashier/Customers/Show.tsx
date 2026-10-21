@@ -5,6 +5,7 @@ import AdminPageHeader from '@/Components/AdminPageHeader';
 import AdminModal from '@/Components/AdminModal';
 import StatusBadge from '@/Components/StatusBadge';
 import { QRCodeSVG } from 'qrcode.react';
+import { ReactNode } from 'react';
 
 interface CustomerQrCode {
     id: number;
@@ -36,11 +37,8 @@ const formatNumber = (value: string | number) => {
 
 const formatDate = (value: string | null | undefined) => {
     if (!value) return '—';
-
     const date = new Date(value);
-
     if (Number.isNaN(date.getTime())) return '—';
-
     return date.toLocaleDateString('en-PH', {
         year: 'numeric',
         month: 'short',
@@ -48,21 +46,13 @@ const formatDate = (value: string | null | undefined) => {
     });
 };
 
-/* Row inside the information card. flex-1 lets the rows share any extra
-   height, so the card always matches the QR card without dead space. */
-function InfoRow({
-    label,
-    children,
-}: {
-    label: string;
-    children: React.ReactNode;
-}) {
+function InfoRow({ label, children }: { label: string; children: ReactNode }) {
     return (
         <div className="flex flex-1 items-center justify-between gap-4 px-6 py-4">
-            <dt className="shrink-0 text-sm font-medium text-gray-500">
+            <dt className="shrink-0 text-small font-medium text-ink-muted">
                 {label}
             </dt>
-            <dd className="min-w-0 break-words text-right text-sm font-semibold text-gray-900">
+            <dd className="min-w-0 break-words text-right text-small font-semibold text-ink">
                 {children}
             </dd>
         </div>
@@ -80,9 +70,7 @@ export default function Show({ customer }: Props) {
     const handleCopyCustomerCode = async () => {
         try {
             await navigator.clipboard.writeText(customer.customer_code);
-
             setCopied(true);
-
             window.setTimeout(() => {
                 setCopied(false);
             }, 2000);
@@ -95,8 +83,8 @@ export default function Show({ customer }: Props) {
         <CashierLayout>
             <Head title={fullName} />
 
-            <div className="min-h-screen bg-gray-50 p-4 sm:p-6 lg:p-8">
-                <div className="mx-auto max-w-7xl">
+            <div className="p-4 sm:p-6 lg:p-8">
+                <div className="mx-auto max-w-content">
                     {/* Header */}
                     <AdminPageHeader
                         eyebrow="Customer Management"
@@ -105,7 +93,7 @@ export default function Show({ customer }: Props) {
                         action={
                             <Link
                                 href={route('cashier.customers.index')}
-                                className="inline-flex shrink-0 items-center justify-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm font-semibold text-gray-700 shadow-sm transition-colors hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-300 focus:ring-offset-2"
+                                className="btn-secondary"
                             >
                                 <svg
                                     className="h-4 w-4"
@@ -124,92 +112,62 @@ export default function Show({ customer }: Props) {
                         }
                     />
 
-                    {/* Points highlight — full width */}
-                    <div className="relative overflow-hidden rounded-2xl border border-red-100 bg-white p-6 shadow-sm">
-                        <div className="absolute left-0 top-0 h-full w-1 bg-red-600" />
-
-                        <p className="text-sm font-medium text-gray-500">
-                            Current Points
-                        </p>
-
-                        <div className="mt-3 flex items-baseline gap-2">
-                            <p className="text-3xl font-bold tracking-tight text-gray-900">
-                                {formatNumber(customer.points)}
+                    {/* Points highlight */}
+                    <div className="panel flex flex-col justify-center border-l-4 border-l-brand p-6 sm:flex-row sm:items-center sm:justify-between">
+                        <div>
+                            <p className="text-small font-medium text-ink-muted">
+                                Current Points
                             </p>
-
-                            <span className="text-sm font-medium text-gray-500">
-                                points
-                            </span>
+                            <div className="mt-2 flex items-baseline gap-2">
+                                <p className="text-metric font-bold tracking-tight text-ink">
+                                    {formatNumber(customer.points)}
+                                </p>
+                                <span className="text-small font-medium text-ink-muted">
+                                    points
+                                </span>
+                            </div>
+                            <p className="mt-1 text-caption text-ink-subtle">
+                                Available for redeeming rewards
+                            </p>
                         </div>
-
-                        <p className="mt-2 text-xs text-gray-500">
-                            Available for redeeming rewards
-                        </p>
+                        <div className="mt-4 sm:mt-0">
+                            <div className="flex h-12 w-12 items-center justify-center rounded-control bg-brand-50 text-brand-600 ring-1 ring-brand-100">
+                                <span className="material-symbols-outlined text-[24px]">
+                                    stars
+                                </span>
+                            </div>
+                        </div>
                     </div>
 
-                    {/* Information + QR — side by side, equal height */}
+                    {/* Information + QR — side by side */}
                     <div className="mt-6 grid gap-6 md:grid-cols-2">
                         {/* Customer Information */}
-                        <div className="flex flex-col overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm">
-                            <div className="border-b border-gray-100 px-6 py-5">
-                                <h2 className="text-lg font-bold tracking-tight text-gray-900">
-                                    Customer Information
-                                </h2>
-
-                                <p className="mt-1 text-sm text-gray-500">
-                                    Contact details on file.
-                                </p>
+                        <div className="panel flex flex-col">
+                            <div className="panel-header">
+                                <h2 className="panel-title">Customer Information</h2>
+                                <p className="panel-desc">Contact details on file.</p>
                             </div>
 
-                            <dl className="flex flex-1 flex-col divide-y divide-gray-100">
+                            <dl className="flex flex-1 flex-col divide-y divide-line">
                                 <InfoRow label="Customer Code">
                                     <span className="inline-flex items-center gap-1.5">
-                                        <span className="inline-flex rounded-md bg-gray-50 px-2.5 py-1 font-medium text-gray-700 ring-1 ring-gray-200">
+                                        <span className="chip">
                                             {customer.customer_code}
                                         </span>
-
                                         <button
                                             type="button"
                                             onClick={() => void handleCopyCustomerCode()}
-                                            aria-label={
-                                                copied
-                                                    ? 'Customer code copied'
-                                                    : 'Copy customer code'
-                                            }
+                                            aria-label={copied ? 'Customer code copied' : 'Copy customer code'}
                                             title={copied ? 'Copied' : 'Copy customer code'}
-                                            className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-gray-200 bg-white text-gray-500 transition-colors hover:bg-gray-50 hover:text-gray-700 focus:outline-none focus:ring-1 focus:ring-red-400 focus:ring-offset-1"
+                                            className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-line-strong bg-surface text-ink-muted transition-colors hover:bg-surface-muted hover:text-ink"
                                         >
                                             {copied ? (
-                                                <svg
-                                                    className="h-4 w-4 text-green-600"
-                                                    viewBox="0 0 24 24"
-                                                    fill="none"
-                                                    stroke="currentColor"
-                                                    strokeWidth="2"
-                                                    strokeLinecap="round"
-                                                    strokeLinejoin="round"
-                                                    aria-hidden="true"
-                                                >
+                                                <svg className="h-4 w-4 text-success-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                                                     <path d="M20 6L9 17l-5-5" />
                                                 </svg>
                                             ) : (
-                                                <svg
-                                                    className="h-4 w-4"
-                                                    viewBox="0 0 24 24"
-                                                    fill="none"
-                                                    stroke="currentColor"
-                                                    strokeWidth="2"
-                                                    strokeLinecap="round"
-                                                    strokeLinejoin="round"
-                                                    aria-hidden="true"
-                                                >
-                                                    <rect
-                                                        x="9"
-                                                        y="9"
-                                                        width="11"
-                                                        height="11"
-                                                        rx="2"
-                                                    />
+                                                <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                                                    <rect x="9" y="9" width="11" height="11" rx="2" />
                                                     <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" />
                                                 </svg>
                                             )}
@@ -235,13 +193,7 @@ export default function Show({ customer }: Props) {
                                     <StatusBadge active={hasQr} />
                                 </InfoRow>
 
-                                <InfoRow
-                                    label={
-                                        qr && !qr.is_active
-                                            ? 'QR Revoked'
-                                            : 'QR Issued'
-                                    }
-                                >
+                                <InfoRow label={qr && !qr.is_active ? 'QR Revoked' : 'QR Issued'}>
                                     {qr && !qr.is_active
                                         ? formatDate(qr.revoked_at)
                                         : formatDate(qr?.created_at)}
@@ -250,22 +202,16 @@ export default function Show({ customer }: Props) {
                         </div>
 
                         {/* Customer QR Code */}
-                        <div className="flex flex-col overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm">
-                            <div className="border-b border-gray-100 px-6 py-5">
-                                <h2 className="text-lg font-bold tracking-tight text-gray-900">
-                                    Customer QR Code
-                                </h2>
-
-                                <p className="mt-1 text-sm text-gray-500">
-                                    Scan during a transaction.
-                                </p>
+                        <div className="panel flex flex-col">
+                            <div className="panel-header">
+                                <h2 className="panel-title">Customer QR Code</h2>
+                                <p className="panel-desc">Scan during a transaction.</p>
                             </div>
 
-                            {/* The QR sits alone in the flexible middle area, so it is centered both ways inside its own box */}
                             <div className="flex flex-1 items-center justify-center px-6 py-8">
                                 {hasQr ? (
                                     <div
-                                        className="inline-flex max-w-full rounded-xl border border-gray-200 bg-white p-4"
+                                        className="inline-flex max-w-full rounded-control border border-line bg-white p-4"
                                         role="img"
                                         aria-label={`QR code for ${fullName}`}
                                     >
@@ -280,69 +226,32 @@ export default function Show({ customer }: Props) {
                                     </div>
                                 ) : (
                                     <div className="py-6 text-center">
-                                        <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-gray-100 text-gray-400">
-                                            <svg
-                                                className="h-6 w-6"
-                                                viewBox="0 0 24 24"
-                                                fill="none"
-                                                stroke="currentColor"
-                                                strokeWidth="1.7"
-                                                aria-hidden="true"
-                                            >
-                                                <rect
-                                                    x="3"
-                                                    y="3"
-                                                    width="7"
-                                                    height="7"
-                                                    rx="1"
-                                                />
-                                                <rect
-                                                    x="14"
-                                                    y="3"
-                                                    width="7"
-                                                    height="7"
-                                                    rx="1"
-                                                />
-                                                <rect
-                                                    x="3"
-                                                    y="14"
-                                                    width="7"
-                                                    height="7"
-                                                    rx="1"
-                                                />
+                                        <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-canvas text-ink-subtle">
+                                            <svg className="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden="true">
+                                                <rect x="3" y="3" width="7" height="7" rx="1" />
+                                                <rect x="14" y="3" width="7" height="7" rx="1" />
+                                                <rect x="3" y="14" width="7" height="7" rx="1" />
                                                 <path d="M14 14h3v3h-3zM19 14h2M14 19h2M19 19h2" />
                                             </svg>
                                         </div>
-
-                                        <p className="mt-3 text-sm font-semibold text-gray-700">
+                                        <p className="mt-3 text-small font-semibold text-ink">
                                             No active QR code
                                         </p>
-
-                                        <p className="mt-1 text-xs text-gray-500">
-                                            This customer does not have an
-                                            active QR code.
+                                        <p className="mt-1 text-caption text-ink-muted">
+                                            This customer does not have an active QR code.
                                         </p>
                                     </div>
                                 )}
                             </div>
 
                             {hasQr && (
-                                <div className="border-t border-gray-100 px-6 py-5">
+                                <div className="border-t border-line px-6 py-5">
                                     <button
                                         type="button"
                                         onClick={() => setShowFullQr(true)}
-                                        className="inline-flex min-h-[44px] w-full items-center justify-center gap-2 rounded-lg border border-gray-300 bg-white px-4 text-sm font-semibold text-gray-700 shadow-sm transition-colors hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
+                                        className="btn-secondary w-full"
                                     >
-                                        <svg
-                                            className="h-4 w-4"
-                                            viewBox="0 0 24 24"
-                                            fill="none"
-                                            stroke="currentColor"
-                                            strokeWidth="2"
-                                            strokeLinecap="round"
-                                            strokeLinejoin="round"
-                                            aria-hidden="true"
-                                        >
+                                        <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                                             <path d="M15 3h6v6" />
                                             <path d="M9 21H3v-6" />
                                             <path d="M21 3l-7 7" />
@@ -350,11 +259,8 @@ export default function Show({ customer }: Props) {
                                         </svg>
                                         View Full Size
                                     </button>
-
-                                    <p className="mt-3 text-center text-xs text-gray-500">
-                                        Keep this QR code private. It
-                                        identifies the customer&apos;s loyalty
-                                        account.
+                                    <p className="mt-3 text-center text-caption text-ink-subtle">
+                                        Keep this QR code private. It identifies the customer's loyalty account.
                                     </p>
                                 </div>
                             )}
@@ -374,16 +280,15 @@ export default function Show({ customer }: Props) {
                         <button
                             type="button"
                             onClick={() => setShowFullQr(false)}
-                            className="inline-flex min-h-[44px] w-full items-center justify-center rounded-lg bg-red-600 px-5 text-sm font-semibold text-white transition-colors hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 sm:w-auto"
+                            className="btn-primary w-full sm:w-auto"
                         >
                             Done
                         </button>
                     }
                 >
                     <div className="flex flex-col items-center px-6 py-6">
-                        {/* Fixed medium size, centered with empty space on both sides */}
                         <div
-                            className="inline-flex max-w-full rounded-2xl border border-gray-200 bg-white p-5"
+                            className="inline-flex max-w-full rounded-card border border-line bg-white p-5"
                             role="img"
                             aria-label={`Full-size QR code for ${fullName}`}
                         >
@@ -398,11 +303,10 @@ export default function Show({ customer }: Props) {
                             />
                         </div>
 
-                        <h3 className="mt-5 text-center text-lg font-bold text-gray-900">
+                        <h3 className="mt-5 text-center text-heading font-semibold text-ink">
                             {fullName}
                         </h3>
-
-                        <p className="mt-1 font-mono text-sm font-medium text-gray-500">
+                        <p className="mt-1 font-mono text-small font-medium text-ink-muted">
                             {customer.customer_code}
                         </p>
                     </div>
