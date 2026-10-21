@@ -377,7 +377,7 @@ export default function AdminLayout({ children }: PropsWithChildren) {
                             Ramyeon Corner
                         </h1>
 
-                        <p className="mt-0.5 text-caption text-brand-100/80">
+                        <p className="mt-0.5 text-caption font-semibold uppercase tracking-[0.18em] text-brand-100/80">
                             Admin
                         </p>
                     </div>

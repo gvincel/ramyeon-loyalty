@@ -1,4 +1,6 @@
-import { Link, router, usePage } from '@inertiajs/react';
+import LogoutButton from '@/Components/LogoutButton';
+
+import { Link, usePage } from '@inertiajs/react';
 
 import {
     PropsWithChildren,
@@ -90,10 +92,6 @@ export default function CustomerLayout({ children }: PropsWithChildren) {
 
     const sidebarRef = useRef<HTMLElement>(null);
     const mobileMenuButtonRef = useRef<HTMLButtonElement>(null);
-
-    const logout = () => {
-        router.post(route('customer.logout'));
-    };
 
     useEffect(() => {
         localStorage.setItem(
@@ -327,7 +325,7 @@ export default function CustomerLayout({ children }: PropsWithChildren) {
                         <h1 className="truncate text-lead font-semibold tracking-tight text-white">
                             Ramyeon Corner
                         </h1>
-                        <p className="mt-0.5 text-caption text-brand-100/80">
+                        <p className="mt-0.5 text-caption font-semibold uppercase tracking-[0.18em] text-brand-100/80">
                             Loyalty Program
                         </p>
                     </div>
@@ -409,18 +407,7 @@ export default function CustomerLayout({ children }: PropsWithChildren) {
                             isSidebarCollapsed ? 'mt-0' : 'mt-3'
                         }`}
                     >
-                        <button
-                            onClick={logout}
-                            className={`flex w-full items-center gap-3 rounded-control px-3 py-2.5 text-left text-small font-medium text-brand-100/80 transition-all duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] hover:bg-white/10 hover:text-white active:scale-[0.98] ${
-                                isSidebarCollapsed ? 'justify-center px-0' : ''
-                            }`}
-                            title={isSidebarCollapsed ? 'Log out' : undefined}
-                        >
-                            <span className="material-symbols-outlined text-[20px]" aria-hidden="true">
-                                logout
-                            </span>
-                            {!isSidebarCollapsed && <span>Log out</span>}
-                        </button>
+                        <LogoutButton collapsed={isSidebarCollapsed} />
                     </div>
                 </div>
             </aside>
@@ -472,10 +459,7 @@ export default function CustomerLayout({ children }: PropsWithChildren) {
                     </span>
                 </div>
 
-                {/* 
-                    The key={url} forces the main content to remount on every page navigation. 
-                    Combined with animate-fade-in, this creates a smooth iOS-style crossfade.
-                */}
+                {/* Page content fade-in */}
                 <main key={url} className="motion-safe:animate-fade-in">
                     {children}
                 </main>

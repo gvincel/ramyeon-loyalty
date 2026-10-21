@@ -10,39 +10,56 @@ use Illuminate\Http\Request;
 
 class CustomerController extends Controller
 {
-    /**
-     * Display a paginated, searchable list of customers.
-     * Cashiers can view customers but cannot edit or manage them.
-     */
     public function index(Request $request)
     {
         $search = trim((string) $request->input('search', ''));
+        $status = (string) $request->input('status', 'all');
+        if (! in_array($status, ['all', 'active', 'inactive'], true)) {
+            $status = 'all';
+        }
 
-        $customers = Customer::query()
+        $query = Customer::query()
             ->when($search !== '', function ($query) use ($search) {
                 $query->where(function ($q) use ($search) {
                     $q->where('first_name', 'like', "%{$search}%")
                       ->orWhere('last_name', 'like', "%{$search}%")
                       ->orWhere('customer_code', 'like', "%{$search}%")
-                      ->orWhere('phone_number', 'like', "%{$search}%");
+                      ->orWhere('phone_number', 'like', "%{$search}%")
+                      ->orWhere('email', 'like', "%{$search}%");
                 });
             })
+            ->when($status === 'active', fn ($q) => $q->where('is_active', true))
+            ->when($status === 'inactive', fn ($q) => $q->where('is_active', false))
             ->orderBy('last_name')
-            ->orderBy('first_name')
-            ->paginate(15)
-            ->withQueryString();
+            ->orderBy('first_name');
+
+        $customers = $query->paginate(20)->withQueryString();
+
+        $stats = Customer::query()
+            ->toBase()
+            ->selectRaw('COUNT(*) as total_customers')
+            ->selectRaw('COALESCE(SUM(CASE WHEN is_active = 1 THEN 1 ELSE 0 END), 0) as active_customers')
+            ->selectRaw('COALESCE(SUM(points), 0) as total_points')
+            ->first();
+
+        $total = (int) $stats->total_customers;
+        $active = (int) $stats->active_customers;
 
         return inertia('Cashier/Customers/Index', [
             'customers' => $customers,
-            'filters'   => [
+            'filters' => [
                 'search' => $search,
+                'status' => $status,
+            ],
+            'stats' => [
+                'total_customers' => $total,
+                'active_customers' => $active,
+                'inactive_customers' => $total - $active,
+                'total_points' => (int) $stats->total_points,
             ],
         ]);
     }
 
-    /**
-     * Display a single customer's details, including their QR code.
-     */
     public function show(Customer $customer)
     {
         $customer->load('qrCode');
@@ -52,9 +69,6 @@ class CustomerController extends Controller
         ]);
     }
 
-    /**
-     * Activate or deactivate a customer account.
-     */
     public function toggleStatus(Customer $customer)
     {
         $previousStatus = $customer->is_active ? 'active' : 'inactive';
@@ -94,9 +108,6 @@ class CustomerController extends Controller
             );
     }
 
-    /**
-     * Permanently delete a customer and their associated records.
-     */
     public function destroy(Customer $customer)
     {
         $customer->deleteWithRelatedData();

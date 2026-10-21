@@ -1,4 +1,4 @@
-import { Head, router, useForm, usePage } from '@inertiajs/react';
+import { Head, Link, router, useForm, usePage } from '@inertiajs/react';
 import AdminLayout from '@/Layouts/AdminLayout';
 import AdminPageHeader from '@/Components/AdminPageHeader';
 import AdminModal from '@/Components/AdminModal';
@@ -8,7 +8,7 @@ import StatCard from '@/Components/StatCard';
 import SegmentedFilter from '@/Components/SegmentedFilter';
 import { PageProps } from '@/types';
 import { QRCodeSVG } from 'qrcode.react';
-import { type ReactNode, useMemo, useState } from 'react';
+import { type FormEvent, type ReactNode, useState } from 'react';
 
 interface CustomerQrCode {
     id: number;
@@ -30,8 +30,28 @@ interface Customer {
     qr_code: CustomerQrCode | null;
 }
 
+interface Paginated<T> {
+    data: T[];
+    current_page: number;
+    last_page: number;
+    per_page: number;
+    total: number;
+    from: number | null;
+    to: number | null;
+    links: { url: string | null; label: string; active: boolean }[];
+}
+
+interface Stats {
+    total_customers: number;
+    active_customers: number;
+    inactive_customers: number;
+    total_points: number;
+}
+
 interface Props {
-    customers: Customer[];
+    customers: Paginated<Customer>;
+    filters: { search: string; status: 'all' | 'active' | 'inactive' };
+    stats: Stats;
 }
 
 type StatusFilter = 'all' | 'active' | 'inactive';
@@ -39,9 +59,13 @@ type StatusFilter = 'all' | 'active' | 'inactive';
 const formatNumber = (value: number | string) =>
     Number(value).toLocaleString('en-PH');
 
-/* ------------------------------------------------------------------ */
-/* Small icons                                                         */
-/* ------------------------------------------------------------------ */
+const decodePaginationLabel = (label: string) =>
+    label
+        .replace(/&laquo;/g, '«')
+        .replace(/&raquo;/g, '»')
+        .replace(/&amp;/g, '&')
+        .replace(/&lt;/g, '<')
+        .replace(/&gt;/g, '>');
 
 const iconProps = {
     className: 'h-4 w-4',
@@ -156,7 +180,9 @@ const Field = ({
     );
 };
 
-export default function Index({ customers }: Props) {
+export default function Index({ customers, filters, stats }: Props) {
+    const { flash } = usePage<PageProps>().props;
+
     const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
     const [editCustomer, setEditCustomer] = useState<Customer | null>(null);
     const [showEditModal, setShowEditModal] = useState(false);
@@ -168,34 +194,48 @@ export default function Index({ customers }: Props) {
     const [customerToToggle, setCustomerToToggle] = useState<Customer | null>(null);
     const [isTogglingCustomer, setIsTogglingCustomer] = useState(false);
 
-    const [search, setSearch] = useState('');
-    const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
+    const [search, setSearch] = useState(filters.search ?? '');
+    const [statusFilter, setStatusFilter] = useState<StatusFilter>(filters.status ?? 'all');
 
-    const { flash } = usePage<PageProps>().props;
+    const hasActiveFilters =
+        (filters.search ?? '') !== '' || (filters.status ?? 'all') !== 'all';
 
-    const activeCustomerCount = customers.filter((c) => c.is_active).length;
-    const inactiveCustomerCount = customers.length - activeCustomerCount;
+    const applyFilters = (overrides: { search?: string; status?: StatusFilter } = {}) => {
+        const nextSearch = (overrides.search ?? search).trim();
+        const nextStatus = overrides.status ?? statusFilter;
 
-    const totalCustomerPoints = customers.reduce((total, customer) => total + Number(customer.points), 0);
+        const params: Record<string, string> = {};
+        if (nextSearch) params.search = nextSearch;
+        if (nextStatus !== 'all') params.status = nextStatus;
 
-    const filteredCustomers = useMemo(() => {
-        const term = search.trim().toLowerCase();
-        return customers.filter((customer) => {
-            if (statusFilter === 'active' && !customer.is_active) return false;
-            if (statusFilter === 'inactive' && customer.is_active) return false;
-            if (!term) return true;
-
-            return [
-                `${customer.first_name} ${customer.last_name}`,
-                customer.customer_code,
-                customer.phone_number,
-                customer.email ?? '',
-            ].some((value) => value.toLowerCase().includes(term));
+        router.get(route('admin.customers.index'), params, {
+            preserveState: true,
+            preserveScroll: true,
+            replace: true,
+            only: ['customers', 'filters'],
         });
-    }, [customers, search, statusFilter]);
+    };
 
-    const hasActiveFilters = search.trim() !== '' || statusFilter !== 'all';
-    const clearFilters = () => { setSearch(''); setStatusFilter('all'); };
+    const submitSearch = (event: FormEvent) => {
+        event.preventDefault();
+        applyFilters();
+    };
+
+    const handleStatusChange = (value: StatusFilter) => {
+        setStatusFilter(value);
+        applyFilters({ status: value });
+    };
+
+    const clearFilters = () => {
+        setSearch('');
+        setStatusFilter('all');
+        router.get(route('admin.customers.index'), {}, {
+            preserveState: true,
+            preserveScroll: true,
+            replace: true,
+            only: ['customers', 'filters'],
+        });
+    };
 
     const { data, setData, put, processing, errors, reset, clearErrors } = useForm({
         first_name: '',
@@ -304,12 +344,6 @@ export default function Index({ customers }: Props) {
         </div>
     );
 
-    const statusOptions: [StatusFilter, string, number][] = [
-        ['all', 'All', customers.length],
-        ['active', 'Active', activeCustomerCount],
-        ['inactive', 'Inactive', inactiveCustomerCount],
-    ];
-
     return (
         <AdminLayout>
             <Head title="Customer Management" />
@@ -320,12 +354,6 @@ export default function Index({ customers }: Props) {
                         eyebrow="Customer Management"
                         title="Customers"
                         description="View and manage registered loyalty customers and their account status."
-                        action={
-                            <div className="rounded-control border border-line bg-surface px-4 py-3 shadow-card">
-                                <p className="text-caption font-medium uppercase tracking-wider text-ink-subtle">Records</p>
-                                <p className="mt-1 text-small font-semibold text-ink">{customers.length.toLocaleString('en-PH')}</p>
-                            </div>
-                        }
                     />
 
                     <FlashMessage success={flash.success} error={flash.error} />
@@ -333,25 +361,27 @@ export default function Index({ customers }: Props) {
                     <section aria-label="Customer summary" className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                         <StatCard
                             label="Total Customers"
-                            value={formatNumber(customers.length)}
+                            value={formatNumber(stats.total_customers)}
                             icon={<StatUsersIcon />}
                             footer="Registered loyalty accounts"
                         />
                         <StatCard
                             label="Active Customers"
-                            value={formatNumber(activeCustomerCount)}
+                            value={formatNumber(stats.active_customers)}
                             icon={<StatUserCheckIcon />}
                             footer={
                                 <>
-                                    <span className="font-semibold text-ink">{formatNumber(inactiveCustomerCount)}</span> inactive
+                                    <span className="font-semibold text-ink">
+                                        {formatNumber(stats.inactive_customers)}
+                                    </span>{' '}
+                                    inactive
                                 </>
                             }
                         />
-                        {/* Responsive fix: Spans 2 columns on tablet to fill the space, 1 column on desktop */}
                         <div className="sm:col-span-2 lg:col-span-1">
                             <StatCard
                                 label="Total Points"
-                                value={formatNumber(totalCustomerPoints)}
+                                value={formatNumber(stats.total_points)}
                                 icon={<StatStarIcon />}
                                 footer="Current points across all customers"
                             />
@@ -363,7 +393,18 @@ export default function Index({ customers }: Props) {
                             <div>
                                 <h2 className="panel-title">Customer records</h2>
                                 <p className="panel-desc">
-                                    Showing {formatNumber(filteredCustomers.length)} of {formatNumber(customers.length)} customer{customers.length !== 1 ? 's' : ''}
+                                    {customers.total > 0 ? (
+                                        <>
+                                            Showing{' '}
+                                            <span className="font-medium text-ink">{customers.from ?? 0}</span>
+                                            {'–'}
+                                            <span className="font-medium text-ink">{customers.to ?? 0}</span>{' '}
+                                            of {formatNumber(customers.total)} customer
+                                            {customers.total !== 1 ? 's' : ''}
+                                        </>
+                                    ) : (
+                                        'No customers'
+                                    )}
                                 </p>
                             </div>
 
@@ -371,15 +412,15 @@ export default function Index({ customers }: Props) {
                                 <SegmentedFilter
                                     label="Filter by status"
                                     value={statusFilter}
-                                    onChange={setStatusFilter}
+                                    onChange={handleStatusChange}
                                     options={[
-                                        { value: 'all', label: 'All', count: customers.length },
-                                        { value: 'active', label: 'Active', count: activeCustomerCount },
-                                        { value: 'inactive', label: 'Inactive', count: inactiveCustomerCount },
+                                        { value: 'all', label: 'All', count: stats.total_customers },
+                                        { value: 'active', label: 'Active', count: stats.active_customers },
+                                        { value: 'inactive', label: 'Inactive', count: stats.inactive_customers },
                                     ]}
                                 />
 
-                                <div className="relative sm:w-72">
+                                <form onSubmit={submitSearch} className="relative sm:w-72">
                                     <span className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-ink-subtle">
                                         <SearchIcon />
                                     </span>
@@ -391,11 +432,11 @@ export default function Index({ customers }: Props) {
                                         aria-label="Search customers"
                                         className="field-input pl-9"
                                     />
-                                </div>
+                                </form>
                             </div>
                         </div>
 
-                        {filteredCustomers.length > 0 ? (
+                        {customers.data.length > 0 ? (
                             <>
                                 <div className="hidden overflow-x-auto md:block">
                                     <table className="w-full min-w-[860px] text-left text-small">
@@ -410,22 +451,43 @@ export default function Index({ customers }: Props) {
                                             </tr>
                                         </thead>
                                         <tbody className="divide-y divide-line">
-                                            {filteredCustomers.map((customer) => (
-                                                <tr key={customer.id} className={`transition-colors duration-base ease-standard hover:bg-canvas/60 ${customer.is_active ? '' : 'bg-surface-muted'}`}>
+                                            {customers.data.map((customer) => (
+                                                <tr
+                                                    key={customer.id}
+                                                    className={`transition-colors duration-base ease-standard hover:bg-canvas/60 ${
+                                                        customer.is_active ? '' : 'bg-surface-muted'
+                                                    }`}
+                                                >
                                                     <td className="px-6 py-4">
                                                         <div className={`flex items-center gap-3 ${customer.is_active ? '' : 'opacity-70'}`}>
                                                             {renderAvatar(customer)}
                                                             <div className="min-w-0">
-                                                                <p className="truncate font-semibold text-ink">{customer.first_name} {customer.last_name}</p>
-                                                                <p className="mt-0.5 max-w-xs truncate text-caption text-ink-muted">{customer.email || 'No email'}</p>
+                                                                <p className="truncate font-semibold text-ink">
+                                                                    {customer.first_name} {customer.last_name}
+                                                                </p>
+                                                                <p className="mt-0.5 max-w-xs truncate text-caption text-ink-muted">
+                                                                    {customer.email || 'No email'}
+                                                                </p>
                                                             </div>
                                                         </div>
                                                     </td>
-                                                    <td className="px-6 py-4"><span className="chip">{customer.customer_code}</span></td>
-                                                    <td className="px-6 py-4 tabular-nums text-ink-muted">{customer.phone_number}</td>
-                                                    <td className="px-6 py-4 text-right"><span className="font-semibold tabular-nums text-ink">{formatNumber(customer.points)}</span></td>
-                                                    <td className="px-6 py-4"><StatusBadge active={customer.is_active} /></td>
-                                                    <td className="px-6 py-4">{renderActions(customer)}</td>
+                                                    <td className="px-6 py-4">
+                                                        <span className="chip">{customer.customer_code}</span>
+                                                    </td>
+                                                    <td className="px-6 py-4 tabular-nums text-ink-muted">
+                                                        {customer.phone_number}
+                                                    </td>
+                                                    <td className="px-6 py-4 text-right">
+                                                        <span className="font-semibold tabular-nums text-ink">
+                                                            {formatNumber(customer.points)}
+                                                        </span>
+                                                    </td>
+                                                    <td className="px-6 py-4">
+                                                        <StatusBadge active={customer.is_active} />
+                                                    </td>
+                                                    <td className="px-6 py-4">
+                                                        {renderActions(customer)}
+                                                    </td>
                                                 </tr>
                                             ))}
                                         </tbody>
@@ -433,30 +495,40 @@ export default function Index({ customers }: Props) {
                                 </div>
 
                                 <ul className="divide-y divide-line md:hidden">
-                                    {filteredCustomers.map((customer) => (
+                                    {customers.data.map((customer) => (
                                         <li key={customer.id} className="p-5">
                                             <div className="flex items-start gap-3">
                                                 {renderAvatar(customer)}
                                                 <div className="min-w-0 flex-1">
                                                     <div className="flex items-start justify-between gap-2">
-                                                        <p className="truncate font-semibold text-ink">{customer.first_name} {customer.last_name}</p>
+                                                        <p className="truncate font-semibold text-ink">
+                                                            {customer.first_name} {customer.last_name}
+                                                        </p>
                                                         <StatusBadge active={customer.is_active} />
                                                     </div>
-                                                    <p className="mt-0.5 truncate text-caption text-ink-muted">{customer.email || 'No email'}</p>
+                                                    <p className="mt-0.5 truncate text-caption text-ink-muted">
+                                                        {customer.email || 'No email'}
+                                                    </p>
                                                 </div>
                                             </div>
                                             <dl className="mt-4 grid grid-cols-3 gap-3 rounded-control bg-surface-muted p-3 text-caption">
                                                 <div className="min-w-0">
                                                     <dt className="text-ink-muted">Code</dt>
-                                                    <dd className="mt-0.5 truncate font-medium text-ink">{customer.customer_code}</dd>
+                                                    <dd className="mt-0.5 truncate font-medium text-ink">
+                                                        {customer.customer_code}
+                                                    </dd>
                                                 </div>
                                                 <div className="min-w-0">
                                                     <dt className="text-ink-muted">Phone</dt>
-                                                    <dd className="mt-0.5 break-all font-medium tabular-nums text-ink">{customer.phone_number}</dd>
+                                                    <dd className="mt-0.5 break-all font-medium tabular-nums text-ink">
+                                                        {customer.phone_number}
+                                                    </dd>
                                                 </div>
                                                 <div className="min-w-0">
                                                     <dt className="text-ink-muted">Points</dt>
-                                                    <dd className="mt-0.5 font-semibold tabular-nums text-ink">{formatNumber(customer.points)}</dd>
+                                                    <dd className="mt-0.5 font-semibold tabular-nums text-ink">
+                                                        {formatNumber(customer.points)}
+                                                    </dd>
                                                 </div>
                                             </dl>
                                             <div className="mt-4">{renderActions(customer)}</div>
@@ -469,22 +541,73 @@ export default function Index({ customers }: Props) {
                                 <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-canvas text-ink-subtle">
                                     <UsersIcon />
                                 </div>
-                                <p className="mt-4 font-semibold text-ink">{hasActiveFilters ? 'No customers match your filters' : 'No customers found'}</p>
+                                <p className="mt-4 font-semibold text-ink">
+                                    {hasActiveFilters
+                                        ? 'No customers match your filters'
+                                        : 'No customers found'}
+                                </p>
                                 <p className="mt-1 text-small text-ink-muted">
-                                    {hasActiveFilters ? 'Try a different search term or status.' : 'No registered customers are currently available.'}
+                                    {hasActiveFilters
+                                        ? 'Try a different search term or status.'
+                                        : 'No registered customers are currently available.'}
                                 </p>
                                 {hasActiveFilters && (
-                                    <button type="button" onClick={clearFilters} className="btn-secondary mt-4">
+                                    <button
+                                        type="button"
+                                        onClick={clearFilters}
+                                        className="btn-secondary mt-4"
+                                    >
                                         Clear filters
                                     </button>
                                 )}
                             </div>
                         )}
+
+                        {customers.last_page > 1 && (
+                            <nav
+                                className="flex flex-wrap items-center justify-center gap-1 border-t border-line px-5 py-4 sm:justify-end sm:px-6"
+                                aria-label="Customer records pagination"
+                            >
+                                {customers.links.map((link, index) => {
+                                    const label = decodePaginationLabel(link.label);
+                                    const className = [
+                                        'flex min-h-10 min-w-10 items-center justify-center rounded-control px-3 text-small font-medium transition-colors',
+                                        link.active
+                                            ? 'bg-brand text-white'
+                                            : link.url
+                                              ? 'text-ink-muted hover:bg-canvas hover:text-ink'
+                                              : 'cursor-not-allowed text-ink-subtle',
+                                    ].join(' ');
+
+                                    if (!link.url) {
+                                        return (
+                                            <span
+                                                key={`${link.label}-${index}`}
+                                                className={className}
+                                                aria-disabled="true"
+                                            >
+                                                {label}
+                                            </span>
+                                        );
+                                    }
+                                    return (
+                                        <Link
+                                            key={`${link.label}-${index}`}
+                                            href={link.url}
+                                            preserveScroll
+                                            className={className}
+                                            aria-current={link.active ? 'page' : undefined}
+                                        >
+                                            {label}
+                                        </Link>
+                                    );
+                                })}
+                            </nav>
+                        )}
                     </section>
                 </div>
             </div>
 
-            {/* Edit Customer Modal */}
             {showEditModal && (
                 <AdminModal
                     title="Edit Customer"
@@ -546,7 +669,6 @@ export default function Index({ customers }: Props) {
                 </AdminModal>
             )}
 
-            {/* QR Code Modal */}
             {selectedCustomer && selectedCustomer.qr_code && (
                 <AdminModal
                     title="Customer QR Code"
@@ -568,7 +690,6 @@ export default function Index({ customers }: Props) {
                 </AdminModal>
             )}
 
-            {/* Toggle Status Modal */}
             {customerToToggle && (
                 <AdminModal
                     title={customerToToggle.is_active ? "Deactivate customer?" : "Activate customer?"}
@@ -597,7 +718,6 @@ export default function Index({ customers }: Props) {
                 </AdminModal>
             )}
 
-            {/* Delete Customer Modal */}
             {customerToDelete && (
                 <AdminModal
                     title="Permanently delete customer?"
