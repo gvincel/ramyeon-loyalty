@@ -78,14 +78,20 @@ class AuthController extends Controller
     {
         $validated = $request->validate([
             'first_name' => [
+                'bail',
                 'required',
                 'string',
                 'max:50',
+                "regex:~\A[\p{L}\p{M} .'-]+\z~u",
+                'regex:~\p{L}~u',
             ],
             'last_name' => [
+                'bail',
                 'required',
                 'string',
                 'max:50',
+                "regex:~\A[\p{L}\p{M} .'-]+\z~u",
+                'regex:~\p{L}~u',
             ],
             'phone_number' => [
                 'required',

@@ -198,6 +198,12 @@ export default function Index({ cashiers }: Props) {
 
     const isEditing = modal?.mode === 'edit';
 
+    const handleNameChange = (value: string) => {
+        if (/^[\p{L}\p{M} .'-]*$/u.test(value)) {
+            setData('name', value);
+        }
+    };
+
     const counts = useMemo(() => ({
         all: cashiers.length,
         active: cashiers.filter((c) => c.is_active).length,
@@ -441,14 +447,14 @@ export default function Index({ cashiers }: Props) {
                 >
                     <form id="cashier-form" onSubmit={submit} className="grid gap-5 p-6 sm:grid-cols-2">
                         <Field id="cashier_name" label="Full name" error={errors.name}>
-                            {(a11y) => <input {...a11y} type="text" value={data.name} onChange={(e) => setData('name', e.target.value)} className="field-input" placeholder="Juan Dela Cruz" autoFocus />}
+                            {(a11y) => <input {...a11y} type="text" value={data.name} onChange={(e) => handleNameChange(e.target.value)} className="field-input" placeholder="Juan Dela Cruz" autoFocus />}
                         </Field>
                         <Field id="cashier_username" label="Username" error={errors.username}>
                             {(a11y) => <input {...a11y} type="text" value={data.username} onChange={(e) => setData('username', e.target.value)} className="field-input" placeholder="juan123" autoCapitalize="none" autoComplete="off" />}
                         </Field>
                         {!isEditing && (
                             <>
-                                <PasswordField id="cashier_password" label="Password" value={data.password} onChange={(v) => setData('password', v)} placeholder="At least 8 characters" error={errors.password} />
+                                <PasswordField id="cashier_password" label="Password" value={data.password} onChange={(v) => setData('password', v)} placeholder="At least 12 characters" error={errors.password} />
                                 <PasswordField id="cashier_confirm_password" label="Confirm password" value={data.confirm_password} onChange={(v) => setData('confirm_password', v)} placeholder="Re-enter password" error={errors.confirm_password ?? (passwordMismatch ? 'Passwords do not match.' : undefined)} />
                             </>
                         )}

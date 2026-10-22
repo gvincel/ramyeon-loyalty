@@ -3,12 +3,16 @@ import { FormEventHandler } from 'react';
 
 interface LogoutButtonProps {
     collapsed?: boolean;
+    logoutRoute?: string;
 }
 
-export default function LogoutButton({ collapsed = false }: LogoutButtonProps) {
+export default function LogoutButton({
+    collapsed = false,
+    logoutRoute = 'logout',
+}: LogoutButtonProps) {
     const submit: FormEventHandler = (e) => {
         e.preventDefault();
-        router.post(route('logout'));
+        router.post(route(logoutRoute));
     };
 
     return (
