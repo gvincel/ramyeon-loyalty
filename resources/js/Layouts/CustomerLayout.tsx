@@ -407,7 +407,11 @@ export default function CustomerLayout({ children }: PropsWithChildren) {
                             isSidebarCollapsed ? 'mt-0' : 'mt-3'
                         }`}
                     >
-                        <LogoutButton collapsed={isSidebarCollapsed} />
+                        
+                    <LogoutButton
+                        collapsed={isSidebarCollapsed}
+                        logoutRoute="customer.logout"
+                    />
                     </div>
                 </div>
             </aside>

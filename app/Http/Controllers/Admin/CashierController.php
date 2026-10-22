@@ -48,9 +48,9 @@ class CashierController extends Controller
                 'required',
                 'string',
                 'max:255',
-                'regex:/\S/u',
+                "regex:~\A[\p{L}\p{M} .'-]+\z~u",
+                'regex:~\p{L}~u',
             ],
-
             'username' => [
                 'bail',
                 'required',
@@ -105,7 +105,14 @@ class CashierController extends Controller
         }
 
         $validated = $request->validate([
-            'name' => ['required', 'string', 'max:255'],
+            'name' => [
+                'bail',
+                'required',
+                'string',
+                'max:255',
+                "regex:~\A[\p{L}\p{M} .'-]+\z~u",
+                'regex:~\p{L}~u',
+            ],
 
             'username' => [
                 'required',
