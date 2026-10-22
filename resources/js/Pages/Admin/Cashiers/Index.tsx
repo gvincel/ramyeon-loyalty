@@ -448,7 +448,7 @@ export default function Index({ cashiers }: Props) {
                         </Field>
                         {!isEditing && (
                             <>
-                                <PasswordField id="cashier_password" label="Password" value={data.password} onChange={(v) => setData('password', v)} placeholder="At least 8 characters" error={errors.password} />
+                                <PasswordField id="cashier_password" label="Password" value={data.password} onChange={(v) => setData('password', v)} placeholder="At least 12 characters" error={errors.password} />
                                 <PasswordField id="cashier_confirm_password" label="Confirm password" value={data.confirm_password} onChange={(v) => setData('confirm_password', v)} placeholder="Re-enter password" error={errors.confirm_password ?? (passwordMismatch ? 'Passwords do not match.' : undefined)} />
                             </>
                         )}

@@ -31,25 +31,47 @@ class CashierController extends Controller
      */
     public function store(Request $request)
     {
+        
+        $request->merge([
+            'name' => is_string($request->input('name'))
+                ? trim($request->input('name'))
+                : $request->input('name'),
+
+            'username' => is_string($request->input('username'))
+                ? trim($request->input('username'))
+                : $request->input('username'),
+        ]);
+
         $validated = $request->validate([
-            'name' => ['required', 'string', 'max:255'],
+            'name' => [
+                'bail',
+                'required',
+                'string',
+                'max:255',
+                'regex:/\S/u',
+            ],
 
             'username' => [
+                'bail',
                 'required',
                 'string',
                 'max:50',
+                'regex:/\A[a-zA-Z0-9._-]+\z/',
                 'unique:users,username',
             ],
 
             'password' => [
+                'bail',
                 'required',
                 'string',
-                'min:8',
+                'min:12',
+                'not_regex:/\A\s+\z/u',
                 'same:confirm_password',
             ],
 
             'confirm_password' => [
                 'required',
+                'string',
             ],
         ]);
 
