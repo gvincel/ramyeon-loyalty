@@ -27,6 +27,13 @@ final class AuditLogger
         'period',
         'record_count',
         'file_size_bytes',
+        'backup_id',
+        'safety_backup_id',
+        'restore_connection',
+        'tables_restored',
+        'rows_restored',
+        'restore_started',
+        'restore_exception',
     ];
 
     /**

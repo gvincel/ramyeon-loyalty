@@ -97,4 +97,239 @@ class BackupEncryptionServiceTest extends TestCase
 
         $this->service->decrypt('not-an-encrypted-backup', $this->key);
     }
+
+
+    public function test_it_stream_encrypts_and_decrypts_a_file(): void
+    {
+        $input = tempnam(sys_get_temp_dir(), 'ramyeon-plain-');
+        $encrypted = tempnam(sys_get_temp_dir(), 'ramyeon-encrypted-');
+        $decrypted = tempnam(sys_get_temp_dir(), 'ramyeon-restored-');
+
+        unlink($encrypted);
+        unlink($decrypted);
+
+        try {
+            $plaintext = str_repeat(
+                "-- Ramyeon Corner backup test data\n",
+                10000
+            );
+
+            file_put_contents($input, $plaintext);
+
+            $this->service->encryptFile($input, $encrypted, $this->key);
+            $this->service->decryptFile($encrypted, $decrypted, $this->key);
+
+            $this->assertNotSame(
+                $plaintext,
+                file_get_contents($encrypted)
+            );
+            $this->assertSame(
+                $plaintext,
+                file_get_contents($decrypted)
+            );
+        } finally {
+            @unlink($input);
+            @unlink($encrypted);
+            if (is_file($decrypted)) {
+                unlink($decrypted);
+            }
+        }
+    }
+
+    public function test_it_rejects_tampered_streaming_encrypted_files(): void
+    {
+        $input = tempnam(sys_get_temp_dir(), 'ramyeon-plain-');
+        $encrypted = tempnam(sys_get_temp_dir(), 'ramyeon-encrypted-');
+        $decrypted = tempnam(sys_get_temp_dir(), 'ramyeon-restored-');
+
+        unlink($encrypted);
+        unlink($decrypted);
+
+        try {
+            file_put_contents($input, 'sensitive backup content');
+
+            $this->service->encryptFile($input, $encrypted, $this->key);
+
+            $contents = file_get_contents($encrypted);
+            $this->assertNotFalse($contents);
+            $this->assertGreaterThan(0, strlen($contents));
+
+            $contents[strlen($contents) - 1] =
+                chr(ord($contents[strlen($contents) - 1]) ^ 1);
+
+            file_put_contents($encrypted, $contents);
+
+            $this->expectException(RuntimeException::class);
+            $this->service->decryptFile(
+                $encrypted,
+                $decrypted,
+                $this->key
+            );
+        } finally {
+            @unlink($input);
+            @unlink($encrypted);
+            if (is_file($decrypted)) {
+                unlink($decrypted);
+            }
+        }
+    }
+
+    public function test_it_rejects_truncated_streaming_encrypted_files(): void
+    {
+        $input = tempnam(sys_get_temp_dir(), 'ramyeon-plain-');
+        $encrypted = tempnam(sys_get_temp_dir(), 'ramyeon-encrypted-');
+        $decrypted = tempnam(sys_get_temp_dir(), 'ramyeon-restored-');
+
+        unlink($encrypted);
+        unlink($decrypted);
+
+        try {
+            file_put_contents(
+                $input,
+                str_repeat('backup data ', 100)
+            );
+
+            $this->service->encryptFile($input, $encrypted, $this->key);
+
+            $contents = file_get_contents($encrypted);
+            $this->assertNotFalse($contents);
+            $this->assertGreaterThan(1, strlen($contents));
+
+            file_put_contents(
+                $encrypted,
+                substr($contents, 0, -1)
+            );
+
+            $this->expectException(RuntimeException::class);
+            $this->service->decryptFile(
+                $encrypted,
+                $decrypted,
+                $this->key
+            );
+        } finally {
+            @unlink($input);
+            @unlink($encrypted);
+            if (is_file($decrypted)) {
+                unlink($decrypted);
+            }
+        }
+    }
+
+    public function test_it_does_not_overwrite_an_existing_encrypted_file(): void
+    {
+        $input = tempnam(sys_get_temp_dir(), 'ramyeon-plain-');
+        $output = tempnam(sys_get_temp_dir(), 'ramyeon-existing-');
+        unlink($output);
+
+        $originalContents = 'This existing file must remain unchanged.';
+
+        try {
+            file_put_contents($input, 'backup data to encrypt');
+            file_put_contents($output, $originalContents);
+
+            try {
+                $this->service->encryptFile($input, $output, $this->key);
+                $this->fail('Expected encryption to refuse an existing destination.');
+            } catch (RuntimeException $exception) {
+                $this->assertStringContainsString(
+                    'destination may already exist',
+                    $exception->getMessage()
+                );
+            }
+
+            $this->assertSame(
+                $originalContents,
+                file_get_contents($output)
+            );
+        } finally {
+            if (is_file($input)) {
+                unlink($input);
+            }
+
+            if (is_file($output)) {
+                unlink($output);
+            }
+        }
+    }
+
+
+    public function test_it_does_not_overwrite_an_existing_decrypted_file(): void
+    {
+        $input = tempnam(sys_get_temp_dir(), 'ramyeon-encrypted-');
+        $output = tempnam(sys_get_temp_dir(), 'ramyeon-existing-');
+
+        try {
+            file_put_contents($input, 'invalid encrypted backup');
+
+            $originalContents = 'This existing file must remain unchanged.';
+            file_put_contents($output, $originalContents);
+
+            try {
+                $this->service->decryptFile($input, $output, $this->key);
+                $this->fail('Expected decryption to refuse an existing destination.');
+            } catch (RuntimeException $exception) {
+                $this->assertStringContainsString(
+                    'destination may already exist',
+                    $exception->getMessage()
+                );
+            }
+
+            $this->assertSame(
+                $originalContents,
+                file_get_contents($output)
+            );
+        } finally {
+            if (is_file($input)) {
+                unlink($input);
+            }
+
+            if (is_file($output)) {
+                unlink($output);
+            }
+        }
+    }
+
+    public function test_it_removes_partial_output_after_failed_decryption(): void
+    {
+        $input = tempnam(sys_get_temp_dir(), 'ramyeon-plain-');
+        $encrypted = tempnam(sys_get_temp_dir(), 'ramyeon-encrypted-');
+        $decrypted = tempnam(sys_get_temp_dir(), 'ramyeon-restored-');
+
+        unlink($encrypted);
+        unlink($decrypted);
+
+        try {
+            file_put_contents($input, 'backup content that will be corrupted');
+
+            $this->service->encryptFile($input, $encrypted, $this->key);
+
+            $contents = file_get_contents($encrypted);
+            $this->assertNotFalse($contents);
+            $this->assertGreaterThan(0, strlen($contents));
+
+            $contents[strlen($contents) - 1] =
+                chr(ord($contents[strlen($contents) - 1]) ^ 1);
+
+            file_put_contents($encrypted, $contents);
+
+            try {
+                $this->service->decryptFile(
+                    $encrypted,
+                    $decrypted,
+                    $this->key
+                );
+
+                $this->fail('Expected decryption to reject corrupted data.');
+            } catch (RuntimeException) {
+                $this->assertFileDoesNotExist($decrypted);
+            }
+        } finally {
+            @unlink($input);
+            @unlink($encrypted);
+
+            if (is_file($decrypted)) {
+                unlink($decrypted);
+            }
+        }
+    }
 }

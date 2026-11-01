@@ -163,6 +163,12 @@ Route::middleware(['auth', 'role:admin'])->group(function () {
     Route::post('/admin/backups', [BackupController::class, 'store'])
     ->name('admin.backups.store');
 
+    Route::post('/admin/backups/{backupRecord}/verify', [BackupController::class, 'verify'])
+    ->name('admin.backups.verify');
+
+    Route::post('/admin/backups/{backupRecord}/restore',[BackupController::class, 'restore'])
+    ->name('admin.backups.restore');
+
     Route::get('/admin/audit-logs', [AuditLogController::class, 'index'])
     ->name('admin.audit-logs.index');
 

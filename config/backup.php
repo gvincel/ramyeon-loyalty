@@ -25,8 +25,14 @@ return [
     |
     */
 
+    'connection' => env('BACKUP_DATABASE_CONNECTION'),
+
+    'restore_connection' => env('BACKUP_RESTORE_CONNECTION'),
+
     'disk' => 'local',
 
     'directory' => 'backups',
+
+    'encryption_key' => env('BACKUP_ENCRYPTION_KEY'),
 
 ];
