@@ -314,7 +314,7 @@ export default function QRScannerPage() {
 
                     <FlashMessage success={success} error={error} />
 
-                    {!customer && !isLoading && (
+                    {!customer && (
                         <div className="grid items-stretch gap-6 lg:grid-cols-2">
                             <section className="panel flex flex-col overflow-hidden">
                                 <div className="panel-header">
