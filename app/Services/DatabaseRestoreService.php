@@ -29,7 +29,8 @@ final class DatabaseRestoreService
      */
     public function restore(
         BackupRecord $backup,
-        ?int $restoredBy = null
+        ?int $restoredBy = null,
+        bool $production = false
     ): array {
         $lock = $this->stateStore->acquireLock();
 
@@ -40,7 +41,7 @@ final class DatabaseRestoreService
                 );
             }
 
-            return $this->restoreLocked($backup, $restoredBy);
+            return $this->restoreLocked($backup, $restoredBy, $production);
         } finally {
             $this->stateStore->releaseLock($lock);
         }
@@ -48,10 +49,11 @@ final class DatabaseRestoreService
 
     private function restoreLocked(
         BackupRecord $backup,
-        ?int $restoredBy = null
+        ?int $restoredBy = null,
+        bool $production = false
     ): array {
-        $connectionName = $this->restoreConnectionName();
-        $database = $this->assertSafeTarget($connectionName);
+        $connectionName = $this->restoreConnectionName($production);
+        $database = $this->assertSafeTarget($connectionName, $production);
 
         $this->assertEligibleBackup($backup);
 
@@ -123,8 +125,14 @@ final class DatabaseRestoreService
                 'status' => 'prepared',
                 'backup_id' => (string) $backup->backup_id,
                 'safety_backup_id' => (string) $safetyBackup->backup_id,
+                'safety_backup_disk' => (string) $safetyBackup->disk,
+                'safety_backup_path' => (string) $safetyBackup->path,
+                'safety_backup_file_size_bytes' => (int) $safetyBackup->file_size_bytes,
+                'safety_backup_sha256' => (string) $safetyBackup->sha256,
                 'restore_connection' => $connectionName,
+                'production_restore' => $production,
                 'restore_database' => (string) $database['database'],
+                'safety_backup_verified_at' => $safetyBackup->verified_at?->toISOString(),
             ];
 
             // Persist recovery information before any destructive SQL.
@@ -348,7 +356,9 @@ final class DatabaseRestoreService
                 ];
             }
 
-            $connectionName = $this->restoreConnectionName();
+            $production = (bool) ($state['production_restore'] ?? false);
+
+            $connectionName = $this->restoreConnectionName($production);
 
             if (! hash_equals(
                 $connectionName,
@@ -359,7 +369,7 @@ final class DatabaseRestoreService
                 );
             }
 
-            $database = $this->assertSafeTarget($connectionName);
+            $database = $this->assertSafeTarget($connectionName, $production);
 
             if (strcasecmp(
                 (string) $database['database'],
@@ -371,15 +381,16 @@ final class DatabaseRestoreService
             }
 
             // backup_id is a unique string column, not the model primary key.
-            $safetyBackup = BackupRecord::query()
-                ->where('backup_id', $state['safety_backup_id'])
-                ->first();
-
-            if (! $safetyBackup) {
-                throw new RuntimeException(
-                    'The safety backup referenced by the recovery journal could not be found.'
-                );
-            }
+            $safetyBackup = new BackupRecord([
+                'backup_id' => $state['safety_backup_id'],
+                'status' => 'completed',
+                'disk' => $state['safety_backup_disk'],
+                'path' => $state['safety_backup_path'],
+                'file_size_bytes' => $state['safety_backup_file_size_bytes'],
+                'sha256' => $state['safety_backup_sha256'],
+                'encrypted' => true,
+                'verified_at' => $state['safety_backup_verified_at'],
+            ]);
 
             $this->assertEligibleBackup($safetyBackup);
 
@@ -425,8 +436,29 @@ final class DatabaseRestoreService
         }
     }
 
-    private function restoreConnectionName(): string
+    private function restoreConnectionName(bool $production = false): string
     {
+        if ($production) {
+            if (! config('backup.allow_production_restore', false)) {
+                throw new RuntimeException(
+                    'Production database restoration is disabled.'
+                );
+            }
+
+            $connectionName = config('database.default');
+
+            if (
+                ! is_string($connectionName) ||
+                trim($connectionName) === ''
+            ) {
+                throw new RuntimeException(
+                    'The main application database connection is invalid.'
+                );
+            }
+
+            return $connectionName;
+        }
+
         $connectionName = config('backup.restore_connection');
 
         if (
@@ -447,8 +479,10 @@ final class DatabaseRestoreService
         return $connectionName;
     }
 
-    private function assertSafeTarget(string $connectionName): array
-    {
+    private function assertSafeTarget(
+        string $connectionName,
+        bool $production = false
+    ): array {
         $target = config("database.connections.{$connectionName}");
         $mainConnectionName = config('database.default');
         $main = config("database.connections.{$mainConnectionName}");
@@ -467,8 +501,16 @@ final class DatabaseRestoreService
             );
         }
 
-        // Reject the main database even if it uses another connection name.
-        if (
+        if ($production) {
+            if (
+                ! config('backup.allow_production_restore', false) ||
+                $connectionName !== $mainConnectionName
+            ) {
+                throw new RuntimeException(
+                    'The production restoration target is not authorized.'
+                );
+            }
+        } elseif (
             strcasecmp(
                 (string) $target['database'],
                 (string) $main['database']
@@ -479,7 +521,6 @@ final class DatabaseRestoreService
             );
         }
 
-        // Verify the actual database selected by the target's live PDO connection.
         $targetPdo = DB::connection($connectionName)->getPdo();
 
         $actualTargetDatabase = $targetPdo
@@ -498,23 +539,35 @@ final class DatabaseRestoreService
             );
         }
 
-        // Compare against the actual live application database as well.
-        $mainPdo = DB::connection($mainConnectionName)->getPdo();
-
-        $actualMainDatabase = $mainPdo
-            ->query('SELECT DATABASE()')
-            ->fetchColumn();
-
         if (
-            ! is_string($actualMainDatabase) ||
-            strcasecmp(
-                $actualTargetDatabase,
-                $actualMainDatabase
-            ) === 0
+            ! $production &&
+            in_array($main['driver'] ?? null, ['mysql', 'mariadb'], true)
         ) {
-            throw new RuntimeException(
-                'The restoration target cannot be the live application database.'
-            );
+            $mainPdo = DB::connection($mainConnectionName)->getPdo();
+
+            $actualMainDatabase = $mainPdo
+                ->query('SELECT DATABASE()')
+                ->fetchColumn();
+
+            if (
+                ! is_string($actualMainDatabase) ||
+                $actualMainDatabase === ''
+            ) {
+                throw new RuntimeException(
+                    'Could not verify the active application database.'
+                );
+            }
+
+            if (
+                strcasecmp(
+                    $actualTargetDatabase,
+                    $actualMainDatabase
+                ) === 0
+            ) {
+                throw new RuntimeException(
+                    'The restoration target cannot be the live application database.'
+                );
+            }
         }
 
         return $target;

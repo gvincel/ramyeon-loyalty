@@ -15,7 +15,7 @@ class RecoverInterruptedDatabaseRestore extends Command
     public function handle(DatabaseRestoreService $restoreService): int
     {
         if (! $this->confirm(
-            'This may replace the isolated restore database with its saved safety backup. Continue?'
+            'WARNING: This will restore the database using its saved safety backup. It may affect the live production database. Do you want to continue?'
         )) {
             $this->warn('Recovery cancelled.');
 

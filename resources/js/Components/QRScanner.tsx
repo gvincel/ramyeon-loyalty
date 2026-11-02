@@ -1,43 +1,40 @@
-import { useEffect } from 'react';
-
 import { Html5Qrcode } from 'html5-qrcode';
+import { useEffect, useRef } from 'react';
 
 interface QRScannerProps {
     onScan: (decodedText: string) => void;
     onError?: (errorMessage: string) => void;
 }
 
-export default function QRScanner({
-    onScan,
-    onError,
-}: QRScannerProps) {
+export default function QRScanner({ onScan, onError }: QRScannerProps) {
+    const onScanRef = useRef(onScan);
+    const onErrorRef = useRef(onError);
+
+    // Keep callbacks current without restarting the camera.
+    onScanRef.current = onScan;
+    onErrorRef.current = onError;
+
     useEffect(() => {
         const scanner = new Html5Qrcode('qr-reader');
 
-        let isUnmounted = false;
+        let disposed = false;
         let hasScanned = false;
-        let isStarting = false;
-        let restartRequested = false;
-
-        let startPromise: Promise<null> | null = null;
-        let stopPromise: Promise<void> | null = null;
+        let pageSuspended = false;
+        let needsReconcile = false;
+        let reconcilePromise: Promise<void> | null = null;
 
         const scannerElement = document.getElementById('qr-reader');
 
         const updateVideoSize = () => {
             const video = scannerElement?.querySelector('video');
 
-            if (!video) {
-                return;
-            }
+            if (!video) return;
 
             video.style.width = '100%';
             video.style.height = 'auto';
             video.style.display = 'block';
             video.style.objectFit = 'cover';
 
-            // Mirror front-facing cameras for a natural preview;
-            // keep rear-facing cameras unmirrored.
             const stream = video.srcObject;
             const track =
                 stream instanceof MediaStream
@@ -57,16 +54,18 @@ export default function QRScanner({
                     cameraLabel,
                 );
 
-            video.style.transform =
-                isRearCamera ? 'none' : isFrontCamera ? 'scaleX(-1)' : 'none';
+            video.style.transform = isRearCamera
+                ? 'none'
+                : isFrontCamera
+                  ? 'scaleX(-1)'
+                  : 'none';
+
             video.style.transformOrigin = 'center';
         };
 
         const resizeObserver = scannerElement
             ? new ResizeObserver(() => {
-                  requestAnimationFrame(() => {
-                      updateVideoSize();
-                  });
+                  requestAnimationFrame(updateVideoSize);
               })
             : null;
 
@@ -74,266 +73,177 @@ export default function QRScanner({
             resizeObserver.observe(scannerElement);
         }
 
+        const shouldRun = () =>
+            !disposed &&
+            !hasScanned &&
+            !pageSuspended &&
+            document.visibilityState === 'visible';
+
         /**
-         * Stop the active camera without clearing the scanner.
-         * This allows the scanner to restart when the tab becomes visible.
+         * Serialize camera startup and shutdown.
+         * Only one reconciliation loop may run at a time.
          */
-        const stopActiveScanner = async (): Promise<void> => {
-            try {
-                if (startPromise) {
-                    await startPromise.catch(() => {});
-                }
+        const reconcile = (): Promise<void> => {
+            needsReconcile = true;
 
-                if (stopPromise) {
-                    await stopPromise.catch(() => {});
-                    return;
-                }
+            if (reconcilePromise) {
+                return reconcilePromise;
+            }
 
-                if (!scanner.isScanning) {
-                    return;
-                }
-
-                const pendingStop = scanner.stop();
-                stopPromise = pendingStop;
-
+            reconcilePromise = (async () => {
                 try {
-                    await pendingStop;
-                } catch (error) {
-                    console.warn('QR scanner stop failed:', error);
-                } finally {
-                    if (stopPromise === pendingStop) {
-                        stopPromise = null;
-                    }
-                }
-            } catch (error) {
-                console.warn('QR scanner cleanup failed:', error);
-            }
-        };
+                    while (needsReconcile) {
+                        needsReconcile = false;
 
-        /**
-         * Start scanning using an available camera device ID.
-         * Prefer a rear camera when available; otherwise use the first camera.
-         */
-        const startScanner = async (): Promise<void> => {
-            if (
-                isUnmounted ||
-                hasScanned ||
-                document.visibilityState !== 'visible'
-            ) {
-                return;
-            }
+                        if (!shouldRun()) {
+                            if (scanner.isScanning) {
+                                try {
+                                    await scanner.stop();
+                                } catch (error) {
+                                    console.warn(
+                                        'QR scanner stop failed:',
+                                        error,
+                                    );
+                                }
+                            }
 
-            if (isStarting) {
-                restartRequested = true;
-                return;
-            }
+                            continue;
+                        }
 
-            isStarting = true;
-
-            try {
-                if (stopPromise) {
-                    await stopPromise.catch(() => {});
-                }
-
-                if (
-                    isUnmounted ||
-                    hasScanned ||
-                    document.visibilityState !== 'visible'
-                ) {
-                    return;
-                }
-
-                const cameras = await Html5Qrcode.getCameras();
-
-                if (
-                    isUnmounted ||
-                    hasScanned ||
-                    document.visibilityState !== 'visible'
-                ) {
-                    return;
-                }
-
-                if (cameras.length === 0) {
-                    throw new Error(
-                        'No cameras were found on this device.',
-                    );
-                }
-
-                const selectedCamera =
-                    cameras.find((camera) =>
-                        /(back|rear|environment)/i.test(camera.label),
-                    ) ?? cameras[0];
-
-                // Avoid attempting to start a second active scan.
-                if (scanner.isScanning) {
-                    return;
-                }
-
-                startPromise = scanner.start(
-                    selectedCamera.id,
-                    {
-                        fps: 10,
-                        qrbox: (
-                            viewfinderWidth,
-                            viewfinderHeight,
-                        ) => {
-                            const maxSize = 250;
-
-                            const widthBasedSize = Math.floor(
-                                viewfinderWidth * 0.7,
-                            );
-
-                            const heightBasedSize = Math.floor(
-                                viewfinderHeight * 0.7,
-                            );
-
-                            const size = Math.min(
-                                maxSize,
-                                widthBasedSize,
-                                heightBasedSize,
-                            );
-
-                            return {
-                                width: size,
-                                height: size,
-                            };
-                        },
-                    },
-                    async (decodedText) => {
-                        if (isUnmounted || hasScanned) {
+                        // Never start another camera session if one is active.
+                        if (scanner.isScanning) {
+                            updateVideoSize();
                             return;
                         }
 
-                        hasScanned = true;
+                        try {
+                            const cameras = await Html5Qrcode.getCameras();
 
-                        // Release the camera after a successful scan.
-                        await stopActiveScanner();
-
-                        if (!isUnmounted) {
-                            onScan(decodedText);
-                        }
-                    },
-                    () => {
-                        // Normal unsuccessful scan attempts are expected.
-                    },
-                );
-
-                await startPromise;
-
-                if (
-                    isUnmounted ||
-                    hasScanned ||
-                    document.visibilityState !== 'visible'
-                ) {
-                    await stopActiveScanner();
-                    return;
-                }
-
-                updateVideoSize();
-            } catch (error) {
-                console.error(
-                    'QR scanner startup failed:',
-                    error,
-                );
-
-                if (
-                    !isUnmounted &&
-                    document.visibilityState === 'visible'
-                ) {
-                    onError?.(
-                        'Unable to start the camera. Check the browser console for details.',
-                    );
-                }
-            } finally {
-                isStarting = false;
-
-                // Handle switching away from and back to the tab
-                // while camera startup was still in progress.
-                if (restartRequested) {
-                    restartRequested = false;
-
-                    if (
-                        !isUnmounted &&
-                        !hasScanned &&
-                        document.visibilityState === 'visible'
-                    ) {
-                        void (async () => {
-                            await stopActiveScanner();
-
-                            if (
-                                !isUnmounted &&
-                                !hasScanned &&
-                                document.visibilityState === 'visible'
-                            ) {
-                                void startScanner();
+                            // Visibility or component state may have changed
+                            // while the browser was enumerating cameras.
+                            if (!shouldRun()) {
+                                needsReconcile = true;
+                                continue;
                             }
-                        })();
+
+                            if (cameras.length === 0) {
+                                throw new Error(
+                                    'No cameras were found on this device.',
+                                );
+                            }
+
+                            const selectedCamera =
+                                cameras.find((camera) =>
+                                    /(back|rear|environment)/i.test(
+                                        camera.label,
+                                    ),
+                                ) ?? cameras[0];
+
+                            await scanner.start(
+                                selectedCamera.id,
+                                {
+                                    fps: 10,
+                                    qrbox: (
+                                        viewfinderWidth,
+                                        viewfinderHeight,
+                                    ) => {
+                                        const size = Math.max(
+                                            1,
+                                            Math.min(
+                                                250,
+                                                Math.floor(
+                                                    viewfinderWidth * 0.7,
+                                                ),
+                                                Math.floor(
+                                                    viewfinderHeight * 0.7,
+                                                ),
+                                            ),
+                                        );
+
+                                        return {
+                                            width: size,
+                                            height: size,
+                                        };
+                                    },
+                                },
+                                (decodedText) => {
+                                    if (disposed || hasScanned) return;
+
+                                    hasScanned = true;
+
+                                    // Request camera cleanup before handing
+                                    // the decoded value to the parent.
+                                    void reconcile();
+                                    onScanRef.current(decodedText);
+                                },
+                                () => {
+                                    // Normal unsuccessful decode attempts
+                                    // are expected while scanning.
+                                },
+                            );
+
+                            if (!shouldRun()) {
+                                needsReconcile = true;
+                                continue;
+                            }
+
+                            updateVideoSize();
+                        } catch (error) {
+                            // A tab switch during startup is not a fatal
+                            // scanner error. Reconcile the latest state.
+                            if (!shouldRun()) {
+                                needsReconcile = true;
+                                continue;
+                            }
+
+                            console.error('QR scanner startup failed:', error);
+
+                            onErrorRef.current?.(
+                                'Unable to start the camera. Check the browser console for details.',
+                            );
+
+                            return;
+                        }
+                    }
+                } finally {
+                    reconcilePromise = null;
+
+                    // Do not launch another camera operation while unmounting.
+                    // Cleanup will handle the final stop and clear sequence.
+                    if (needsReconcile && !disposed) {
+                        void reconcile();
                     }
                 }
-            }
-        };
-
-        /**
-         * Stop the camera when the tab is hidden.
-         * Restart scanning when the tab becomes visible again.
-         */
-        const handleVisibilityChange = () => {
-            if (document.visibilityState === 'hidden') {
-                restartRequested = false;
-                void stopActiveScanner();
-                return;
-            }
-
-            if (isStarting) {
-                restartRequested = true;
-                return;
-            }
-
-            void (async () => {
-                await stopActiveScanner();
-
-                if (
-                    !isUnmounted &&
-                    !hasScanned &&
-                    document.visibilityState === 'visible'
-                ) {
-                    void startScanner();
-                }
             })();
+
+            return reconcilePromise;
         };
 
-        /**
-         * Stop the camera when the browser page is being hidden or unloaded.
-         */
+        const handleVisibilityChange = () => {
+            void reconcile();
+        };
+
         const handlePageHide = () => {
-            void stopActiveScanner();
+            pageSuspended = true;
+            void reconcile();
         };
 
-        /**
-         * Restart scanning if the browser restores this page from its
-         * back-forward cache.
-         */
         const handlePageShow = (event: PageTransitionEvent) => {
-            if (
-                event.persisted &&
-                document.visibilityState === 'visible'
-            ) {
-                handleVisibilityChange();
+            if (event.persisted) {
+                pageSuspended = false;
+                void reconcile();
             }
         };
 
-        document.addEventListener(
-            'visibilitychange',
-            handleVisibilityChange,
-        );
+        document.addEventListener('visibilitychange', handleVisibilityChange);
 
         window.addEventListener('pagehide', handlePageHide);
         window.addEventListener('pageshow', handlePageShow);
 
-        void startScanner();
+        void reconcile();
 
         return () => {
-            isUnmounted = true;
+            disposed = true;
 
             document.removeEventListener(
                 'visibilitychange',
@@ -343,25 +253,33 @@ export default function QRScanner({
             window.removeEventListener('pagehide', handlePageHide);
             window.removeEventListener('pageshow', handlePageShow);
 
-            // Stop the camera before clearing the scanner.
             void (async () => {
-                await stopActiveScanner();
-
                 try {
-                    scanner.clear();
-                } catch {
-                    // The scanner may already be cleared.
-                }
+                    // Wait until any pending startup or reconciliation finishes.
+                    await reconcile();
 
-                resizeObserver?.disconnect();
+                    // Stop the camera before clearing the scanner.
+                    if (scanner.isScanning) {
+                        await scanner.stop();
+                    }
+
+                    // Never clear while scanning is still active.
+                    if (scanner.isScanning) {
+                        console.error(
+                            'QR scanner cleanup aborted: scanner is still active.',
+                        );
+                        return;
+                    }
+
+                    scanner.clear();
+                } catch (error) {
+                    console.error('QR scanner cleanup failed:', error);
+                } finally {
+                    resizeObserver?.disconnect();
+                }
             })();
         };
-    }, [onScan, onError]);
+    }, []);
 
-    return (
-        <div
-            id="qr-reader"
-            className="w-full overflow-hidden rounded-lg"
-        />
-    );
+    return <div id="qr-reader" className="w-full overflow-hidden rounded-lg" />;
 }

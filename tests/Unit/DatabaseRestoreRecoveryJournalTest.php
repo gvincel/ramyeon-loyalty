@@ -37,6 +37,11 @@ class DatabaseRestoreRecoveryJournalTest extends TestCase
             'safety_backup_id' => 'safety-test-001',
             'restore_connection' => 'restore_verify',
             'restore_database' => 'ramyeon_backup_restore_verify',
+            'safety_backup_disk' => 'local',
+            'safety_backup_path' => 'backups/safety-test-001.sql.enc',
+            'safety_backup_file_size_bytes' => 1024,
+            'safety_backup_sha256' => str_repeat('a', 64),
+            'safety_backup_verified_at' => '2026-11-02T00:00:00+00:00',
         ]);
     }
 
@@ -126,5 +131,26 @@ class DatabaseRestoreRecoveryJournalTest extends TestCase
         $this->assertIsResource($lock);
 
         $this->store->releaseLock($lock);
+    }
+
+    public function test_it_uses_journal_metadata_when_safety_backup_record_is_missing(): void
+    {
+        $this->writeState('recovery_needed');
+
+        try {
+            $this->service->recoverInterruptedRestore();
+
+            $this->fail('Recovery should stop because the safety backup artifact is missing.');
+        } catch (RuntimeException $exception) {
+            $this->assertStringNotContainsString(
+                'safety backup required for interrupted recovery could not be found',
+                strtolower($exception->getMessage())
+            );
+        }
+
+        $state = $this->store->read();
+
+        $this->assertNotNull($state);
+        $this->assertSame('recovery_needed', $state['status']);
     }
 }

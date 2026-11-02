@@ -157,8 +157,13 @@ function SectionHeading({
 }
 
 export default function Backups() {
-    const { flash, backups = [] } =
-        usePage<PageProps<{ backups: BackupRecord[] }>>().props;
+    const { flash, backups = [], restoreTargetDatabase } =
+        usePage<
+            PageProps<{
+                backups: BackupRecord[];
+                restoreTargetDatabase: string | null;
+            }>
+        >().props;
 
     const [verifyingBackupId, setVerifyingBackupId] =
         useState<string | null>(null);
@@ -901,9 +906,9 @@ export default function Backups() {
                                     </h3>
 
                                     <p className="mt-2 text-small leading-6 text-ink-muted">
-                                        Restoration currently targets the isolated
-                                        ramyeon_backup_restore_verify database, not the
-                                        live ramyeon_loyalty database.
+                                        Restoration currently targets the configured database:
+                                        {restoreTargetDatabase ?? 'Not configured'}.
+                                        The live database is protected by the server-side restore settings.
                                     </p>
                                 </div>
 
@@ -1056,7 +1061,7 @@ export default function Backups() {
                                         </p>
 
                                         <p className="mt-1 break-all font-semibold text-ink">
-                                            ramyeon_backup_restore_verify
+                                            {restoreTargetDatabase ?? 'Not configured'}
                                         </p>
                                     </div>
                                 </div>

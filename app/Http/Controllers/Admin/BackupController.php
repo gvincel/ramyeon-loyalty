@@ -22,6 +22,14 @@ class BackupController extends Controller
 {
     public function index()
 {
+    $restoreConnection = config('backup.allow_production_restore')
+        ? config('database.default')
+        : config('backup.restore_connection');
+
+    $restoreTargetDatabase = $restoreConnection
+        ? config("database.connections.{$restoreConnection}.database")
+        : null;
+
     $backups = BackupRecord::query()
         ->with('creator:id,name')
         ->orderByDesc('created_at')
@@ -48,6 +56,7 @@ class BackupController extends Controller
 
     return Inertia::render('Admin/Backups', [
         'backups' => $backups,
+        'restoreTargetDatabase' => $restoreTargetDatabase,
     ]);
 }
 

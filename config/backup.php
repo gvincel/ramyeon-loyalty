@@ -29,6 +29,8 @@ return [
 
     'restore_connection' => env('BACKUP_RESTORE_CONNECTION'),
 
+    'allow_production_restore' => env('BACKUP_ALLOW_PRODUCTION_RESTORE', false),
+
     'disk' => 'local',
 
     'directory' => 'backups',

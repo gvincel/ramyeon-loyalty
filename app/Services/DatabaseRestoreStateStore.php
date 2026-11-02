@@ -22,11 +22,29 @@ final class DatabaseRestoreStateStore
     ];
 
     /**
-     * Acquire an exclusive process lock.
+     * Acquire an exclusive lock for restoration or recovery.
      *
      * @return resource
      */
     public function acquireLock()
+    {
+        return $this->openLock(LOCK_EX);
+    }
+
+    /**
+     * Acquire a shared lock for operations that must not overlap restoration.
+     *
+     * @return resource
+     */
+    public function acquireSharedLock()
+    {
+        return $this->openLock(LOCK_SH);
+    }
+
+    /**
+     * @return resource
+     */
+    private function openLock(int $lockType)
     {
         $this->ensurePrivateDirectory();
 
@@ -38,7 +56,7 @@ final class DatabaseRestoreStateStore
             );
         }
 
-        if (! flock($handle, LOCK_EX | LOCK_NB)) {
+        if (! flock($handle, $lockType | LOCK_NB)) {
             fclose($handle);
 
             throw new RuntimeException(
@@ -73,9 +91,15 @@ final class DatabaseRestoreStateStore
             'backup_id' => $state['backup_id'],
             'safety_backup_id' => $state['safety_backup_id'],
             'restore_connection' => $state['restore_connection'],
+            'production_restore' => $state['production_restore'] ?? false,
             'restore_database' => $state['restore_database'],
             'created_at' => $state['created_at'] ?? now()->toIso8601String(),
             'updated_at' => now()->toIso8601String(),
+            'safety_backup_disk' => $state['safety_backup_disk'],
+            'safety_backup_path' => $state['safety_backup_path'],
+            'safety_backup_file_size_bytes' => $state['safety_backup_file_size_bytes'],
+            'safety_backup_sha256' => $state['safety_backup_sha256'],
+            'safety_backup_verified_at' => $state['safety_backup_verified_at'],
         ];
 
         $payloadJson = json_encode(
@@ -284,10 +308,39 @@ final class DatabaseRestoreStateStore
             ! is_string($state['restore_connection'] ?? null) ||
             trim($state['restore_connection']) === '' ||
             ! is_string($state['restore_database'] ?? null) ||
-            trim($state['restore_database']) === ''
+            trim($state['restore_database']) === '' ||
+            (
+                array_key_exists('production_restore', $state) &&
+                ! is_bool($state['production_restore'])
+            )
         ) {
             throw new RuntimeException(
                 'The restore-state journal contains incomplete or unsupported recovery information.'
+            );
+        }
+
+        if (
+            ! is_string($state['safety_backup_disk'] ?? null) ||
+            trim($state['safety_backup_disk']) === '' ||
+            ! is_string($state['safety_backup_path'] ?? null) ||
+            trim($state['safety_backup_path']) === '' ||
+            ! is_int($state['safety_backup_file_size_bytes'] ?? null) ||
+            $state['safety_backup_file_size_bytes'] <= 0 ||
+            ! is_string($state['safety_backup_sha256'] ?? null) ||
+            preg_match('/\A[a-f0-9]{64}\z/i', $state['safety_backup_sha256']) !== 1
+        ) {
+            throw new RuntimeException(
+                'The safety backup recovery metadata is incomplete or invalid.'
+            );
+        }
+
+        if (
+            ! is_string($state['safety_backup_verified_at'] ?? null) ||
+            trim($state['safety_backup_verified_at']) === '' ||
+            strtotime($state['safety_backup_verified_at']) === false
+        ) {
+            throw new RuntimeException(
+                'Invalid safety backup verification timestamp.'
             );
         }
     }

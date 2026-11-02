@@ -32,6 +32,11 @@ class DatabaseRestoreStateStoreTest extends TestCase
             'safety_backup_id' => 'safety-test-001',
             'restore_connection' => 'restore_verify',
             'restore_database' => 'ramyeon_backup_restore_verify',
+            'safety_backup_disk' => 'local',
+            'safety_backup_path' => 'backups/safety-test-001.sql.enc',
+            'safety_backup_file_size_bytes' => 1024,
+            'safety_backup_sha256' => str_repeat('a', 64),
+            'safety_backup_verified_at' => '2026-11-02T00:00:00+00:00',
         ];
     }
 
@@ -50,8 +55,13 @@ class DatabaseRestoreStateStoreTest extends TestCase
         $this->assertSame($state['safety_backup_id'], $result['safety_backup_id']);
         $this->assertSame($state['restore_connection'], $result['restore_connection']);
         $this->assertSame($state['restore_database'], $result['restore_database']);
+        $this->assertSame($state['safety_backup_disk'], $result['safety_backup_disk']);
+        $this->assertSame($state['safety_backup_path'], $result['safety_backup_path']);
+        $this->assertSame($state['safety_backup_file_size_bytes'], $result['safety_backup_file_size_bytes']);
+        $this->assertSame($state['safety_backup_sha256'], $result['safety_backup_sha256']);
         $this->assertNotEmpty($result['created_at']);
         $this->assertNotEmpty($result['updated_at']);
+        $this->assertSame($state['safety_backup_verified_at'], $result['safety_backup_verified_at']);
     }
 
     public function test_it_returns_null_when_no_journal_exists(): void
@@ -149,5 +159,51 @@ class DatabaseRestoreStateStoreTest extends TestCase
         $this->assertIsResource($secondLock);
 
         $this->store->releaseLock($secondLock);
+    }
+
+    public function test_multiple_shared_locks_can_be_acquired_simultaneously(): void
+    {
+        $firstLock = $this->store->acquireSharedLock();
+
+        try {
+            $secondLock = $this->store->acquireSharedLock();
+
+            try {
+                $this->assertIsResource($firstLock);
+                $this->assertIsResource($secondLock);
+            } finally {
+                $this->store->releaseLock($secondLock);
+            }
+        } finally {
+            $this->store->releaseLock($firstLock);
+        }
+    }
+
+    public function test_exclusive_lock_cannot_be_acquired_while_shared_lock_is_held(): void
+    {
+        $sharedLock = $this->store->acquireSharedLock();
+
+        try {
+            $this->expectException(RuntimeException::class);
+            $this->expectExceptionMessage('Another database restoration or recovery operation is already running.');
+
+            $this->store->acquireLock();
+        } finally {
+            $this->store->releaseLock($sharedLock);
+        }
+    }
+
+    public function test_shared_lock_cannot_be_acquired_while_exclusive_lock_is_held(): void
+    {
+        $exclusiveLock = $this->store->acquireLock();
+
+        try {
+            $this->expectException(RuntimeException::class);
+            $this->expectExceptionMessage('Another database restoration or recovery operation is already running.');
+
+            $this->store->acquireSharedLock();
+        } finally {
+            $this->store->releaseLock($exclusiveLock);
+        }
     }
 }
