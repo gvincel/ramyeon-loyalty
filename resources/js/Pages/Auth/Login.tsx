@@ -185,6 +185,15 @@ export default function Login({ status }: LoginProps) {
                 {/* Right Login Area */}
                 <div className="flex min-w-0 flex-1 items-center justify-center overflow-y-auto bg-white px-6 py-8 sm:px-10 md:px-12 lg:px-16 xl:px-20">
                     <div className="w-full max-w-[34rem] py-4 sm:py-6">
+                        <div className="mb-6">
+                            <Link
+                                href="/"
+                                className="inline-flex min-h-11 items-center gap-2 rounded-lg text-sm font-medium text-gray-500 transition hover:text-red-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-900/25"
+                            >
+                                <span aria-hidden="true">←</span>
+                                Back to Home
+                            </Link>
+                        </div>
                         {/* Heading + Role Selector */}
                         <div>
                             <div>
