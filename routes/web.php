@@ -26,8 +26,12 @@ use Inertia\Inertia;
 */
 
 Route::get('/', function () {
-    return redirect()->route('login');
-});
+    return Inertia::render('Legal/Home');
+})->name('home');
+
+Route::get('/privacy-policy', function () {
+    return Inertia::render('Legal/PrivacyPolicy');
+})->name('privacy-policy');
 
 /*
 |--------------------------------------------------------------------------
