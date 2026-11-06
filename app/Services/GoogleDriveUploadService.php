@@ -113,27 +113,21 @@ class GoogleDriveUploadService
         $file->setAppProperties(['backup_id' => $record->backup_id]);
         $file->setMimeType('application/octet-stream');
 
-        $stream = $disk->readStream($record->path);
-        if (! is_resource($stream)) {
-            throw new RuntimeException('Unable to open backup file for upload.');
+        $content = $disk->get($record->path);
+        if ($content === null) {
+            throw new RuntimeException('Unable to read backup file for upload.');
         }
 
-        try {
-            // Multipart upload. Sufficient for backups under ~5MB. If backup
-            // sizes grow past that, switch to uploadType => 'resumable'.
-            $created = $service->files->create($file, [
-                'data' => $stream,
-                'mimeType' => 'application/octet-stream',
-                'uploadType' => 'multipart',
-                'fields' => 'id',
-            ]);
+        // Multipart upload expects the data as a string, not a stream resource.
+        // Backups are typically small (KB to a few MB), so loading into memory is safe.
+        $created = $service->files->create($file, [
+            'data' => $content,
+            'mimeType' => 'application/octet-stream',
+            'uploadType' => 'multipart',
+            'fields' => 'id',
+        ]);
 
-            return $created->getId();
-        } finally {
-            if (is_resource($stream)) {
-                fclose($stream);
-            }
-        }
+        return $created->getId();
     }
 
     protected function markFailed(BackupRecord $record, string $error): BackupRecord
