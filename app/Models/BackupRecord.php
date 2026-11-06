@@ -23,6 +23,11 @@ class BackupRecord extends Model
         'expires_at',
         'failure_code',
         'failure_message',
+        'drive_status',
+        'drive_file_id',
+        'drive_uploaded_at',
+        'drive_upload_attempts',
+        'drive_last_error',
     ];
 
     public function getRouteKeyName(): string
@@ -39,6 +44,8 @@ class BackupRecord extends Model
             'started_at' => 'datetime',
             'completed_at' => 'datetime',
             'expires_at' => 'datetime',
+            'drive_uploaded_at' => 'datetime',
+            'drive_upload_attempts' => 'integer',
         ];
     }
 

@@ -23,11 +23,22 @@ type BackupRecord = {
     expires_at: string | null;
     failure_code: string | null;
     failure_message: string | null;
+    drive_status: string;
+    drive_file_id: string | null;
+    drive_uploaded_at: string | null;
+    drive_upload_attempts: number;
+    drive_last_error: string | null;
     created_at: string;
     creator: {
         id: number;
         name: string;
     } | null;
+};
+
+type DriveState = {
+    configured: boolean;
+    connected: boolean;
+    account_email: string | null;
 };
 
 function formatDate(value: string | null): string {
@@ -74,6 +85,66 @@ function statusClasses(status: string): string {
             return 'bg-surface-muted text-ink-muted';
     }
 }
+
+function driveStatusClasses(status: string): string {
+    switch (status.toLowerCase()) {
+        case 'uploaded':
+            return 'bg-success-50 text-success-700';
+        case 'failed':
+            return 'bg-danger-50 text-danger-700';
+        case 'pending':
+            return 'bg-warning-50 text-warning-700';
+        default:
+            return 'bg-surface-muted text-ink-muted';
+    }
+}
+
+function driveStatusLabel(status: string): string {
+    switch (status.toLowerCase()) {
+        case 'uploaded':
+            return 'Uploaded to Drive';
+        case 'failed':
+            return 'Drive upload failed';
+        case 'pending':
+            return 'Uploading to Drive';
+        default:
+            return 'Not uploaded';
+    }
+}
+
+function driveStatusIcon(status: string): string {
+    switch (status.toLowerCase()) {
+        case 'uploaded':
+            return 'cloud_done';
+        case 'failed':
+            return 'cloud_off';
+        case 'pending':
+            return 'cloud_upload';
+        default:
+            return 'cloud';
+    }
+}
+
+function DriveStatusBadge({
+    status,
+    error,
+}: {
+    status: string;
+    error?: string | null;
+}) {
+    return (
+        <span
+            className={`inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[11px] font-semibold ${driveStatusClasses(status)}`}
+            title={status === 'failed' && error ? error : driveStatusLabel(status)}
+        >
+            <span className="material-symbols-outlined text-sm" aria-hidden="true">
+                {driveStatusIcon(status)}
+            </span>
+            {driveStatusLabel(status)}
+        </span>
+    );
+}
+
 
 function BackupStatus({ status }: { status: string }) {
     return (
@@ -157,11 +228,12 @@ function SectionHeading({
 }
 
 export default function Backups() {
-    const { flash, backups = [], restoreTargetDatabase } =
+    const { flash, backups = [], restoreTargetDatabase, drive } =
         usePage<
             PageProps<{
                 backups: BackupRecord[];
                 restoreTargetDatabase: string | null;
+                drive: DriveState;
             }>
         >().props;
 
@@ -316,6 +388,229 @@ export default function Backups() {
                                 footer="Encrypted and integrity-verified"
                                 tone="accent"
                             />
+                        </div>
+                    </section>
+
+                                        {/* Google Drive offsite backup */}
+                    <section
+                        aria-labelledby="drive-heading"
+                        className="panel"
+                    >
+                        <div className="p-5 sm:p-6">
+                            <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
+                                <div className="flex items-start gap-4">
+                                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-control bg-brand-50 text-brand-600">
+                                        <span
+                                            className="material-symbols-outlined text-2xl"
+                                            aria-hidden="true"
+                                        >
+                                            cloud_upload
+                                        </span>
+                                    </div>
+
+                                    <div>
+                                        <h2
+                                            id="drive-heading"
+                                            className="text-heading font-semibold tracking-tight text-ink"
+                                        >
+                                            Google Drive offsite backup
+                                        </h2>
+
+                                        <p className="mt-1 max-w-xl text-small leading-6 text-ink-muted">
+                                            Scheduled backups are automatically
+                                            uploaded to a dedicated Google Drive
+                                            account after they are created
+                                            locally.
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <div className="shrink-0">
+                                    {!drive.configured && (
+                                        <span className="inline-flex items-center gap-2 rounded-full bg-warning-50 px-3 py-1.5 text-xs font-semibold text-warning-700">
+                                            <span
+                                                className="material-symbols-outlined text-base"
+                                                aria-hidden="true"
+                                            >
+                                                warning
+                                            </span>
+                                            Not configured
+                                        </span>
+                                    )}
+                                    {drive.configured && !drive.connected && (
+                                        <span className="inline-flex items-center gap-2 rounded-full bg-surface-muted px-3 py-1.5 text-xs font-semibold text-ink-muted">
+                                            <span
+                                                className="material-symbols-outlined text-base"
+                                                aria-hidden="true"
+                                            >
+                                                cloud_off
+                                            </span>
+                                            Not connected
+                                        </span>
+                                    )}
+                                    {drive.configured && drive.connected && (
+                                        <span className="inline-flex items-center gap-2 rounded-full bg-success-50 px-3 py-1.5 text-xs font-semibold text-success-700">
+                                            <span
+                                                className="material-symbols-outlined text-base"
+                                                aria-hidden="true"
+                                            >
+                                                cloud_done
+                                            </span>
+                                            Connected
+                                        </span>
+                                    )}
+                                </div>
+                            </div>
+
+                            <div className="mt-6">
+                                {!drive.configured && (
+                                    <div className="rounded-control border border-warning-600/20 bg-warning-50 p-4">
+                                        <div className="flex items-start gap-3">
+                                            <span
+                                                className="material-symbols-outlined mt-0.5 text-xl text-warning-700"
+                                                aria-hidden="true"
+                                            >
+                                                info
+                                            </span>
+                                            <div>
+                                                <p className="text-small font-semibold text-warning-700">
+                                                    Google Drive is not configured
+                                                </p>
+                                                <p className="mt-1 text-small leading-6 text-warning-700/90">
+                                                    Add the Google Drive client
+                                                    credentials to the
+                                                    environment configuration,
+                                                    then reload this page.
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {drive.configured && !drive.connected && (
+                                    <div className="flex flex-col gap-4 rounded-control border border-line bg-surface-muted/50 p-4 sm:flex-row sm:items-center sm:justify-between">
+                                        <div>
+                                            <p className="text-small font-semibold text-ink">
+                                                Not connected
+                                            </p>
+                                            <p className="mt-1 text-small leading-6 text-ink-muted">
+                                                Sign in with the dedicated
+                                                backup Google account to
+                                                authorize offsite uploads.
+                                            </p>
+                                        </div>
+
+                                        <a
+                                            href={route(
+                                                'admin.backups.google-drive.authorize',
+                                            )}
+                                            className="btn-primary inline-flex min-h-11 shrink-0 items-center justify-center gap-2"
+                                        >
+                                            <span
+                                                className="material-symbols-outlined text-xl"
+                                                aria-hidden="true"
+                                            >
+                                                link
+                                            </span>
+                                            Connect Google Drive
+                                        </a>
+                                    </div>
+                                )}
+
+                                {drive.configured && drive.connected && (
+                                    <div className="flex flex-col gap-4 rounded-control border border-success-600/20 bg-success-50 p-4 sm:flex-row sm:items-center sm:justify-between">
+                                        <div className="flex items-start gap-3">
+                                            <span
+                                                className="material-symbols-outlined mt-0.5 text-xl text-success-700"
+                                                aria-hidden="true"
+                                            >
+                                                check_circle
+                                            </span>
+                                            <div>
+                                                <p className="text-small font-semibold text-success-700">
+                                                    Connected
+                                                </p>
+                                                <p className="mt-1 break-all text-small leading-6 text-success-700/90">
+                                                    Backups are uploading as{' '}
+                                                    {drive.account_email ??
+                                                        'an authorized Google account'}
+                                                    .
+                                                </p>
+                                            </div>
+                                        </div>
+
+                                        <form
+                                            method="POST"
+                                            action={route(
+                                                'admin.backups.google-drive.disconnect',
+                                            )}
+                                            className="shrink-0"
+                                            onSubmit={(event) => {
+                                                if (
+                                                    !window.confirm(
+                                                        'Disconnect Google Drive? Scheduled backups will stop uploading to Drive until you reconnect.',
+                                                    )
+                                                ) {
+                                                    event.preventDefault();
+                                                    return;
+                                                }
+
+                                                const token =
+                                                    document.querySelector<HTMLMetaElement>(
+                                                        'meta[name="csrf-token"]',
+                                                    )?.content;
+
+                                                if (!token) {
+                                                    event.preventDefault();
+                                                    window.alert(
+                                                        'Unable to verify your session. Please refresh the page and try again.',
+                                                    );
+                                                    return;
+                                                }
+
+                                                const existingToken =
+                                                    event.currentTarget.querySelector<HTMLInputElement>(
+                                                        'input[name="_token"]',
+                                                    );
+
+                                                if (existingToken) {
+                                                    existingToken.value =
+                                                        token;
+                                                } else {
+                                                    const input =
+                                                        document.createElement(
+                                                            'input',
+                                                        );
+                                                    input.type = 'hidden';
+                                                    input.name = '_token';
+                                                    input.value = token;
+                                                    event.currentTarget.appendChild(
+                                                        input,
+                                                    );
+                                                }
+                                            }}
+                                        >
+                                            <input
+                                                type="hidden"
+                                                name="_method"
+                                                value="DELETE"
+                                            />
+                                            <button
+                                                type="submit"
+                                                className="btn-secondary inline-flex min-h-11 items-center justify-center gap-2 text-danger-700"
+                                            >
+                                                <span
+                                                    className="material-symbols-outlined text-xl"
+                                                    aria-hidden="true"
+                                                >
+                                                    link_off
+                                                </span>
+                                                Disconnect
+                                            </button>
+                                        </form>
+                                    </div>
+                                )}
+                            </div>
                         </div>
                     </section>
 
@@ -645,6 +940,17 @@ export default function Backups() {
                                                                     ? 'SHA-256 checksum recorded'
                                                                     : 'SHA-256 unavailable'}
                                                             </p>
+
+                                                            <div>
+                                                                <DriveStatusBadge
+                                                                    status={
+                                                                        backup.drive_status
+                                                                    }
+                                                                    error={
+                                                                        backup.drive_last_error
+                                                                    }
+                                                                />
+                                                            </div>
                                                         </div>
                                                     </td>
 
@@ -771,6 +1077,22 @@ export default function Backups() {
                                                         {backup.sha256
                                                             ? 'SHA-256 recorded'
                                                             : 'Unavailable'}
+                                                    </dd>
+                                                </div>
+
+                                                 <div className="col-span-2">
+                                                    <dt className="text-xs text-ink-muted">
+                                                        Google Drive
+                                                    </dt>
+                                                    <dd className="mt-1">
+                                                        <DriveStatusBadge
+                                                            status={
+                                                                backup.drive_status
+                                                            }
+                                                            error={
+                                                                backup.drive_last_error
+                                                            }
+                                                        />
                                                     </dd>
                                                 </div>
 

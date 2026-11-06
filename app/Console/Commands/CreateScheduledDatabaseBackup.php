@@ -4,6 +4,7 @@ namespace App\Console\Commands;
 
 use App\Services\DatabaseBackupService;
 use App\Services\DatabaseRestoreStateStore;
+use App\Services\ScheduledBackupDriveUploader;
 use Illuminate\Console\Attributes\Description;
 use Illuminate\Console\Attributes\Signature;
 use Illuminate\Console\Command;
@@ -16,7 +17,8 @@ class CreateScheduledDatabaseBackup extends Command
 {
     public function handle(
         DatabaseBackupService $backupService,
-        DatabaseRestoreStateStore $stateStore
+        DatabaseRestoreStateStore $stateStore,
+        ScheduledBackupDriveUploader $uploader,
     ): int {
         $this->info('Starting scheduled database backup...');
 
@@ -44,6 +46,8 @@ class CreateScheduledDatabaseBackup extends Command
             $this->info('Scheduled database backup completed successfully.');
             $this->line('Backup ID: ' . $backup->backup_id);
             $this->line('File size: ' . number_format($backup->file_size_bytes) . ' bytes');
+
+            $uploader->attempt($backup);
 
             return self::SUCCESS;
         } catch (Throwable $exception) {
