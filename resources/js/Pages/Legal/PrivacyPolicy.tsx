@@ -172,9 +172,7 @@ const sections = [
         content: (
             <>
                 <p>
-                    The system is being prepared for an optional Google Drive
-                    integration for off-site storage of encrypted database
-                    backups. This integration is not currently active.
+                    The system uses a Google Drive integration for off-site storage of encrypted database backups. This integration is currently active for system administrators.
                 </p>
                 <p>
                     If enabled, the application is intended to request limited
