@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Admin\GoogleDriveController;
 use App\Http\Controllers\Admin\AuditLogController;
 use App\Http\Controllers\Admin\CashierController;
 use App\Http\Controllers\Admin\CustomerController;
@@ -172,6 +173,15 @@ Route::middleware(['auth', 'role:admin'])->group(function () {
 
     Route::post('/admin/backups/{backupRecord}/restore',[BackupController::class, 'restore'])
     ->name('admin.backups.restore');
+
+        Route::get('/admin/backups/google-drive/authorize', [GoogleDriveController::class, 'authorize'])
+    ->name('admin.backups.google-drive.authorize');
+
+    Route::get('/admin/backups/google-drive/callback', [GoogleDriveController::class, 'callback'])
+    ->name('admin.backups.google-drive.callback');
+
+    Route::delete('/admin/backups/google-drive/disconnect', [GoogleDriveController::class, 'disconnect'])
+    ->name('admin.backups.google-drive.disconnect');
 
     Route::get('/admin/audit-logs', [AuditLogController::class, 'index'])
     ->name('admin.audit-logs.index');

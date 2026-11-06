@@ -51,12 +51,22 @@ class BackupController extends Controller
             'expires_at',
             'failure_code',
             'failure_message',
+            'drive_status',
+            'drive_file_id',
+            'drive_uploaded_at',
+            'drive_upload_attempts',
+            'drive_last_error',
             'created_at',
         ]);
 
     return Inertia::render('Admin/Backups', [
         'backups' => $backups,
         'restoreTargetDatabase' => $restoreTargetDatabase,
+        'drive' => [
+            'configured' => app(\App\Services\GoogleDriveAuthService::class)->isConfigured(),
+            'connected' => app(\App\Services\GoogleDriveAuthService::class)->isConnected(),
+            'account_email' => \App\Models\GoogleDriveToken::current()?->account_email,
+        ],
     ]);
 }
 
