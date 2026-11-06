@@ -13,3 +13,8 @@ Schedule::command('app:create-scheduled-database-backup')
     ->timezone('Asia/Manila')
     ->withoutOverlapping()
     ->appendOutputTo(storage_path('logs/scheduled-database-backup.log'));
+
+Schedule::command('app:prune-old-backups')
+    ->dailyAt('02:30')
+    ->timezone('Asia/Manila')
+    ->appendOutputTo(storage_path('logs/backup-pruning.log'));
