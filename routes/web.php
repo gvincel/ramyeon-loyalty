@@ -174,6 +174,9 @@ Route::middleware(['auth', 'role:admin'])->group(function () {
     Route::post('/admin/backups/{backupRecord}/restore',[BackupController::class, 'restore'])
     ->name('admin.backups.restore');
 
+    Route::delete('/admin/backups/{backupRecord}', [BackupController::class, 'destroy'])
+    ->name('admin.backups.destroy');
+
         Route::get('/admin/backups/google-drive/authorize', [GoogleDriveController::class, 'authorize'])
     ->name('admin.backups.google-drive.authorize');
 
