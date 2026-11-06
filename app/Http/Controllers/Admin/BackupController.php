@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Services\BackupDeletionService;
 use App\Services\DatabaseRestoreService;
 use App\Services\BackupEncryptionService;
 use App\Services\DatabaseBackupService;
@@ -358,6 +359,28 @@ class BackupController extends Controller
                 'error',
                 'Restoration could not be completed. Check the backup configuration and application logs.'
             );
+        }
+    }
+
+    public function destroy(
+        BackupRecord $backupRecord,
+        BackupDeletionService $deletionService
+    ): RedirectResponse {
+        try {
+            $deletionService->delete($backupRecord);
+
+            return redirect()
+                ->route('admin.backups.index')
+                ->with('success', 'Backup deleted successfully.');
+        } catch (Throwable $e) {
+            Log::error('Failed to delete backup', [
+                'backup_id' => $backupRecord->backup_id,
+                'error' => $e->getMessage(),
+            ]);
+
+            return redirect()
+                ->route('admin.backups.index')
+                ->with('error', $e->getMessage());
         }
     }
 }

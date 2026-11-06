@@ -261,6 +261,18 @@ export default function Backups() {
             backup.verified_at !== null,
     );
 
+    const destroyBackup = (backupId: string) => {
+        if (
+            window.confirm(
+                'Are you sure you want to delete this backup? This will permanently remove the file from the server and Google Drive.',
+            )
+        ) {
+            router.delete(route('admin.backups.destroy', backupId), {
+                preserveScroll: true,
+            });
+        }
+    };
+
     const verifyBackup = (backupId: string) => {
         setVerifyingBackupId(backupId);
 
@@ -1003,6 +1015,24 @@ export default function Backups() {
                                                                     </span>
                                                                     Restore
                                                                 </button>
+
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => destroyBackup(backup.backup_id)}
+                                                                    disabled={
+                                                                        verifyingBackupId !== null ||
+                                                                        restoringBackupId !== null
+                                                                    }
+                                                                    className="inline-flex min-h-11 items-center justify-center gap-2 rounded-control border border-danger-600/30 px-3 py-2 text-xs font-semibold text-danger-700 transition hover:bg-danger-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-danger disabled:cursor-not-allowed disabled:opacity-50"
+                                                                >
+                                                                    <span
+                                                                        className="material-symbols-outlined text-base"
+                                                                        aria-hidden="true"
+                                                                    >
+                                                                        delete
+                                                                    </span>
+                                                                    Delete
+                                                                </button>
                                                             </div>
                                                         ) : (
                                                             <span className="text-xs text-ink-muted">
@@ -1120,7 +1150,7 @@ export default function Backups() {
 
                                             {backup.status.toLowerCase() ===
                                                 'completed' && (
-                                                <div className="grid grid-cols-2 gap-2 border-t border-line pt-4">
+                                                <div className="grid grid-cols-3 gap-2 border-t border-line pt-4">
                                                     <button
                                                         type="button"
                                                         onClick={() =>
@@ -1169,6 +1199,24 @@ export default function Backups() {
                                                             settings_backup_restore
                                                         </span>
                                                         Restore
+                                                    </button>
+
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => destroyBackup(backup.backup_id)}
+                                                        disabled={
+                                                            verifyingBackupId !== null ||
+                                                            restoringBackupId !== null
+                                                        }
+                                                        className="inline-flex min-h-11 items-center justify-center gap-1 rounded-control border border-danger-600/30 px-2 py-2 text-xs font-semibold text-danger-700 transition hover:bg-danger-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-danger disabled:cursor-not-allowed disabled:opacity-50"
+                                                    >
+                                                        <span
+                                                            className="material-symbols-outlined text-base"
+                                                            aria-hidden="true"
+                                                        >
+                                                            delete
+                                                        </span>
+                                                        Delete
                                                     </button>
                                                 </div>
                                             )}

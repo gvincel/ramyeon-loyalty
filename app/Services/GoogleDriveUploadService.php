@@ -130,6 +130,33 @@ class GoogleDriveUploadService
         return $created->getId();
     }
 
+    /**
+     * Delete a file from Google Drive by its ID.
+     * Fails silently (returns false) if the file doesn't exist or if the API fails.
+     */
+    public function deleteFile(?string $driveFileId): bool
+    {
+        if (blank($driveFileId)) {
+            return true; // Nothing to delete
+        }
+
+        try {
+            $service = new GoogleDriveService($this->auth->getClient());
+            $service->files->delete($driveFileId);
+            
+            return true;
+        } catch (Throwable $e) {
+            // Google throws a 404 if the file was already deleted manually. We can ignore that.
+            if ($e->getCode() !== 404) {
+                Log::warning('Failed to delete Google Drive file', [
+                    'drive_file_id' => $driveFileId,
+                    'error' => $e->getMessage(),
+                ]);
+            }
+            return false;
+        }
+    }
+
     protected function markFailed(BackupRecord $record, string $error): BackupRecord
     {
         $record->forceFill([
