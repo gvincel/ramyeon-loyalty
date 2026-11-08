@@ -967,7 +967,7 @@ export default function Backups() {
                                                     </td>
 
                                                     <td className="break-words px-4 py-4 text-ink">
-                                                        {backup.creator?.name ?? 'System / unavailable'}
+                                                        {backup.creator?.name ?? 'System'}
                                                     </td>
 
                                                     <td className="px-5 py-4">
