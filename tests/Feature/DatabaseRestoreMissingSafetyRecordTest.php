@@ -91,6 +91,11 @@ class DatabaseRestoreMissingSafetyRecordTest extends TestCase
                 $connection->table($table)->value('marker')
             );
 
+            // Verify that the recovery event was audited.
+            $this->assertDatabaseHas('audit_logs', [
+                'action' => 'backup.recovery_succeeded',
+            ]);
+
             $this->assertNull($store->read());
         } finally {
             // Only clean up the probe table after the recovery journal is cleared.
