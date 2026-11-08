@@ -719,6 +719,7 @@ final class DatabaseRestoreService
         $createdTables = [];
         $droppedTables = [];
         $expectedRows = [];
+        $expectedStatements = [];
 
         foreach ($this->statements($path) as $statement) {
             $statement = trim($statement);
@@ -812,6 +813,12 @@ final class DatabaseRestoreService
                     'The SQL backup has incomplete or inconsistent table definitions.'
                 );
             }
+        }
+
+        $expectedHashes = [];
+        foreach ($expectedStatements as $table => $statements) {
+            sort($statements);
+            $expectedHashes[$table] = hash('sha256', implode("\n", $statements));
         }
 
         return [
