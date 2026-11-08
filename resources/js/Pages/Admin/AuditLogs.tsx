@@ -96,6 +96,16 @@ export default function AuditLogs({ logs, actions, filters }: AuditLogsProps) {
             'reward.deactivated': 'Reward Deactivated',
             'report.export_requested': 'Report Export Requested',
             'backup.created': 'Database Backup Created',
+            'backup.verified': 'Backup Verified',
+            'backup.restored': 'Backup Restored',
+            'backup.restore_failed': 'Backup Restore Failed',
+            'backup.recovery_succeeded': 'Database Recovery Succeeded',
+            'backup.deleted': 'Backup Deleted',
+            'backup.drive_uploaded': 'Backup Uploaded to Drive',
+            'backup.drive_upload_failed': 'Drive Upload Failed',
+            'google_drive.authorization_started': 'Connecting to Google Drive',
+            'google_drive.connected': 'Successfully connected to Google Drive',
+            'google_drive.disconnected': 'Google Drive Disconnected',
         };
         return labels[action] ?? formatLabel(action.replace(/[._]/g, ' '));
     };
@@ -119,23 +129,41 @@ export default function AuditLogs({ logs, actions, filters }: AuditLogsProps) {
             'reward.deactivated': 'Deactivated',
             'report.export_requested': 'Export',
             'backup.created': 'Backup',
+            'backup.verified': 'Verified',
+            'backup.restored': 'Restored',
+            'backup.restore_failed': 'Restore Failed',
+            'backup.recovery_succeeded': 'Recovered',
+            'backup.deleted': 'Deleted',
+            'backup.drive_uploaded': 'Drive Uploaded',
+            'backup.drive_upload_failed': 'Drive Failed',
+            'google_drive.authorization_started': 'Drive Auth',
+            'google_drive.connected': 'Connected',
+            'google_drive.disconnected': 'Disconnected',
         };
         return labels[action] ?? formatActionLabel(action);
     };
 
     const getActionBadgeClassName = (action: string) => {
-        if (/(deactivated|deleted|cancelled)/.test(action)) return 'badge-danger';
-        if (/(activated|created|redeemed)/.test(action)) return 'badge-success';
+        // 1. Errors, Failures, Deletions (Red)
+        if (/(failed|deleted|cancelled|deactivated|disconnected)/.test(action)) return 'badge-danger';
+        
+        // 2. Successes and Confirmations (Green)
+        if (/(verified|restored|connected|uploaded|succeeded|activated|created|redeemed)/.test(action)) return 'badge-success';
+        
+        // 3. In-Progress / System Info / Reports (Yellow)
+        if (/(started|report\.)/.test(action)) return 'badge-accent';
+        
+        // 4. Updates (Brand / Red)
         if (action.includes('updated')) return 'badge-brand';
-        if (action.startsWith('report.')) return 'badge-accent';
+        
         return 'badge-neutral';
     };
 
     const getActionAccentClass = (action: string) => {
-        if (/(deactivated|deleted|cancelled)/.test(action)) return 'border-l-danger-600';
-        if (/(activated|created|redeemed)/.test(action)) return 'border-l-success-600';
+        if (/(failed|deleted|cancelled|deactivated|disconnected)/.test(action)) return 'border-l-danger-600';
+        if (/(verified|restored|connected|uploaded|succeeded|activated|created|redeemed)/.test(action)) return 'border-l-success-600';
+        if (/(started|report\.)/.test(action)) return 'border-l-accent-500';
         if (action.includes('updated')) return 'border-l-brand';
-        if (action.startsWith('report.')) return 'border-l-accent-500';
         return 'border-l-line-strong';
     };
 
@@ -407,7 +435,7 @@ export default function AuditLogs({ logs, actions, filters }: AuditLogsProps) {
 
                                                             <div className="mt-1 flex flex-wrap items-center gap-x-2.5 gap-y-1">
                                                                 <span className="text-small font-medium text-ink">
-                                                                    {log.actor_name ?? 'Unknown staff account'}
+                                                                    {log.actor_name ?? 'System'}
                                                                 </span>
                                                                 {log.actor_role && (
                                                                     <>
