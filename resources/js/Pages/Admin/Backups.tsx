@@ -971,74 +971,48 @@ export default function Backups() {
                                                     </td>
 
                                                     <td className="px-5 py-4">
-                                                        {backup.status.toLowerCase() === 'completed' ? (
-                                                            <div className="ml-auto flex min-w-[140px] flex-col items-stretch gap-2">
-                                                                <button
-                                                                    type="button"
-                                                                    onClick={() =>
-                                                                        verifyBackup(backup.backup_id)
-                                                                    }
-                                                                    disabled={
-                                                                        verifyingBackupId !== null ||
-                                                                        restoringBackupId !== null
-                                                                    }
-                                                                    className="inline-flex min-h-11 items-center justify-center gap-2 rounded-control border border-line px-3 py-2 text-xs font-semibold text-ink transition hover:bg-surface-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:cursor-not-allowed disabled:opacity-60"
-                                                                >
-                                                                    <span
-                                                                        className="material-symbols-outlined text-base"
-                                                                        aria-hidden="true"
+                                                        <div className="ml-auto flex min-w-[140px] flex-col items-stretch gap-2">
+                                                            {backup.status.toLowerCase() === 'completed' && (
+                                                                <>
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() => verifyBackup(backup.backup_id)}
+                                                                        disabled={verifyingBackupId !== null || restoringBackupId !== null}
+                                                                        className="inline-flex min-h-11 items-center justify-center gap-2 rounded-control border border-line px-3 py-2 text-xs font-semibold text-ink transition hover:bg-surface-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:cursor-not-allowed disabled:opacity-60"
                                                                     >
-                                                                        verified
-                                                                    </span>
+                                                                        <span className="material-symbols-outlined text-base" aria-hidden="true">
+                                                                            verified
+                                                                        </span>
+                                                                        {verifyingBackupId === backup.backup_id ? 'Verifying…' : 'Verify integrity'}
+                                                                    </button>
 
-                                                                    {verifyingBackupId === backup.backup_id
-                                                                        ? 'Verifying…'
-                                                                        : 'Verify integrity'}
-                                                                </button>
-
-                                                                <button
-                                                                    type="button"
-                                                                    onClick={() => setRestoreTarget(backup)}
-                                                                    disabled={
-                                                                        verifyingBackupId !== null ||
-                                                                        restoringBackupId !== null ||
-                                                                        !canRestore(backup)
-                                                                    }
-                                                                    title={restoreDisabledReason(backup)}
-                                                                    className="inline-flex min-h-11 items-center justify-center gap-2 rounded-control border border-danger-600/30 px-3 py-2 text-xs font-semibold text-danger-700 transition hover:bg-danger-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-danger disabled:cursor-not-allowed disabled:opacity-50"
-                                                                >
-                                                                    <span
-                                                                        className="material-symbols-outlined text-base"
-                                                                        aria-hidden="true"
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() => setRestoreTarget(backup)}
+                                                                        disabled={verifyingBackupId !== null || restoringBackupId !== null || !canRestore(backup)}
+                                                                        title={restoreDisabledReason(backup)}
+                                                                        className="inline-flex min-h-11 items-center justify-center gap-2 rounded-control border border-danger-600/30 px-3 py-2 text-xs font-semibold text-danger-700 transition hover:bg-danger-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-danger disabled:cursor-not-allowed disabled:opacity-50"
                                                                     >
-                                                                        settings_backup_restore
-                                                                    </span>
-                                                                    Restore
-                                                                </button>
+                                                                        <span className="material-symbols-outlined text-base" aria-hidden="true">
+                                                                            settings_backup_restore
+                                                                        </span>
+                                                                        Restore
+                                                                    </button>
+                                                                </>
+                                                            )}
 
-                                                                <button
-                                                                    type="button"
-                                                                    onClick={() => destroyBackup(backup.backup_id)}
-                                                                    disabled={
-                                                                        verifyingBackupId !== null ||
-                                                                        restoringBackupId !== null
-                                                                    }
-                                                                    className="inline-flex min-h-11 items-center justify-center gap-2 rounded-control border border-danger-600/30 px-3 py-2 text-xs font-semibold text-danger-700 transition hover:bg-danger-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-danger disabled:cursor-not-allowed disabled:opacity-50"
-                                                                >
-                                                                    <span
-                                                                        className="material-symbols-outlined text-base"
-                                                                        aria-hidden="true"
-                                                                    >
-                                                                        delete
-                                                                    </span>
-                                                                    Delete
-                                                                </button>
-                                                            </div>
-                                                        ) : (
-                                                            <span className="text-xs text-ink-muted">
-                                                                No actions available
-                                                            </span>
-                                                        )}
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => destroyBackup(backup.backup_id)}
+                                                                disabled={verifyingBackupId !== null || restoringBackupId !== null}
+                                                                className="inline-flex min-h-11 items-center justify-center gap-2 rounded-control border border-danger-600/30 px-3 py-2 text-xs font-semibold text-danger-700 transition hover:bg-danger-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-danger disabled:cursor-not-allowed disabled:opacity-50"
+                                                            >
+                                                                <span className="material-symbols-outlined text-base" aria-hidden="true">
+                                                                    delete
+                                                                </span>
+                                                                Delete
+                                                            </button>
+                                                        </div>
                                                     </td>
                                                 </tr>
                                             ))}
@@ -1151,69 +1125,42 @@ export default function Backups() {
                                             {backup.status.toLowerCase() ===
                                                 'completed' && (
                                                 <div className="grid grid-cols-3 gap-2 border-t border-line pt-4">
-                                                    <button
-                                                        type="button"
-                                                        onClick={() =>
-                                                            verifyBackup(
-                                                                backup.backup_id,
-                                                            )
-                                                        }
-                                                        disabled={
-                                                            verifyingBackupId !== null ||
-                                                            restoringBackupId !== null
-                                                        }
-                                                        className="inline-flex min-h-11 items-center justify-center gap-1 rounded-control border border-line px-2 py-2 text-xs font-semibold text-ink transition hover:bg-surface-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:cursor-not-allowed disabled:opacity-60"
-                                                    >
-                                                        <span
-                                                            className="material-symbols-outlined text-base"
-                                                            aria-hidden="true"
-                                                        >
-                                                            verified
-                                                        </span>
+                                                    {backup.status.toLowerCase() === 'completed' && (
+                                                        <>
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => verifyBackup(backup.backup_id)}
+                                                                disabled={verifyingBackupId !== null || restoringBackupId !== null}
+                                                                className="inline-flex min-h-11 items-center justify-center gap-1 rounded-control border border-line px-2 py-2 text-xs font-semibold text-ink transition hover:bg-surface-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:cursor-not-allowed disabled:opacity-60"
+                                                            >
+                                                                <span className="material-symbols-outlined text-base" aria-hidden="true">
+                                                                    verified
+                                                                </span>
+                                                                {verifyingBackupId === backup.backup_id ? 'Verifying…' : 'Verify'}
+                                                            </button>
 
-                                                        {verifyingBackupId ===
-                                                        backup.backup_id
-                                                            ? 'Verifying…'
-                                                            : 'Verify'}
-                                                    </button>
-
-                                                    <button
-                                                        type="button"
-                                                        onClick={() =>
-                                                            setRestoreTarget(backup)
-                                                        }
-                                                        disabled={
-                                                            verifyingBackupId !== null ||
-                                                            restoringBackupId !== null ||
-                                                            !canRestore(backup)
-                                                        }
-                                                        title={restoreDisabledReason(
-                                                            backup,
-                                                        )}
-                                                        className="inline-flex min-h-11 items-center justify-center gap-1 rounded-control border border-danger-600/30 px-2 py-2 text-xs font-semibold text-danger-700 transition hover:bg-danger-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-danger disabled:cursor-not-allowed disabled:opacity-50"
-                                                    >
-                                                        <span
-                                                            className="material-symbols-outlined text-base"
-                                                            aria-hidden="true"
-                                                        >
-                                                            settings_backup_restore
-                                                        </span>
-                                                        Restore
-                                                    </button>
-
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => setRestoreTarget(backup)}
+                                                                disabled={verifyingBackupId !== null || restoringBackupId !== null || !canRestore(backup)}
+                                                                title={restoreDisabledReason(backup)}
+                                                                className="inline-flex min-h-11 items-center justify-center gap-1 rounded-control border border-danger-600/30 px-2 py-2 text-xs font-semibold text-danger-700 transition hover:bg-danger-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-danger disabled:cursor-not-allowed disabled:opacity-50"
+                                                            >
+                                                                <span className="material-symbols-outlined text-base" aria-hidden="true">
+                                                                    settings_backup_restore
+                                                                </span>
+                                                                Restore
+                                                            </button>
+                                                        </>
+                                                    )}
+                                                    
                                                     <button
                                                         type="button"
                                                         onClick={() => destroyBackup(backup.backup_id)}
-                                                        disabled={
-                                                            verifyingBackupId !== null ||
-                                                            restoringBackupId !== null
-                                                        }
+                                                        disabled={verifyingBackupId !== null || restoringBackupId !== null}
                                                         className="inline-flex min-h-11 items-center justify-center gap-1 rounded-control border border-danger-600/30 px-2 py-2 text-xs font-semibold text-danger-700 transition hover:bg-danger-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-danger disabled:cursor-not-allowed disabled:opacity-50"
                                                     >
-                                                        <span
-                                                            className="material-symbols-outlined text-base"
-                                                            aria-hidden="true"
-                                                        >
+                                                        <span className="material-symbols-outlined text-base" aria-hidden="true">
                                                             delete
                                                         </span>
                                                         Delete
