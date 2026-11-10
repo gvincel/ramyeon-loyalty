@@ -9,12 +9,12 @@ Artisan::command('inspire', function () {
 })->purpose('Display an inspiring quote');
 
 Schedule::command('app:create-scheduled-database-backup')
-    ->dailyAt('02:00')
+    ->dailyAt('01:00')
     ->timezone('Asia/Manila')
     ->withoutOverlapping()
     ->appendOutputTo(storage_path('logs/scheduled-database-backup.log'));
 
 Schedule::command('app:prune-old-backups')
-    ->dailyAt('02:30')
+    ->dailyAt('01:30')
     ->timezone('Asia/Manila')
     ->appendOutputTo(storage_path('logs/backup-pruning.log'));
