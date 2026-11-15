@@ -25,339 +25,107 @@ export default function Dashboard({ customer }: DashboardProps) {
     const [qrSaveError, setQrSaveError] = useState<string | null>(null);
 
     const handleSaveQr = async () => {
-    const svg = qrContainerRef.current?.querySelector('svg');
-    if (!svg) return;
+        const svg = qrContainerRef.current?.querySelector('svg');
+        if (!svg) return;
 
-    setSavingQr(true);
-    setQrSaveError(null);
+        setSavingQr(true);
+        setQrSaveError(null);
 
-    let objectUrl: string | null = null;
+        let objectUrl: string | null = null;
 
-    try {
-        // ---------- Brand colors ----------
-        const BURGUNDY = '#721f26';
-        const BURGUNDY_DARK = '#42191c';
-        const GOLD = '#e4b86d';
-        const CREAM = '#f7f3ed';
-        const INK = '#2b1214';
-        const gold = (a: number) => `rgba(228, 184, 109, ${a})`;
-        const cream = (a: number) => `rgba(247, 243, 237, ${a})`;
+        try {
+            const serializer = new XMLSerializer();
+            const svgString = serializer.serializeToString(svg);
+            const svgBlob = new Blob([svgString], {
+                type: 'image/svg+xml;charset=utf-8',
+            });
+            objectUrl = URL.createObjectURL(svgBlob);
 
-        // ---------- Layout ----------
-        const W = 1000;
-        const H = 1400;
-        const SCALE = 2; // exports at 2000 x 2800 so text and edges stay sharp
-        const QR_SIZE = 530;
+            const image = new Image();
 
-        // ---------- Use the same font as the rest of the app ----------
-        const family =
-            getComputedStyle(document.body).fontFamily || 'system-ui, sans-serif';
-        const font = (weight: number, size: number) =>
-            `${weight} ${size}px ${family}`;
-
-        // Make sure every weight we draw with is loaded before using the canvas
-        await Promise.all(
-            [400, 500, 600, 700].map((w) =>
-                document.fonts.load(font(w, 16)).catch(() => []),
-            ),
-        );
-        await document.fonts.ready;
-
-        // ---------- Prepare the QR image ----------
-        const svgClone = svg.cloneNode(true) as SVGSVGElement;
-        svgClone.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
-
-        if (!svgClone.getAttribute('viewBox')) {
-            svgClone.setAttribute(
-                'viewBox',
-                `0 0 ${svg.clientWidth || 200} ${svg.clientHeight || 200}`,
-            );
-        }
-
-        svgClone.setAttribute('width', String(QR_SIZE * SCALE));
-        svgClone.setAttribute('height', String(QR_SIZE * SCALE));
-
-        // Transparent white background and brand-dark modules, so the code
-        // sits cleanly on the cream panel
-        svgClone.querySelectorAll('[fill]').forEach((el) => {
-            const fill = (el.getAttribute('fill') || '').trim().toLowerCase();
-
-            if (['#fff', '#ffffff', 'white'].includes(fill)) {
-                el.setAttribute('fill', 'none');
-            } else if (['#000', '#000000', 'black'].includes(fill)) {
-                el.setAttribute('fill', INK);
-            }
-        });
-
-        const loadImage = (src: string) =>
-            new Promise<HTMLImageElement | null>((resolve) => {
-                const img = new Image();
-                img.onload = () => resolve(img);
-                img.onerror = () => resolve(null);
-                img.src = src;
+            await new Promise<void>((resolve, reject) => {
+                image.onload = () => resolve();
+                image.onerror = () =>
+                    reject(new Error('Failed to load QR image'));
+                image.src = objectUrl as string;
             });
 
-        const svgBlob = new Blob([new XMLSerializer().serializeToString(svgClone)], {
-            type: 'image/svg+xml;charset=utf-8',
-        });
-        objectUrl = URL.createObjectURL(svgBlob);
+            // Create a high-resolution canvas for a beautiful card
+            const canvas = document.createElement('canvas');
+            canvas.width = 800;
+            canvas.height = 1000;
 
-        const [qrImage, logo] = await Promise.all([
-            loadImage(objectUrl),
-            loadImage('/images/ramyeon-logo-clear.png'),
-        ]);
+            const ctx = canvas.getContext('2d');
+            if (!ctx) throw new Error('Canvas not supported');
 
-        URL.revokeObjectURL(objectUrl);
-        objectUrl = null;
+            // 1. White Background
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-        if (!qrImage) throw new Error('Failed to load QR image');
+            // 2. Outer Border
+            ctx.strokeStyle = '#e2e8f0'; // Tailwind slate-200
+            ctx.lineWidth = 8;
+            ctx.strokeRect(20, 20, canvas.width - 40, canvas.height - 40);
 
-        // ---------- Canvas ----------
-        const canvas = document.createElement('canvas');
-        canvas.width = W * SCALE;
-        canvas.height = H * SCALE;
-
-        const ctx = canvas.getContext('2d');
-        if (!ctx) throw new Error('Canvas not supported');
-
-        ctx.scale(SCALE, SCALE);
-        ctx.textBaseline = 'middle';
-
-        // ---------- Drawing helpers ----------
-        const roundedRectPath = (x: number, y: number, w: number, h: number, r: number) => {
-            ctx.beginPath();
-            ctx.moveTo(x + r, y);
-            ctx.arcTo(x + w, y, x + w, y + h, r);
-            ctx.arcTo(x + w, y + h, x, y + h, r);
-            ctx.arcTo(x, y + h, x, y, r);
-            ctx.arcTo(x, y, x + w, y, r);
-            ctx.closePath();
-        };
-
-        const strokeLine = (x1: number, y1: number, x2: number, y2: number, color: string, width: number) => {
-            ctx.beginPath();
-            ctx.moveTo(x1, y1);
-            ctx.lineTo(x2, y2);
-            ctx.strokeStyle = color;
-            ctx.lineWidth = width;
-            ctx.stroke();
-        };
-
-        const diamond = (cx: number, cy: number, r: number, color: string) => {
-            ctx.beginPath();
-            ctx.moveTo(cx, cy - r);
-            ctx.lineTo(cx + r, cy);
-            ctx.lineTo(cx, cy + r);
-            ctx.lineTo(cx - r, cy);
-            ctx.closePath();
-            ctx.fillStyle = color;
-            ctx.fill();
-        };
-
-        const text = (value: string, x: number, y: number, f: string, color: string) => {
-            ctx.font = f;
-            ctx.fillStyle = color;
+            // 3. Text Setup
             ctx.textAlign = 'center';
-            ctx.fillText(value, x, y);
-        };
+            ctx.textBaseline = 'middle';
 
-        // Letter-spaced, centered text. Returns the drawn width.
-        const spaced = (value: string, cx: number, y: number, f: string, color: string, spacing: number) => {
-            ctx.font = f;
-            ctx.fillStyle = color;
-            ctx.textAlign = 'left';
+            // 4. Header Text
+            ctx.fillStyle = '#991b1b'; // Ramyeon Corner Brand Red
+            ctx.font = 'bold 48px sans-serif';
+            ctx.fillText('Ramyeon Corner', 400, 100);
 
-            const chars = [...value];
-            const widths = chars.map((c) => ctx.measureText(c).width);
-            const total = widths.reduce((a, b) => a + b, 0) + spacing * (chars.length - 1);
+            ctx.fillStyle = '#64748b'; // Tailwind slate-500
+            ctx.font = '24px sans-serif';
+            ctx.fillText('Loyalty Rewards Card', 400, 150);
 
-            let x = cx - total / 2;
-            chars.forEach((c, i) => {
-                ctx.fillText(c, x, y);
-                x += widths[i] + spacing;
-            });
+            // 5. Draw the QR Code (Scaled up from 200x200 to 400x400)
+            ctx.drawImage(image, 200, 200, 400, 400);
 
-            return total;
-        };
+            // 6. Customer Name
+            ctx.fillStyle = '#0f172a'; // Tailwind slate-900
+            ctx.font = 'bold 40px sans-serif';
+            ctx.fillText(`${customer.first_name} ${customer.last_name}`, 400, 700);
 
-        const CX = W / 2;
+            // 7. Customer Code
+            ctx.fillStyle = '#64748b';
+            ctx.font = '28px monospace';
+            ctx.fillText(`ID: ${customer.customer_code}`, 400, 760);
 
-        // ---------- Backdrop + card with soft shadow ----------
-        ctx.fillStyle = '#efe7da';
-        ctx.fillRect(0, 0, W, H);
+            // 8. Footer Instruction
+            ctx.fillStyle = '#94a3b8';
+            ctx.font = '20px sans-serif';
+            ctx.fillText('Show this to the cashier to earn points.', 400, 900);
 
-        ctx.save();
-        ctx.shadowColor = 'rgba(66, 25, 28, 0.28)';
-        ctx.shadowBlur = 56;
-        ctx.shadowOffsetY = 16;
-        ctx.fillStyle = BURGUNDY;
-        roundedRectPath(60, 60, 880, 1280, 44);
-        ctx.fill();
-        ctx.restore();
-
-        // ---------- Faint concentric rings behind the logo ----------
-        ctx.save();
-        roundedRectPath(60, 60, 880, 1280, 44);
-        ctx.clip();
-        ctx.strokeStyle = gold(0.07);
-        ctx.lineWidth = 2;
-        for (let r = 150; r < 760; r += 60) {
-            ctx.beginPath();
-            ctx.arc(CX, 190, r, 0, Math.PI * 2);
-            ctx.stroke();
-        }
-        ctx.restore();
-
-        // ---------- Double keyline frame, broken by diamonds ----------
-        roundedRectPath(84, 84, 832, 1232, 32);
-        ctx.strokeStyle = gold(0.6);
-        ctx.lineWidth = 2;
-        ctx.stroke();
-
-        roundedRectPath(95, 95, 810, 1210, 23);
-        ctx.strokeStyle = gold(0.22);
-        ctx.lineWidth = 1;
-        ctx.stroke();
-
-        [84, 1316].forEach((y) => {
-            ctx.fillStyle = BURGUNDY;
-            ctx.fillRect(CX - 34, y - 9, 68, 18);
-            diamond(CX, y, 7, GOLD);
-        });
-
-        // ---------- Logo ----------
-        ctx.beginPath();
-        ctx.arc(CX, 168, 58, 0, Math.PI * 2);
-        ctx.strokeStyle = gold(0.35);
-        ctx.lineWidth = 2;
-        ctx.stroke();
-
-        ctx.beginPath();
-        ctx.arc(CX, 168, 48, 0, Math.PI * 2);
-        ctx.fillStyle = GOLD;
-        ctx.fill();
-
-        ctx.beginPath();
-        ctx.arc(CX, 168, 44, 0, Math.PI * 2);
-        ctx.fillStyle = CREAM;
-        ctx.fill();
-
-        if (logo) {
-            const box = 76;
-            const ratio = logo.naturalWidth / logo.naturalHeight || 1;
-            const lw = ratio >= 1 ? box : box * ratio;
-            const lh = ratio >= 1 ? box / ratio : box;
-
-            ctx.save();
-            ctx.beginPath();
-            ctx.arc(CX, 168, 44, 0, Math.PI * 2);
-            ctx.clip();
-            ctx.drawImage(logo, CX - lw / 2, 168 - lh / 2, lw, lh);
-            ctx.restore();
-        }
-
-        // ---------- Header text ----------
-        spaced('RAMYEON CORNER', CX, 262, font(600, 32), cream(1), 8);
-
-        const labelWidth = spaced('LOYALTY REWARDS CARD', CX, 306, font(500, 17), gold(1), 6);
-        [-1, 1].forEach((side) => {
-            const x0 = CX + side * (labelWidth / 2 + 22);
-            strokeLine(x0, 306, x0 + side * 54, 306, gold(0.55), 2);
-        });
-
-        // ---------- QR panel with corner brackets ----------
-        const PX = 210;
-        const PY = 345;
-        const PS = 580;
-
-        ctx.fillStyle = CREAM;
-        roundedRectPath(PX, PY, PS, PS, 28);
-        ctx.fill();
-
-        ctx.drawImage(qrImage, PX + 25, PY + 25, QR_SIZE, QR_SIZE);
-
-        ctx.strokeStyle = GOLD;
-        ctx.lineWidth = 4;
-        ctx.lineJoin = 'round';
-        const off = 16;
-        const len = 44;
-        [
-            [PX - off, PY - off, 1, 1],
-            [PX + PS + off, PY - off, -1, 1],
-            [PX - off, PY + PS + off, 1, -1],
-            [PX + PS + off, PY + PS + off, -1, -1],
-        ].forEach(([x, y, dx, dy]) => {
-            ctx.beginPath();
-            ctx.moveTo(x, y + dy * len);
-            ctx.lineTo(x, y);
-            ctx.lineTo(x + dx * len, y);
-            ctx.stroke();
-        });
-
-        spaced('SCAN TO EARN POINTS', CX, 968, font(600, 19), gold(1), 6);
-
-        // ---------- Customer details ----------
-        const fullName = `${customer.first_name} ${customer.last_name}`.trim();
-
-        // Shrink long names so they never touch the frame
-        let nameSize = 54;
-        ctx.font = font(700, nameSize);
-        while (ctx.measureText(fullName).width > 700 && nameSize > 30) {
-            nameSize -= 2;
-            ctx.font = font(700, nameSize);
-        }
-        text(fullName, CX, 1048, font(700, nameSize), CREAM);
-
-        spaced('MEMBER ID', CX, 1104, font(500, 15), gold(0.85), 5);
-
-        const code = String(customer.customer_code);
-        const codeFont = font(500, 32);
-        ctx.font = codeFont;
-        const codeText = [...code];
-        const codeTextWidth =
-            codeText.reduce((sum, c) => sum + ctx.measureText(c).width, 0) +
-            4 * (codeText.length - 1);
-        const pillW = codeTextWidth + 90;
-
-        roundedRectPath(CX - pillW / 2, 1126, pillW, 60, 30);
-        ctx.strokeStyle = gold(0.6);
-        ctx.lineWidth = 2;
-        ctx.stroke();
-
-        spaced(code, CX, 1156, codeFont, cream(1), 4);
-
-        // ---------- Footer ----------
-        [-1, 1].forEach((side) => {
-            strokeLine(CX + side * 18, 1236, CX + side * 130, 1236, gold(0.5), 2);
-        });
-        diamond(CX, 1236, 5, GOLD);
-
-        text('Show this card to the cashier to earn points.', CX, 1273, font(400, 21), cream(0.72));
-
-        // ---------- Export ----------
-        const blob = await new Promise<Blob | null>((resolve) =>
-            canvas.toBlob(resolve, 'image/png'),
-        );
-
-        if (!blob) throw new Error('Failed to generate PNG');
-
-        const downloadUrl = URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = downloadUrl;
-        link.download = `Ramyeon-Loyalty-${customer.customer_code}.png`;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        URL.revokeObjectURL(downloadUrl);
-    } catch {
-        setQrSaveError('Could not save the QR code. Please try again.');
-    } finally {
-        if (objectUrl) {
             URL.revokeObjectURL(objectUrl);
+            objectUrl = null;
+
+            const blob = await new Promise<Blob | null>((resolve) =>
+                canvas.toBlob(resolve, 'image/png'),
+            );
+
+            if (!blob) {
+                throw new Error('Failed to generate PNG');
+            }
+
+            const downloadUrl = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = downloadUrl;
+            link.download = `Ramyeon-Loyalty-${customer.customer_code}.png`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(downloadUrl);
+        } catch {
+            setQrSaveError('Could not save the QR code. Please try again.');
+        } finally {
+            if (objectUrl) {
+                URL.revokeObjectURL(objectUrl);
+            }
+            setSavingQr(false);
         }
-        setSavingQr(false);
-    }
-};
+    };
 
     return (
         <CustomerLayout>
