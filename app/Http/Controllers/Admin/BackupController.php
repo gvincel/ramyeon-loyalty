@@ -63,6 +63,7 @@ class BackupController extends Controller
     return Inertia::render('Admin/Backups', [
         'backups' => $backups,
         'restoreTargetDatabase' => $restoreTargetDatabase,
+        'liveDatabase' => config('database.connections.mysql.database'),
         'drive' => [
             'configured' => app(\App\Services\GoogleDriveAuthService::class)->isConfigured(),
             'connected' => app(\App\Services\GoogleDriveAuthService::class)->isConnected(),

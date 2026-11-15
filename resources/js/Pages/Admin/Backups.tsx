@@ -228,11 +228,12 @@ function SectionHeading({
 }
 
 export default function Backups() {
-    const { flash, backups = [], restoreTargetDatabase, drive } =
+    const { flash, backups = [], restoreTargetDatabase, liveDatabase, drive } =
         usePage<
             PageProps<{
                 backups: BackupRecord[];
                 restoreTargetDatabase: string | null;
+                liveDatabase: string;
                 drive: DriveState;
             }>
         >().props;
@@ -1393,7 +1394,7 @@ export default function Backups() {
 
                                     <p className="text-xs leading-5 text-ink-muted">
                                         The live customer database,
-                                        <strong className="text-ink"> ramyeon_loyalty</strong>,
+                                        <strong className="text-ink"> {liveDatabase}</strong>,
                                         is not the restoration target.
                                     </p>
                                 </div>
