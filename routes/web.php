@@ -98,6 +98,12 @@ Route::middleware([
         'store',
     ])->middleware('throttle:5,1')->name('customer.feedback.store');
 
+    Route::get('/loyalty/profile', [\App\Http\Controllers\Customer\ProfileController::class, 'edit'])
+        ->name('customer.profile.edit');
+        
+    Route::patch('/loyalty/profile', [\App\Http\Controllers\Customer\ProfileController::class, 'update'])
+        ->name('customer.profile.update');
+
     Route::post('/loyalty/logout', [CustomerAuthController::class, 'destroy'])
         ->name('customer.logout');
 });
@@ -177,7 +183,7 @@ Route::middleware(['auth', 'role:admin'])->group(function () {
     Route::delete('/admin/backups/{backupRecord}', [BackupController::class, 'destroy'])
     ->name('admin.backups.destroy');
 
-        Route::get('/admin/backups/google-drive/authorize', [GoogleDriveController::class, 'authorize'])
+    Route::get('/admin/backups/google-drive/authorize', [GoogleDriveController::class, 'authorize'])
     ->name('admin.backups.google-drive.authorize');
 
     Route::get('/admin/backups/google-drive/callback', [GoogleDriveController::class, 'callback'])

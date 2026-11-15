@@ -1,7 +1,9 @@
-import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
+import AdminPageHeader from '@/Components/AdminPageHeader';
+import FlashMessage from '@/Components/FlashMessage';
+import AdminLayout from '@/Layouts/AdminLayout';
+import CashierLayout from '@/Layouts/CashierLayout';
 import { PageProps } from '@/types';
-import { Head } from '@inertiajs/react';
-import DeleteUserForm from './Partials/DeleteUserForm';
+import { Head, usePage } from '@inertiajs/react';
 import UpdatePasswordForm from './Partials/UpdatePasswordForm';
 import UpdateProfileInformationForm from './Partials/UpdateProfileInformationForm';
 
@@ -9,35 +11,45 @@ export default function Edit({
     mustVerifyEmail,
     status,
 }: PageProps<{ mustVerifyEmail: boolean; status?: string }>) {
+    const { auth, flash } = usePage<any>().props;
+    const userRole = auth?.user?.role;
+
+    const Layout = userRole === 'admin' ? AdminLayout : CashierLayout;
+
     return (
-        <AuthenticatedLayout
-            header={
-                <h2 className="text-xl font-semibold leading-tight text-gray-800 dark:text-gray-200">
-                    Profile
-                </h2>
-            }
-        >
-            <Head title="Profile" />
+        <Layout>
+            <Head title="My Profile" />
 
-            <div className="py-12">
-                <div className="mx-auto max-w-7xl space-y-6 sm:px-6 lg:px-8">
-                    <div className="bg-white p-4 shadow sm:rounded-lg sm:p-8 dark:bg-gray-800">
-                        <UpdateProfileInformationForm
-                            mustVerifyEmail={mustVerifyEmail}
-                            status={status}
-                            className="max-w-xl"
-                        />
-                    </div>
+            <div className="p-4 sm:p-6 lg:p-8">
+                <div className="mx-auto max-w-content space-y-6">
+                    <AdminPageHeader
+                        eyebrow="Account Settings"
+                        title="My Profile"
+                        description="Manage your account information and security settings."
+                    />
 
-                    <div className="bg-white p-4 shadow sm:rounded-lg sm:p-8 dark:bg-gray-800">
-                        <UpdatePasswordForm className="max-w-xl" />
-                    </div>
+                    <FlashMessage
+                        success={flash?.success}
+                        error={flash?.error}
+                    />
 
-                    <div className="bg-white p-4 shadow sm:rounded-lg sm:p-8 dark:bg-gray-800">
-                        <DeleteUserForm className="max-w-xl" />
+                    {/* items-stretch makes both cards the same height */}
+                    <div className="grid items-stretch gap-6 lg:grid-cols-2">
+                        {/* Profile Info Panel */}
+                        <section className="panel flex flex-col p-5 sm:p-6">
+                            <UpdateProfileInformationForm
+                                mustVerifyEmail={mustVerifyEmail}
+                                status={status}
+                            />
+                        </section>
+
+                        {/* Update Password Panel */}
+                        <section className="panel flex flex-col p-5 sm:p-6">
+                            <UpdatePasswordForm />
+                        </section>
                     </div>
                 </div>
             </div>
-        </AuthenticatedLayout>
+        </Layout>
     );
 }

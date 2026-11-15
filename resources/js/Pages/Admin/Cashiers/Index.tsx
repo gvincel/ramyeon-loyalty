@@ -452,12 +452,24 @@ export default function Index({ cashiers }: Props) {
                         <Field id="cashier_username" label="Username" error={errors.username}>
                             {(a11y) => <input {...a11y} type="text" value={data.username} onChange={(e) => setData('username', e.target.value)} className="field-input" placeholder="juan123" autoCapitalize="none" autoComplete="off" />}
                         </Field>
-                        {!isEditing && (
-                            <>
-                                <PasswordField id="cashier_password" label="Password" value={data.password} onChange={(v) => setData('password', v)} placeholder="At least 12 characters" error={errors.password} />
-                                <PasswordField id="cashier_confirm_password" label="Confirm password" value={data.confirm_password} onChange={(v) => setData('confirm_password', v)} placeholder="Re-enter password" error={errors.confirm_password ?? (passwordMismatch ? 'Passwords do not match.' : undefined)} />
-                            </>
-                        )}
+                        <>
+                            <PasswordField 
+                                id="cashier_password" 
+                                label={isEditing ? "New Password (optional)" : "Password"} 
+                                value={data.password} 
+                                onChange={(v) => setData('password', v)} 
+                                placeholder={isEditing ? "Leave blank to keep current" : "At least 12 characters"} 
+                                error={errors.password} 
+                            />
+                            <PasswordField 
+                                id="cashier_confirm_password" 
+                                label={isEditing ? "Confirm New Password" : "Confirm password"} 
+                                value={data.confirm_password} 
+                                onChange={(v) => setData('confirm_password', v)} 
+                                placeholder="Re-enter password" 
+                                error={errors.confirm_password ?? (passwordMismatch ? 'Passwords do not match.' : undefined)} 
+                            />
+                        </>
                     </form>
                 </AdminModal>
             )}
