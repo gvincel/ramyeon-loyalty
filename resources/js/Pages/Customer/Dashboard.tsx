@@ -47,7 +47,7 @@ export default function Dashboard({ customer }: DashboardProps) {
         const W = 1000;
         const H = 1400;
         const SCALE = 2; // exports at 2000 x 2800 so text and edges stay sharp
-        const QR_SIZE = 378;
+        const QR_SIZE = 530;
 
         // ---------- Use the same font as the rest of the app ----------
         const family =
@@ -227,59 +227,59 @@ export default function Dashboard({ customer }: DashboardProps) {
 
         // ---------- Logo ----------
         ctx.beginPath();
-        ctx.arc(CX, 195, 70, 0, Math.PI * 2);
+        ctx.arc(CX, 168, 58, 0, Math.PI * 2);
         ctx.strokeStyle = gold(0.35);
         ctx.lineWidth = 2;
         ctx.stroke();
 
         ctx.beginPath();
-        ctx.arc(CX, 195, 58, 0, Math.PI * 2);
+        ctx.arc(CX, 168, 48, 0, Math.PI * 2);
         ctx.fillStyle = GOLD;
         ctx.fill();
 
         ctx.beginPath();
-        ctx.arc(CX, 195, 53, 0, Math.PI * 2);
+        ctx.arc(CX, 168, 44, 0, Math.PI * 2);
         ctx.fillStyle = CREAM;
         ctx.fill();
 
         if (logo) {
-            const box = 92;
+            const box = 76;
             const ratio = logo.naturalWidth / logo.naturalHeight || 1;
             const lw = ratio >= 1 ? box : box * ratio;
             const lh = ratio >= 1 ? box / ratio : box;
 
             ctx.save();
             ctx.beginPath();
-            ctx.arc(CX, 195, 53, 0, Math.PI * 2);
+            ctx.arc(CX, 168, 44, 0, Math.PI * 2);
             ctx.clip();
-            ctx.drawImage(logo, CX - lw / 2, 195 - lh / 2, lw, lh);
+            ctx.drawImage(logo, CX - lw / 2, 168 - lh / 2, lw, lh);
             ctx.restore();
         }
 
         // ---------- Header text ----------
-        spaced('RAMYEON CORNER', CX, 312, font(600, 36), cream(1), 9);
+        spaced('RAMYEON CORNER', CX, 262, font(600, 32), cream(1), 8);
 
-        const labelWidth = spaced('LOYALTY REWARDS CARD', CX, 362, font(500, 18), gold(1), 6);
+        const labelWidth = spaced('LOYALTY REWARDS CARD', CX, 306, font(500, 17), gold(1), 6);
         [-1, 1].forEach((side) => {
             const x0 = CX + side * (labelWidth / 2 + 22);
-            strokeLine(x0, 362, x0 + side * 54, 362, gold(0.55), 2);
+            strokeLine(x0, 306, x0 + side * 54, 306, gold(0.55), 2);
         });
 
         // ---------- QR panel with corner brackets ----------
-        const PX = 275;
-        const PY = 425;
-        const PS = 450;
+        const PX = 210;
+        const PY = 345;
+        const PS = 580;
 
         ctx.fillStyle = CREAM;
-        roundedRectPath(PX, PY, PS, PS, 26);
+        roundedRectPath(PX, PY, PS, PS, 28);
         ctx.fill();
 
-        ctx.drawImage(qrImage, PX + 36, PY + 36, QR_SIZE, QR_SIZE);
+        ctx.drawImage(qrImage, PX + 25, PY + 25, QR_SIZE, QR_SIZE);
 
         ctx.strokeStyle = GOLD;
         ctx.lineWidth = 4;
         ctx.lineJoin = 'round';
-        const off = 22;
+        const off = 16;
         const len = 44;
         [
             [PX - off, PY - off, 1, 1],
@@ -294,21 +294,21 @@ export default function Dashboard({ customer }: DashboardProps) {
             ctx.stroke();
         });
 
-        spaced('SCAN TO EARN POINTS', CX, 948, font(600, 19), gold(1), 6);
+        spaced('SCAN TO EARN POINTS', CX, 968, font(600, 19), gold(1), 6);
 
         // ---------- Customer details ----------
         const fullName = `${customer.first_name} ${customer.last_name}`.trim();
 
         // Shrink long names so they never touch the frame
-        let nameSize = 58;
+        let nameSize = 54;
         ctx.font = font(700, nameSize);
         while (ctx.measureText(fullName).width > 700 && nameSize > 30) {
             nameSize -= 2;
             ctx.font = font(700, nameSize);
         }
-        text(fullName, CX, 1040, font(700, nameSize), CREAM);
+        text(fullName, CX, 1048, font(700, nameSize), CREAM);
 
-        spaced('MEMBER ID', CX, 1100, font(500, 15), gold(0.85), 5);
+        spaced('MEMBER ID', CX, 1104, font(500, 15), gold(0.85), 5);
 
         const code = String(customer.customer_code);
         const codeFont = font(500, 32);
@@ -319,12 +319,12 @@ export default function Dashboard({ customer }: DashboardProps) {
             4 * (codeText.length - 1);
         const pillW = codeTextWidth + 90;
 
-        roundedRectPath(CX - pillW / 2, 1124, pillW, 62, 31);
+        roundedRectPath(CX - pillW / 2, 1126, pillW, 60, 30);
         ctx.strokeStyle = gold(0.6);
         ctx.lineWidth = 2;
         ctx.stroke();
 
-        spaced(code, CX, 1155, codeFont, cream(1), 4);
+        spaced(code, CX, 1156, codeFont, cream(1), 4);
 
         // ---------- Footer ----------
         [-1, 1].forEach((side) => {
