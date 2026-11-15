@@ -34,6 +34,7 @@ class HandleInertiaRequests extends Middleware
 
             'auth' => [
                 'user' => $request->user(),
+                'customer' => $request->user('customer'), // ADD THIS LINE
             ],
 
             'flash' => [

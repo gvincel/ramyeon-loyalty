@@ -1,5 +1,6 @@
 import { Head, Link } from '@inertiajs/react';
 import type { SVGProps } from 'react';
+import { useEffect, useState } from 'react';
 
 const LOGO = '/images/ramyeon-logo-clear.png';
 const HERO_IMAGE = '/images/ramyeon-hero.png';
@@ -64,14 +65,41 @@ const focusRing =
     'focus:outline-none focus-visible:ring-2 focus-visible:ring-[#e4b86d] focus-visible:ring-offset-2 focus-visible:ring-offset-[#721f26]';
 
 export default function Home() {
+    // True once the visitor scrolls past the top of the page
+    const [scrolled, setScrolled] = useState(false);
+
+    useEffect(() => {
+        const onScroll = () => setScrolled(window.scrollY > 40);
+        onScroll();
+        window.addEventListener('scroll', onScroll, { passive: true });
+
+        return () => window.removeEventListener('scroll', onScroll);
+    }, []);
+
     return (
         <>
             <Head title="Ramyeon Corner | Loyalty Rewards" />
 
             <div className="min-h-screen bg-[#f7f3ed] font-sans text-[#291b19] antialiased">
-                {/* HEADER (fixed 5rem height so the hero fits the screen exactly) */}
-                <header className="sticky top-0 z-30 border-b border-[#e4b86d]/20 bg-[#721f26]">
-                    <div className="mx-auto flex h-20 max-w-[1500px] items-center justify-between px-6 lg:px-12">
+                {/* HEADER (fixed 5rem height). Transparent over the hero at the top, solid burgundy once scrolled */}
+                <header className="fixed inset-x-0 top-0 z-30">
+                    {/* Top of page: soft dark fade so the nav stays readable over the photo (no blur) */}
+                    <div
+                        aria-hidden="true"
+                        className={`absolute inset-0 bg-gradient-to-b from-[#250d0d]/80 to-transparent transition-opacity duration-base ease-standard ${
+                            scrolled ? 'opacity-0' : 'opacity-100'
+                        }`}
+                    />
+
+                    {/* Scrolled: solid burgundy */}
+                    <div
+                        aria-hidden="true"
+                        className={`absolute inset-0 border-b border-[#e4b86d]/20 bg-[#721f26] shadow-[0_8px_24px_-12px_rgba(0,0,0,0.5)] transition-opacity duration-base ease-standard ${
+                            scrolled ? 'opacity-100' : 'opacity-0'
+                        }`}
+                    />
+
+                    <div className="relative mx-auto flex h-20 max-w-[1500px] items-center justify-between px-6 lg:px-12">
                         <Link
                             href="/"
                             className={`flex items-center gap-3.5 rounded-full ${focusRing}`}
@@ -87,31 +115,15 @@ export default function Home() {
                             </p>
                         </Link>
 
-                        <div className="flex items-center gap-8">
-                            <a
-                                href="#program"
-                                className="hidden text-sm font-medium tracking-wide text-white/80 transition duration-base ease-standard hover:text-[#e4b86d] md:block"
-                            >
-                                Our Program
-                            </a>
-
-                            {/* Quiet staff-only button: it should not compete with the hero button */}
-                            <Link
-                                href="/login"
-                                className={`group inline-flex min-h-11 items-center gap-2 rounded-full border border-[#e4b86d]/60 px-5 text-sm font-bold tracking-wide text-[#e4b86d] transition duration-base ease-standard hover:border-[#e4b86d] hover:bg-[#e4b86d] hover:text-[#42191c] ${focusRing}`}
-                            >
-                                Staff Login
-                                <ArrowIcon className="h-4 w-4 transition duration-base ease-standard group-hover:translate-x-0.5" />
-                            </Link>
-                        </div>
+                        {/* The Staff Login button was removed from here */}
                     </div>
                 </header>
 
                 <main>
-                    {/* HERO SECTION: fits the visible screen below the header */}
+                    {/* HERO SECTION: full screen, the header floats over it (pt-20 keeps the content clear of the header) */}
                     <section
                         id="home"
-                        className="relative isolate flex h-[calc(100svh-5rem)] min-h-[540px] items-center overflow-hidden bg-[#250d0d]"
+                        className="relative isolate flex h-[100svh] min-h-[620px] items-center overflow-hidden bg-[#250d0d] pt-20"
                     >
                         {/* BACKGROUND FOOD IMAGE */}
                         <div className="absolute inset-0">
@@ -152,17 +164,17 @@ export default function Home() {
                                     purchases and enjoy rewards along the way.
                                 </p>
 
-                                {/* The one premium filled button on the page */}
+                                {/* Updated Hero Button: Links to Staff Login */}
                                 <div className="mt-11">
-                                    <a
-                                        href="#program"
+                                    <Link
+                                        href="/login"
                                         className={`group inline-flex min-h-14 items-center gap-5 rounded-full bg-gradient-to-b from-[#f3d49a] to-[#e4b86d] py-2 pl-9 pr-2 text-sm font-extrabold tracking-wide text-[#42191c] shadow-[0_14px_36px_-10px_rgba(228,184,109,0.6),inset_0_1px_0_rgba(255,255,255,0.55)] transition duration-base ease-standard hover:-translate-y-0.5 hover:from-[#f8e0b0] hover:to-[#ebc57e] hover:shadow-[0_18px_44px_-10px_rgba(228,184,109,0.75),inset_0_1px_0_rgba(255,255,255,0.65)] active:translate-y-0 ${focusRing}`}
                                     >
-                                        Explore the Program
+                                        Staff Login
                                         <span className="flex h-10 w-10 items-center justify-center rounded-full bg-[#721f26] text-[#f3d49a] transition duration-base ease-standard group-hover:translate-x-0.5 group-hover:bg-[#42191c]">
                                             <ArrowIcon className="h-[1.1rem] w-[1.1rem]" />
                                         </span>
-                                    </a>
+                                    </Link>
                                 </div>
                             </div>
                         </div>
@@ -232,12 +244,12 @@ export default function Home() {
                                 alt="Ramyeon Corner"
                                 className="h-10 w-10 rounded-full bg-[#f7f3ed] object-contain p-1 ring-2 ring-[#e4b86d]/50"
                             />
- 
+
                             <p className="text-base font-extrabold tracking-tight">
                                 Ramyeon Corner
                             </p>
                         </Link>
- 
+
                         <Link
                             href="/privacy-policy"
                             className="text-sm font-medium tracking-wide text-white/75 transition duration-base ease-standard hover:text-[#e4b86d]"
@@ -245,7 +257,7 @@ export default function Home() {
                             Privacy Policy
                         </Link>
                     </div>
- 
+
                     <div className="border-t border-white/10">
                         <p className="mx-auto max-w-[1500px] px-6 py-4 text-center text-xs tracking-wide text-white/60 lg:px-12">
                             &copy; {new Date().getFullYear()} Ramyeon Corner.

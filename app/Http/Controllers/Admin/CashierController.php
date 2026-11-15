@@ -120,6 +120,13 @@ class CashierController extends Controller
                 'max:50',
                 Rule::unique('users', 'username')->ignore($cashier->id),
             ],
+
+            'password' => [
+                'nullable',
+                'string',
+                'min:12',
+                'same:confirm_password',
+            ],
         ]);
 
         DB::transaction(function () use ($cashier, $validated): void {
@@ -127,6 +134,12 @@ class CashierController extends Controller
                 'name' => $validated['name'],
                 'username' => $validated['username'],
             ]);
+
+            if (!empty($validated['password'])) {
+                $cashier->update([
+                    'password' => Hash::make($validated['password']),
+                ]);
+            }
 
             app(AuditLogger::class)->record(
                 'cashier.updated',

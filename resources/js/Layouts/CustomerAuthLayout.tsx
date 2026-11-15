@@ -1,6 +1,4 @@
-
 import { PropsWithChildren } from 'react';
-import { Link } from '@inertiajs/react';
 
 export default function CustomerAuthLayout({ children }: PropsWithChildren) {
     return (
@@ -11,10 +9,30 @@ export default function CustomerAuthLayout({ children }: PropsWithChildren) {
                 fill="none"
                 className="pointer-events-none absolute -bottom-72 -left-72 hidden h-[640px] w-[640px] md:block"
             >
-                <circle cx="320" cy="320" r="318" stroke="rgb(255 255 255 / 0.08)" />
-                <circle cx="320" cy="320" r="260" stroke="rgb(var(--accent-400) / 0.35)" />
-                <circle cx="320" cy="320" r="200" stroke="rgb(255 255 255 / 0.08)" />
-                <circle cx="320" cy="320" r="140" stroke="rgb(255 255 255 / 0.08)" />
+                <circle
+                    cx="320"
+                    cy="320"
+                    r="318"
+                    stroke="rgb(255 255 255 / 0.08)"
+                />
+                <circle
+                    cx="320"
+                    cy="320"
+                    r="260"
+                    stroke="rgb(var(--accent-400) / 0.35)"
+                />
+                <circle
+                    cx="320"
+                    cy="320"
+                    r="200"
+                    stroke="rgb(255 255 255 / 0.08)"
+                />
+                <circle
+                    cx="320"
+                    cy="320"
+                    r="140"
+                    stroke="rgb(255 255 255 / 0.08)"
+                />
             </svg>
 
             <div className="relative z-10 flex max-h-full w-full max-w-md flex-col overflow-hidden rounded-card border border-line bg-surface shadow-overlay">
@@ -37,14 +55,6 @@ export default function CustomerAuthLayout({ children }: PropsWithChildren) {
                             </p>
                         </div>
                     </div>
-
-                    <Link
-                        href="/"
-                        className="mt-4 inline-flex min-h-11 items-center gap-2 text-sm font-medium text-brand-700 transition hover:text-brand-900 focus:outline-none focus-visible:rounded focus-visible:ring-2 focus-visible:ring-brand-500"
-                    >
-                        <span aria-hidden="true">←</span>
-                        Back to Home
-                    </Link>
                 </div>
 
                 <div className="flex-1 overflow-y-auto p-6 sm:p-8">

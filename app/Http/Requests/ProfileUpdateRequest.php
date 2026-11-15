@@ -16,6 +16,21 @@ class ProfileUpdateRequest extends FormRequest
      */
     public function rules(): array
     {
+        // If the user is a cashier, they update their username. No email required.
+        if ($this->user()->role === 'cashier') {
+            return [
+                'name' => ['required', 'string', 'max:255'],
+                'username' => [
+                    'required', 
+                    'string', 
+                    'max:50', 
+                    'regex:/\A[a-zA-Z0-9._-]+\z/', 
+                    Rule::unique(User::class)->ignore($this->user()->id)
+                ],
+            ];
+        }
+
+        // Admins update their email.
         return [
             'name' => ['required', 'string', 'max:255'],
             'email' => [

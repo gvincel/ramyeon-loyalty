@@ -268,7 +268,7 @@ export default function CustomerLayout({ children }: PropsWithChildren) {
                 ref={sidebarRef}
                 id="customer-sidebar"
                 tabIndex={-1}
-                className={`fixed inset-y-0 left-0 z-40 flex w-64 flex-col border-r border-brand-900/50 bg-gradient-to-b from-brand-700 via-brand-800 to-brand-900 transition-all duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] outline-none md:visible md:translate-x-0 ${
+                className={`fixed inset-y-0 left-0 z-40 flex w-64 flex-col border-r border-brand-900/50 bg-gradient-to-b from-brand-700 via-brand-800 to-brand-900 outline-none transition-all duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] md:visible md:translate-x-0 ${
                     isSidebarOpen
                         ? 'visible translate-x-0'
                         : 'invisible -translate-x-full'
@@ -381,37 +381,53 @@ export default function CustomerLayout({ children }: PropsWithChildren) {
 
                 {/* Account */}
                 <div
-                    className={`border-t border-brand-900/30 px-4 py-3 transition-all duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] ${
+                    className={`border-t border-brand-900/30 px-4 py-4 transition-all duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] ${
                         isSidebarCollapsed
                             ? 'md:flex md:flex-col md:items-center md:px-3'
                             : ''
                     }`}
                 >
-                    <div
-                        className={`min-w-0 overflow-hidden transition-all duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] ${
+                    {/* Clickable Profile Block */}
+                    <Link
+                        href={route('customer.profile.edit')}
+                        className={`group mb-3 flex w-full items-center gap-3 rounded-control transition-all hover:bg-white/10 ${
                             isSidebarCollapsed
-                                ? 'w-auto opacity-100 md:w-0 md:opacity-0'
-                                : 'w-auto opacity-100'
+                                ? 'justify-center p-1'
+                                : '-ml-2 p-2'
                         }`}
+                        title="My Profile"
                     >
-                        <p className="truncate text-body font-medium text-white">
-                            {auth?.user?.name ?? 'Loyalty Member'}
-                        </p>
-                        <p className="mt-0.5 truncate text-caption text-brand-100/80">
-                            Customer
-                        </p>
-                    </div>
+                        {/* Avatar Circle */}
+                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white text-small font-bold text-brand-700 shadow-sm ring-1 ring-brand-900/10 transition-transform group-hover:scale-105">
+                            {((auth?.customer?.first_name || 'L') + ' ' + (auth?.customer?.last_name || 'M')).split(' ').filter(Boolean).map((part: string) => part[0]).slice(0, 2).join('').toUpperCase()}
+                        </div>
+                        
+                        {/* Name and Role */}
+                        <div
+                            className={`min-w-0 overflow-hidden text-left transition-all duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] ${
+                                isSidebarCollapsed ? 'w-0 opacity-0' : 'flex-1 opacity-100'
+                            }`}
+                        >
+                            <p className="truncate text-body font-medium text-white group-hover:text-white/90">
+                                {auth?.customer?.first_name} {auth?.customer?.last_name}
+                            </p>
+                            
+                            <p className="mt-0.5 truncate text-caption text-brand-100/80 group-hover:text-brand-100">
+                                Customer
+                            </p>
+                        </div>
+                    </Link>
 
+                    {/* Logout Button */}
                     <div
                         className={`transition-all duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] ${
-                            isSidebarCollapsed ? 'mt-0' : 'mt-3'
+                            isSidebarCollapsed ? 'mt-0 w-full' : 'w-full'
                         }`}
                     >
-                        
-                    <LogoutButton
-                        collapsed={isSidebarCollapsed}
-                        logoutRoute="customer.logout"
-                    />
+                        <LogoutButton
+                            collapsed={isSidebarCollapsed}
+                            logoutRoute="customer.logout"
+                        />
                     </div>
                 </div>
             </aside>
@@ -421,7 +437,7 @@ export default function CustomerLayout({ children }: PropsWithChildren) {
                 <div
                     aria-hidden="true"
                     onClick={closeDrawer}
-                    className="fixed inset-0 z-30 bg-ink/40 backdrop-blur-sm md:hidden motion-safe:animate-fade-in"
+                    className="fixed inset-0 z-30 bg-ink/40 backdrop-blur-sm motion-safe:animate-fade-in md:hidden"
                 />
             )}
 
